@@ -1099,17 +1099,61 @@ void CustomModelDialog::OnSpinCtrlNextChannelChange(wxSpinEvent& event)
 
 void CustomModelDialog::OnGridCustomCellLeftClick(wxGridEvent& event)
 {
-    UpdateHighlight(event.GetRow(), event.GetCol());
-    if( autonumber ) {
+    bool changed = false;
+
+    if (event.ShiftDown()) {
+        int currentRow = GetActiveGrid()->GetGridCursorRow();
+        int currentCol = GetActiveGrid()->GetGridCursorCol();
+
+        int targetRow = event.GetRow();
+        int targetCol = event.GetCol();
+
+        int targetRowDiff = targetRow - currentRow;
+        int targetColDiff = targetCol - currentCol;
+
+        int rowIncrement = (0 < targetRowDiff) - (targetRowDiff < 0);
+        int colIncrement = (0 < targetColDiff) - (targetColDiff < 0);
+
+        int col = currentCol;
+        int row = currentRow;
+        if (rowIncrement != 0) {
+            do {
+                row += rowIncrement;
+                changed |= HighlightAndUpdateCell(row, col);
+            } while (row != targetRow);
+        } else if (colIncrement != 0) {
+            do {
+                col += colIncrement;
+                changed |= HighlightAndUpdateCell(row, col);
+            } while (col != targetCol);
+        }
+    }
+
+    if (!changed) {
+        changed |= HighlightAndUpdateCell(event.GetRow(), event.GetCol());
+    }
+
+    if (changed)
+        UpdatePreview();
+
+    event.Skip();
+}
+
+bool CustomModelDialog::HighlightAndUpdateCell(int row, int col)
+{
+    UpdateHighlight(row, col);
+    if (autonumber) {
         _changed = true;
-        GetActiveGrid()->SetCellValue(event.GetRow(), event.GetCol(), wxString::Format("%d", next_channel) );
-        if( autoincrement ) {
+
+        GetActiveGrid()->SetCellValue(row, col, wxString::Format("%d", next_channel));
+        if (autoincrement) {
             next_channel++;
             SpinCtrlNextChannel->SetValue(next_channel);
         }
-        UpdatePreview();
+
+        return true;
     }
-    event.Skip();
+    return false;
 }
 
 void CustomModelDialog::OnCheckBox_RearViewClick(wxCommandEvent& event)
@@ -2101,6 +2145,10 @@ void CustomModelDialog::OnGridKey(wxCommandEvent& event)
         break;
     case WXK_F8:
         PushPull(false, false); // back and go
+        break;
+    case WXK_RETURN:
+        if (autonumber)
+            HighlightAndUpdateCell(GetActiveGrid()->GetGridCursorRow(), GetActiveGrid()->GetGridCursorCol());
         break;
     default:
         wxASSERT(false);

@@ -298,6 +298,7 @@ class CustomModelDialog: public wxDialog
 		void WireSelectedVertical(long const id);
 		void PushPull(bool forward, bool stayOnLayer);
 		void UpdateGridColours();
+        bool HighlightAndUpdateCell(int row, int col);
 
 		DECLARE_EVENT_TABLE()
 };
