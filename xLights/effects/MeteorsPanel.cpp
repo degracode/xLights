@@ -172,7 +172,7 @@ MeteorsPanel::MeteorsPanel(wxWindow* parent) : xlEffectPanel(parent)
 	FlexGridSizer41->Add(StaticText4, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 	FlexGridSizer4 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer4->AddGrowableCol(0);
-	Slider_Meteors_Speed = new BulkEditSlider(this, ID_SLIDER_Meteors_Speed, 10, 0, 50, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_Meteors_Speed"));
+    Slider_Meteors_Speed = new BulkEditSlider(this, ID_SLIDER_Meteors_Speed, 10, METEORS_SPEED_MIN, METEORS_SPEED_MAX, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_Meteors_Speed"));
 	FlexGridSizer4->Add(Slider_Meteors_Speed, 1, wxALL|wxEXPAND, 5);
 	BitmapButton_Meteors_Speed = new BulkEditValueCurveButton(this, ID_VALUECURVE_Meteors_Speed, GetValueCurveNotSelectedBitmap(), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBORDER_NONE, wxDefaultValidator, _T("ID_VALUECURVE_Meteors_Speed"));
 	FlexGridSizer4->Add(BitmapButton_Meteors_Speed, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
