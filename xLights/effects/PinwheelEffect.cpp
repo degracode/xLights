@@ -23,6 +23,7 @@
 #include <log4cpp/Category.hh>
 
 #include "../Parallel.h"
+#include "PinwheelEffect.ispc.h"
 
 PinwheelEffect::PinwheelEffect(int id) : RenderableEffect(id, "Pinwheel", pinwheel_16, pinwheel_24, pinwheel_32, pinwheel_48, pinwheel_64)
 {
@@ -174,71 +175,93 @@ void PinwheelEffect::Render(Effect* effect, const SettingsMap& SettingsMap, Rend
 
         // Draw actual pinwheel arms
         if (max_radius != 0) {
-            //for (int x = 0; x < buffer.BufferWi; x++) {
-            parallel_for(0, buffer.BufferWi, [&buffer, tmax, xc_adj, yc_adj, max_radius, &colorarray, &colorIsSpacial,
-                                              &colorsAsHSV, &colorsAsColor, pinwheel_twist, pinwheel_rotation, pinwheel_arms, poffset,
-                                              degrees_per_arm, pos, pw3dType](int x) {
-                int x1 = x - xc_adj - (buffer.BufferWi / 2);
-                HSVValue hsv;
-                for (int y = 0; y < buffer.BufferHt; y++) {
-                    int y1 = y - yc_adj - (buffer.BufferHt / 2);
-                    double r = std::hypot(x1, y1);
-                    if (r <= max_radius) {
-                        double degrees_twist = (r / max_radius) * pinwheel_twist;
-                        double theta = (std::atan2(x1, y1) * 180 / 3.14159) + degrees_twist;
-                        if (pinwheel_rotation == 1) { // do we have CW rotation
-                            theta = pos + theta + (tmax / 2) + poffset;
-                        } else {
-                            theta = pos - theta + (tmax / 2) + poffset;
-                        }
-                        theta = theta + 540.0;
-                        int t2 = (int)theta % degrees_per_arm;
-                        if (t2 <= tmax) {
-                            double round = (float)t2 / (float)tmax;
-                            t2 = std::abs(t2 - (tmax / 2)) * 2;
-                            int ColorIdx2 = ((int)((theta / degrees_per_arm))) % pinwheel_arms;
-                            xlColor color = colorsAsColor[ColorIdx2];
-                            if (colorIsSpacial[ColorIdx2]) {
-                                buffer.palette.GetSpatialColor(colorarray[ColorIdx2], xc_adj + buffer.BufferWi / 2, yc_adj + buffer.BufferHt / 2, x, y, round, max_radius, color);
-                                if (!buffer.allowAlpha) {
-                                    hsv = color.asHSV();
-                                }
-                            } else if (!buffer.allowAlpha) {
-                                hsv = colorsAsHSV[ColorIdx2];
-                            }
-                            switch (pw3dType) {
-                            case PW_3D:
-                                if (buffer.allowAlpha) {
-                                    color.alpha = 255.0 * ((tmax - t2) / tmax);
-                                } else {
-                                    hsv.value = hsv.value * ((tmax - t2) / tmax);
-                                    color = hsv;
-                                }
-                                break;
-                            case PW_3D_Inverted:
-                                if (buffer.allowAlpha) {
-                                    color.alpha = 255.0 * ((t2) / tmax);
-                                } else {
-                                    hsv.value = hsv.value * ((t2) / tmax);
-                                    color = hsv;
-                                }
-                                break;
-                            case PW_SWEEP:
-                                if (buffer.allowAlpha) {
-                                    color.alpha = 255.0 * (1.0 - round);
-                                } else {
-                                    hsv.value = hsv.value * (1.0 - round);
-                                    color = hsv;
-                                }
-                                break;
-                            default:
-                                break;
-                            }
+            static bool useISPC = false;
+            if (useISPC) {
+                std::vector<ispc::xlColor> outputColumn(buffer.BufferHt);
+                std::vector<uint8_t> outputColumnIsSet(buffer.BufferHt);
+                outputColumn.resize(buffer.BufferHt);
+
+                for (int x = 0; x < buffer.BufferWi; x++) {
+                    int x1 = x - xc_adj - (buffer.BufferWi / 2);
+
+                    ispc::pinwheelEffectKernel(&outputColumn[0], &outputColumnIsSet[0], buffer.BufferHt, x, x1, xc_adj, yc_adj, max_radius, pinwheel_twist, pinwheel_rotation, pinwheel_arms, poffset, degrees_per_arm, (float)pos, static_cast<ispc::Pinwheel3DType>(pw3dType), tmax, buffer.allowAlpha,
+                                               reinterpret_cast<const ispc::xlColor*>(&colorsAsColor[0]));
+
+                    for (int y = 0; y < buffer.BufferHt; ++y) {
+                        if (outputColumnIsSet[y]) {
+                            const auto& outputColor = outputColumn[y];
+                            xlColor color{ outputColor.red, outputColor.green, outputColor.blue, outputColor.alpha };
                             buffer.SetPixel(x, y, color);
                         }
                     }
-                }
-            }, 5);
+                };
+            } else {
+                // for (int x = 0; x < buffer.BufferWi; x++) {
+                parallel_for(
+                    0, buffer.BufferWi, [&buffer, tmax, xc_adj, yc_adj, max_radius, &colorarray, &colorIsSpacial, &colorsAsHSV, &colorsAsColor, pinwheel_twist, pinwheel_rotation, pinwheel_arms, poffset, degrees_per_arm, pos, pw3dType](int x) {
+                        int x1 = x - xc_adj - (buffer.BufferWi / 2);
+                        HSVValue hsv;
+                        for (int y = 0; y < buffer.BufferHt; y++) {
+                            int y1 = y - yc_adj - (buffer.BufferHt / 2);
+                            double r = std::hypot(x1, y1);
+                            if (r <= max_radius) {
+                                double degrees_twist = (r / max_radius) * pinwheel_twist;
+                                double theta = (std::atan2(x1, y1) * 180 / 3.14159) + degrees_twist;
+                                if (pinwheel_rotation == 1) { // do we have CW rotation
+                                    theta = pos + theta + (tmax / 2) + poffset;
+                                } else {
+                                    theta = pos - theta + (tmax / 2) + poffset;
+                                }
+                                theta = theta + 540.0;
+                                int t2 = (int)theta % degrees_per_arm;
+                                if (t2 <= tmax) {
+                                    double round = (float)t2 / (float)tmax;
+                                    t2 = std::abs(t2 - (tmax / 2)) * 2;
+                                    int ColorIdx2 = ((int)((theta / degrees_per_arm))) % pinwheel_arms;
+                                    xlColor color = colorsAsColor[ColorIdx2];
+                                    if (colorIsSpacial[ColorIdx2]) {
+                                        buffer.palette.GetSpatialColor(colorarray[ColorIdx2], xc_adj + buffer.BufferWi / 2, yc_adj + buffer.BufferHt / 2, x, y, round, max_radius, color);
+                                        if (!buffer.allowAlpha) {
+                                            hsv = color.asHSV();
+                                        }
+                                    } else if (!buffer.allowAlpha) {
+                                        hsv = colorsAsHSV[ColorIdx2];
+                                    }
+                                    switch (pw3dType) {
+                                    case PW_3D:
+                                        if (buffer.allowAlpha) {
+                                            color.alpha = 255.0 * ((tmax - t2) / tmax);
+                                        } else {
+                                            hsv.value = hsv.value * ((tmax - t2) / tmax);
+                                            color = hsv;
+                                        }
+                                        break;
+                                    case PW_3D_Inverted:
+                                        if (buffer.allowAlpha) {
+                                            color.alpha = 255.0 * ((t2) / tmax);
+                                        } else {
+                                            hsv.value = hsv.value * ((t2) / tmax);
+                                            color = hsv;
+                                        }
+                                        break;
+                                    case PW_SWEEP:
+                                        if (buffer.allowAlpha) {
+                                            color.alpha = 255.0 * (1.0 - round);
+                                        } else {
+                                            hsv.value = hsv.value * (1.0 - round);
+                                            color = hsv;
+                                        }
+                                        break;
+                                    default:
+                                        break;
+                                    }
+                                    buffer.SetPixel(x, y, color);
+                                }
+                            }
+                        }
+                    },
+                    5);
+            }
         }
     }
     else
