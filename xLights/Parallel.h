@@ -39,6 +39,7 @@ public:
  * would convert to:
  * parallel_for(start, max, [&] (int x) {} );
  */
+static const bool enable_parallel_for = true;
 void parallel_for(int start, int max, std::function<void(int)>&& f, int minStep = 1, ParallelJobPool *pool = &ParallelJobPool::POOL);
 
 

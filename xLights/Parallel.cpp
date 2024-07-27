@@ -96,7 +96,7 @@ public:
 
 void parallel_for(int min, int max, std::function<void(int)>&& func, int minStep, ParallelJobPool *pool) {
     int calcSteps = pool->calcSteps(minStep, max - min);
-    if (calcSteps <= 1) {
+    if (calcSteps <= 1 || !enable_parallel_for) {
         for (int x = min; x < max; x++) {
             func(x);
         }

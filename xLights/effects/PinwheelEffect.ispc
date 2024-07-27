@@ -94,14 +94,21 @@ uniform const xlColor colorsAsColor[]) {
                 theta = pos - theta + (tmax / 2) + poffset;
             }
             theta = theta + 540.0;
+
+            #pragma ignore warning(perf)
             int t2 = (int)theta % degrees_per_arm;
 
             outputColumnIsSet[y] = t2 <= tmax;
             if (t2 <= tmax) {
                 float round = (float)t2 / (float)tmax;
                 t2 = abs(t2 - (tmax / 2)) * 2;
+
+                #pragma ignore warning(perf)
                 int ColorIdx2 = ((int)((theta / degrees_per_arm))) % pinwheel_arms;
+
+                #pragma ignore warning(perf)
                 xlColor color = colorsAsColor[ColorIdx2];
+
                 HSVValue hsv;
                 // TODO: Use cif and branch back to a function pointer (supplied as an arg to this kernel) that can fetch the spatial colour
                 //if (colorIsSpacial[ColorIdx2]) {
@@ -141,6 +148,8 @@ uniform const xlColor colorsAsColor[]) {
                 default:
                     break;
                 }
+
+                #pragma ignore warning(perf)
                 outputColumn[y] = color;
             }
         }
