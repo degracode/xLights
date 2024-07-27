@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <set>
@@ -50,7 +50,18 @@ public:
     static const std::vector<std::string> GetBufferStyleList() {
         return BUFFER_STYLES;
     }
+    
+    virtual const std::vector<std::string>& GetBufferStyles() const override;
+    virtual const std::string AdjustBufferStyle(const std::string &style) const override;
+
+    virtual void GetBufferSize(const std::string &type, const std::string &camera, const std::string &transform, int &BufferWi, int &BufferHi, int stagger) const override;
+    virtual void InitRenderBufferNodes(const std::string &type, const std::string &camera, const std::string &transform,
+        std::vector<NodeBaseClassPtr> &Nodes, int &BufferWi, int &BufferHi, int stagger, bool deep = false) const override;
+
     std::string GetDuplicateNodes() const { return _duplicateNodes; }
+
+    [[nodiscard]] FaceStateData const& GetFaceInfo() const override { return parent->faceInfo; };
+    [[nodiscard]] FaceStateNodes const& GetFaceInfoNodes() const override { return parent->faceInfoNodes; };
 
 private:
     void CheckDuplicates(const std::vector<int>& nodeIndexes);
@@ -62,5 +73,7 @@ private:
     const std::string _bufferStyle;
     std::string _properyGridDisplay;
     std::string _duplicateNodes;
+    
+    static std::vector<std::string> SUBMODEL_BUFFER_STYLES;
 };
 

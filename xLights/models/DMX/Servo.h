@@ -3,15 +3,19 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/string.h>
 #include <glm/glm.hpp>
+
+#include "../PWMOutput.h"
+#include <map>
+
 class wxPropertyGridInterface;
 class wxPropertyGridEvent;
 class BaseObject;
@@ -25,7 +29,7 @@ class Servo
 
         void Init(BaseObject* base);
 
-        void AddTypeProperties(wxPropertyGridInterface* grid);
+        void AddTypeProperties(wxPropertyGridInterface* grid, bool pwm);
 
         int OnPropertyGridChange(wxPropertyGridInterface *grid, wxPropertyGridEvent& event, BaseObject* base, bool locked);
 
@@ -57,6 +61,8 @@ class Servo
         void SetPivotOffsetY(float val);
         void SetPivotOffsetZ(float val);
 
+        void GetPWMOutputs(std::map<uint32_t, PWMOutput> &channels) const;
+
     protected:
 
     private:
@@ -76,5 +82,15 @@ class Servo
         bool is_2d;
         Servo* link;
         BaseObject* base;
+    
+        // used for display only in the previews
+        int lastValue = 0;
+    
+    
+    int controller_min = 1000;
+    int controller_max = 2000;
+    bool controller_reverse = false;
+    std::string controller_zero = "Hold";
+    std::string controller_dataType = "Scaled";
 };
 

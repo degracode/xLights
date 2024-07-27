@@ -1,16 +1,17 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "EffectManager.h"
 #include "OffEffect.h"
 #include "OnEffect.h"
+#include "AdjustEffect.h"
 #include "BarsEffect.h"
 #include "ButterflyEffect.h"
 #include "CandleEffect.h"
@@ -36,6 +37,7 @@
 #include "MarqueeEffect.h"
 #include "MeteorsEffect.h"
 #include "MorphEffect.h"
+#include "MovingHeadEffect.h"
 #include "MusicEffect.h"
 #include "PianoEffect.h"
 #include "PicturesEffect.h"
@@ -81,6 +83,7 @@ EffectManager::EffectManager()
 {
     add(createEffect(eff_OFF));
     add(createEffect(eff_ON));
+    add(createEffect(eff_ADJUST));
     add(createEffect(eff_BARS));
     add(createEffect(eff_BUTTERFLY));
     add(createEffect(eff_CANDLE));
@@ -105,6 +108,7 @@ EffectManager::EffectManager()
     add(createEffect(eff_LIQUID));
     add(createEffect(eff_MARQUEE));
     add(createEffect(eff_METEORS));
+    add(createEffect(eff_MOVINGHEAD));
     add(createEffect(eff_MUSIC));
     add(createEffect(eff_MORPH));
     add(createEffect(eff_PIANO));
@@ -153,7 +157,10 @@ RenderableEffect *EffectManager::createEffect(RGB_EFFECTS_e eff) {
     switch (eff) {
         case eff_OFF: return new OffEffect(eff_OFF);
         case eff_ON: return new OnEffect(eff_ON);
-        case eff_BARS: return new BarsEffect(eff_BARS);
+        case eff_ADJUST:
+        return new AdjustEffect(eff_ADJUST);
+        case eff_BARS:
+        return new BarsEffect(eff_BARS);
         case eff_BUTTERFLY: return new ButterflyEffect(eff_BUTTERFLY);
         case eff_CANDLE: return new CandleEffect(eff_CANDLE);
         case eff_CIRCLES: return new CirclesEffect(eff_CIRCLES);
@@ -177,8 +184,9 @@ RenderableEffect *EffectManager::createEffect(RGB_EFFECTS_e eff) {
         case eff_LIQUID: return new LiquidEffect(eff_LIQUID);
         case eff_MARQUEE: return new MarqueeEffect(eff_MARQUEE);
         case eff_METEORS: return new MeteorsEffect(eff_METEORS);
-        case eff_MUSIC: return new MusicEffect(eff_MUSIC);
         case eff_MORPH: return new MorphEffect(eff_MORPH);
+        case eff_MOVINGHEAD: return new MovingHeadEffect(eff_MOVINGHEAD);
+        case eff_MUSIC: return new MusicEffect(eff_MUSIC);
         case eff_PIANO: return new PianoEffect(eff_PIANO);
         case eff_PICTURES: return new PicturesEffect(eff_PICTURES);
         case eff_PINWHEEL: return new PinwheelEffect(eff_PINWHEEL);

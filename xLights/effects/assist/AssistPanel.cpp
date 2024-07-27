@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*InternalHeaders(AssistPanel)
@@ -41,8 +41,12 @@ AssistPanel::AssistPanel(wxWindow* parent,wxWindowID id,const wxPoint& pos,const
 	FlexGridSizer2->AddGrowableCol(0);
 	FlexGridSizer2->AddGrowableRow(0);
 	ScrolledWindowAssist->SetSizer(FlexGridSizer2);
+	FlexGridSizer2->Fit(ScrolledWindowAssist);
+	FlexGridSizer2->SetSizeHints(ScrolledWindowAssist);
 	FlexGridSizer1->Add(ScrolledWindowAssist, 1, wxALL|wxEXPAND, 5);
 	SetSizer(FlexGridSizer1);
+	FlexGridSizer1->Fit(this);
+	FlexGridSizer1->SetSizeHints(this);
 	//*)
 }
 

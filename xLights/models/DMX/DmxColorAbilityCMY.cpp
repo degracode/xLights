@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/propgrid/advprops.h>
@@ -30,6 +30,16 @@ void DmxColorAbilityCMY::InitColor(wxXmlNode* ModelXml)
 bool DmxColorAbilityCMY::IsColorChannel(uint32_t channel) const
 {
     return (cyan_channel == channel || magenta_channel == channel || yellow_channel == channel || white_channel == channel);
+}
+
+int DmxColorAbilityCMY::GetNumChannels() const
+{
+    int num_channels = 0;
+    num_channels += cyan_channel > 0 ? 1 : 0;
+    num_channels += magenta_channel > 0 ? 1 : 0;
+    num_channels += yellow_channel > 0 ? 1 : 0;
+    num_channels += white_channel > 0 ? 1 : 0;
+    return num_channels;
 }
 
 float DmxColorAbilityCMY::GetK(xlColor c) const
@@ -121,7 +131,7 @@ bool DmxColorAbilityCMY::IsValidModelSettings(Model* m) const
             white_channel < nodeCount + 1);
 }
 
-void DmxColorAbilityCMY::AddColorTypeProperties(wxPropertyGridInterface* grid) const
+void DmxColorAbilityCMY::AddColorTypeProperties(wxPropertyGridInterface* grid, bool pwm) const
 {
     wxPGProperty* p = grid->Append(new wxUIntProperty("Cyan Channel", "DmxCyanChannel", cyan_channel));
     p->SetAttribute("Min", 0);
@@ -356,5 +366,21 @@ void DmxColorAbilityCMY::SetNodeNames(std::vector<std::string>& names) const
     }
     if (CheckChannel(white_channel, names.size())) {
         names[white_channel - 1] = "White";
+    }
+}
+
+
+void DmxColorAbilityCMY::GetPWMOutputs(std::map<uint32_t, PWMOutput> &map) const {
+    if (cyan_channel > 0) {
+        map[cyan_channel] = PWMOutput(cyan_channel, PWMOutput::Type::LED, 1, "Cyan");
+    }
+    if (magenta_channel > 0) {
+        map[magenta_channel] = PWMOutput(magenta_channel, PWMOutput::Type::LED, 1, "Magenta");
+    }
+    if (yellow_channel > 0) {
+        map[yellow_channel] = PWMOutput(yellow_channel, PWMOutput::Type::LED, 1, "Yellow");
+    }
+    if (white_channel > 0) {
+        map[white_channel] = PWMOutput(white_channel, PWMOutput::Type::LED, 1, "White");
     }
 }

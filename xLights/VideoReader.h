@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/wx.h>
@@ -23,6 +23,16 @@ extern "C"
 #ifdef __WXMSW__
 class WindowsHardwareVideoReader;
 #endif
+
+enum class WINHARDWARERENDERTYPE : int {
+    DIRECX11_API = 0,
+    FFMPEG_AUTO,
+    FFMPEG_CUDA,
+    FFMPEG_QSV,
+    FFMPEG_VULKAN,
+    FFMPEG_AMF,
+    FFMPEG_D3D11VA
+};
 
 class VideoReader
 {
@@ -43,10 +53,13 @@ public:
     std::string GetFilename() const { return _filename; }
     int GetPixelChannels() const { return _wantAlpha ? 4 : 3; }
     static void SetHardwareAcceleratedVideo(bool accel);
+    static void SetHardwareRenderType(int type);
     static bool IsHardwareAcceleratedVideo() { return HW_ACCELERATION_ENABLED; }
+    static int GetHardwareRenderType() { return static_cast<std::underlying_type_t<WINHARDWARERENDERTYPE>>(HW_ACCELERATION_TYPE); }
     static void InitHWAcceleration();
 private:
     static bool HW_ACCELERATION_ENABLED;
+    static WINHARDWARERENDERTYPE HW_ACCELERATION_TYPE;
     bool readFrame(int timestampMS);
     void reopenContext(bool allowHWDecoder = true);
     

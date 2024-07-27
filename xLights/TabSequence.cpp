@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/utils.h>
@@ -54,6 +54,10 @@ void xLightsFrame::DisplayXlightsFilename(const wxString& filename) const
 
 void xLightsFrame::OnBitmapButtonOpenSeqClick(wxCommandEvent& event)
 {
+    if (readOnlyMode) {
+        DisplayError("Sequences cannot be opened in read only mode!", this);
+        return;
+    }
     OpenSequence("", nullptr);
 }
 
@@ -260,6 +264,7 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
         root->AddChild(SettingsNode);
         SetXmlSetting("previewWidth", "1280");
         SetXmlSetting("previewHeight", "720");
+        SetXmlSetting("LayoutMode3D", "0");
         UnsavedRgbEffectsChanges = true;
     }
     int previewWidth = wxAtoi(GetXmlSetting("previewWidth", "1280"));
@@ -323,6 +328,7 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
         SetXmlSetting("renderCacheDir", showDirectory);
         UnsavedRgbEffectsChanges = true;
     }
+    _renderCache.SetRenderCacheFolder(renderCacheDirectory);
 
     mStoredLayoutGroup = GetXmlSetting("storedLayoutGroup", "Default");
 
@@ -373,6 +379,12 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
         modelPreview->SetBackgroundBrightness(layoutPanel->GetBackgroundBrightnessForSelectedPreview(), layoutPanel->GetBackgroundAlphaForSelectedPreview());
         modelPreview->SetScaleBackgroundImage(layoutPanel->GetBackgroundScaledForSelectedPreview());
     }
+    
+    wxConfigBase* config = wxConfigBase::Get();
+    bool is_3d = config->ReadBool("LayoutMode3D", false);
+    is_3d = GetXmlSetting("LayoutMode3D", is_3d ? "1" : "0") == "1";
+    modelPreview->Set3D(is_3d);
+    layoutPanel->Set3d(is_3d);
 
     UpdateLayoutSave();
     UpdateControllerSave();
@@ -1158,10 +1170,12 @@ void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames
         EnableSequenceControls(true);
         logger_base.debug("Batch render done.");
         printf("Done All Files\n");
+        wxBell();
         if (exitOnDone) {
             Destroy();
         } else {
             CloseSequence();
+            SetStatusText(_("Batch Render Done."));
         }
         return;
     }
@@ -1185,6 +1199,16 @@ void xLightsFrame::OpenRenderAndSaveSequences(const wxArrayString &origFilenames
     wxArrayString fileNames = origFilenames;
     wxString seq = fileNames[0];
     wxStopWatch sw; // start a stopwatch timer
+
+    auto b = _renderMode;
+    _renderMode = false;
+    if (fileNames.size() == 1)
+    {
+        SetStatusText(_("Batch Rendering " + seq + ". Last sequence."));
+    } else {
+        SetStatusText(_("Batch Rendering " + seq + ". " + wxString::Format("%d", (int)fileNames.size() - 1) + " sequences left to render."));
+    }
+    _renderMode = b;
 
     printf("Processing file %s\n", (const char *)seq.c_str());
     logger_base.debug("Batch Render Processing file %s\n", (const char *)seq.c_str());
@@ -1252,6 +1276,12 @@ void xLightsFrame::SaveSequence()
     if (_seqData.NumFrames() == 0)
     {
         DisplayError("You must open a sequence first!", this);
+        return;
+    }
+
+    if (readOnlyMode)
+    {
+        DisplayError("Sequences cannot be saved in read only mode!", this);
         return;
     }
 
@@ -1425,6 +1455,11 @@ void xLightsFrame::SetSequenceTiming(int timingMS)
 
 void xLightsFrame::SaveAsSequence()
 {
+    if (readOnlyMode) {
+		DisplayError("Sequences cannot be saved in read only mode!", this);
+		return;
+	}
+
     if (_seqData.NumFrames() == 0) {
         DisplayError("You must open a sequence first!", this);
         return;
@@ -1612,6 +1647,7 @@ void xLightsFrame::EnableSequenceControls(bool enable)
         MenuItemShiftEffects->Enable(false);
         MenuItemShiftSelectedEffects->Enable(false);
         MenuItem_ColorReplace->Enable(false);
+        if (revertToMenuItem) revertToMenuItem->Enable(false);
     }
     if (!enable && _seqData.NumFrames() > 0) {
         //file is loaded, but we're doing something that requires controls disabled (such as rendering)

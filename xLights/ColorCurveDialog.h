@@ -3,20 +3,20 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
  //(*Headers(ColorCurveDialog)
-#include <wx/button.h>
-#include <wx/choice.h>
-#include <wx/dialog.h>
-#include <wx/sizer.h>
-#include <wx/stattext.h>
-//*)
+ #include <wx/button.h>
+ #include <wx/choice.h>
+ #include <wx/dialog.h>
+ #include <wx/sizer.h>
+ #include <wx/stattext.h>
+ //*)
 
 #include <wx/colourdata.h>
 #include <wx/dir.h>
@@ -32,7 +32,7 @@ wxDECLARE_EVENT(EVT_CCP_CHANGED, wxCommandEvent);
 class ColorCurvePanel : public wxWindow, public xlCustomControl
 {
 public:
-    ColorCurvePanel(ColorCurve* cc, Element* timingElement, int start, int end , wxColourData &colorData, wxWindow* parent, wxWindowID id, const wxPoint &pos = wxDefaultPosition,
+    ColorCurvePanel(ColorCurve* cc, Element* timingElement, int start, int end , wxWindow* parent, wxWindowID id, const wxPoint &pos = wxDefaultPosition,
         const wxSize &size = wxDefaultSize, long style = 0);
     virtual ~ColorCurvePanel() {};
     virtual void SetValue(const std::string &val) override {};
@@ -81,7 +81,7 @@ private:
     std::list<ccSortableColorPoint> _undo;
     int _start;
     int _end;
-    wxColourData& _colorData;
+    int _totalBorderWidth;
     Element* _timingElement;
 };
 
@@ -98,7 +98,7 @@ class ColorCurveDialog: public wxDialog
 
     public:
 
-		ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourData& colorData, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
+		ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxWindowID id=wxID_ANY,const wxPoint& pos=wxDefaultPosition,const wxSize& size=wxDefaultSize);
 		virtual ~ColorCurveDialog();
         void OnCCPChanged(wxCommandEvent& event);
         bool DidExport() const { return _exported; }

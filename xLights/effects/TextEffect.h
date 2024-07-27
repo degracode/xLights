@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "RenderableEffect.h"
@@ -57,7 +57,7 @@ private:
         int dir,
         bool center, int Effect, int Countdown, int tspeed,
         int startx, int starty, int endx, int endy,
-        bool isPixelBased) const;
+        bool isPixelBased, bool perWord) const;
     void RenderXLText(Effect* effect, const SettingsMap& settings, RenderBuffer& buffer);
     void AddMotions(int& OffsetLeft, int& OffsetTop, const SettingsMap& settings, RenderBuffer& buffer,
         int txtLen, int endx, int endy, bool pixelOffsets, int PreOffsetLeft, int PreOffsetTop, int text_len, int char_width, int char_height, bool vertical, bool rotate_90) const;

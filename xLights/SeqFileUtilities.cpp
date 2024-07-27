@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/config.h>
@@ -100,6 +100,11 @@ void xLightsFrame::AddAllModelsToSequence()
 
 void xLightsFrame::NewSequence(const std::string& media, uint32_t durationMS, uint32_t frameMS, const std::string& defView)
 {
+    if (readOnlyMode) {
+        DisplayError("Sequences cannot be created in read only mode!", this);
+        return;
+    }
+
     // close any open sequences
     if (!CloseSequence()) {
         return;
@@ -128,6 +133,8 @@ void xLightsFrame::NewSequence(const std::string& media, uint32_t durationMS, ui
             }
         }
     }
+    // Flip to sequencer tab
+    Notebook1->SetSelection(Notebook1->GetPageIndex(PanelSequencer));
 
     // load media if available
     if (CurrentSeqXmlFile->GetSequenceType() == "Media" && CurrentSeqXmlFile->HasAudioMedia()) {
@@ -139,7 +146,6 @@ void xLightsFrame::NewSequence(const std::string& media, uint32_t durationMS, ui
 
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     logger_base.info("New sequence created Type %s Timing %dms.", (const char*)(CurrentSeqXmlFile->GetSequenceType().c_str()), ms);
-
     LoadSequencer(*CurrentSeqXmlFile);
     CurrentSeqXmlFile->SetSequenceLoaded(true);
     if (_sequenceElements.GetNumberOfTimingElements() == 0) {
@@ -159,6 +165,7 @@ void xLightsFrame::NewSequence(const std::string& media, uint32_t durationMS, ui
     MenuItem_ExportEffects->Enable(true);
     MenuItem_ImportEffects->Enable(true);
     MenuItem_PurgeRenderCache->Enable(true);
+    if (revertToMenuItem) revertToMenuItem->Enable(true);
 
     unsigned int max = GetMaxNumChannels();
     size_t memRequired = std::max(CurrentSeqXmlFile->GetSequenceDurationMS(), mMediaLengthMS) / ms;
@@ -218,7 +225,7 @@ void xLightsFrame::SetPanelSequencerLabel(const std::string& sequence)
     PanelSequencer->SetLabel("XLIGHTS_SEQUENCER_TAB:" + sequence);
 }
 
-void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialog* plog)
+void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialog* plog, const wxString &rp)
 {
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     ClearNonExistentFiles();
@@ -247,56 +254,58 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
             wxMessageBox("NOTE: When you save this .xbkp file it will save as a .xsq file overwriting any existing sequence .xsq file", "Warning");
         }
 
-        // check if there is a autosave backup file which is newer than the file we have been asked to open
-        if (((!_renderMode && !_checkSequenceMode) || _promptBatchRenderIssues) && wxFileName(filename).GetExt().Lower() != "xbkp" && wxFileName(filename).GetExt().Lower() != "fseq") {
-            wxFileName fn(filename);
-            wxFileName xx = fn;
-            xx.SetExt("xbkp");
-            wxString asfile = xx.GetLongPath();
-
-            if (FileExists(asfile)) {
-                // the autosave file exists
-                wxDateTime xmltime = fn.GetModificationTime();
-                wxFileName asfn(asfile);
-                wxDateTime xbkptime = asfn.GetModificationTime();
-
-                if (xbkptime.IsValid() && xmltime.IsValid() && (xbkptime > xmltime)) {
-                    // autosave file is newer
-                    if (wxMessageBox("Autosaved file found which seems to be newer than your sequence file ... would you like to open that instead and replace your xml file?", "Newer file found", wxYES_NO) == wxYES) {
-                        // run a backup ... equivalent of a F10
-                        DoBackup(false, false, true);
-
-                        // delete the old xml file
-                        wxRemoveFile(filename);
-
-                        // rename the autosave file
-                        wxRenameFile(asfile, filename);
-                    } else {
-                        if (FileExists(fn)) {
-                            // set the backup to be older than the XML files to avoid re-promting
-                            xmltime -= wxTimeSpan(0, 0, 3, 0); // subtract 2 seconds as FAT time resulution is 2 seconds
-                            asfn.SetTimes(&xmltime, &xmltime, &xmltime);
+        if (!rp.IsEmpty()) {
+            // check if there is a autosave backup file which is newer than the file we have been asked to open
+            if (((!_renderMode && !_checkSequenceMode) || _promptBatchRenderIssues) && wxFileName(filename).GetExt().Lower() != "xbkp" && wxFileName(filename).GetExt().Lower() != "fseq") {
+                wxFileName fn(filename);
+                wxFileName xx = fn;
+                xx.SetExt("xbkp");
+                wxString asfile = xx.GetLongPath();
+                
+                if (FileExists(asfile)) {
+                    // the autosave file exists
+                    wxDateTime xmltime = fn.GetModificationTime();
+                    wxFileName asfn(asfile);
+                    wxDateTime xbkptime = asfn.GetModificationTime();
+                    
+                    if (xbkptime.IsValid() && xmltime.IsValid() && (xbkptime > xmltime)) {
+                        // autosave file is newer
+                        if (wxMessageBox("Autosaved file found which seems to be newer than your sequence file ... would you like to open that instead and replace your xml file?", "Newer file found", wxYES_NO) == wxYES) {
+                            // run a backup ... equivalent of a F10
+                            DoBackup(false, false, true);
+                            
+                            // delete the old xml file
+                            wxRemoveFile(filename);
+                            
+                            // rename the autosave file
+                            wxRenameFile(asfile, filename);
+                        } else {
+                            if (FileExists(fn)) {
+                                // set the backup to be older than the XML files to avoid re-promting
+                                xmltime -= wxTimeSpan(0, 0, 3, 0); // subtract 2 seconds as FAT time resulution is 2 seconds
+                                asfn.SetTimes(&xmltime, &xmltime, &xmltime);
+                            }
                         }
                     }
                 }
             }
         }
-
         wxStopWatch sw; // start a stopwatch timer
 
         wxFileName selected_file(filename);
-
         SetPanelSequencerLabel(selected_file.GetName().ToStdString());
-
         wxFileName xml_file = selected_file;
-        if (xml_file.GetExt() != "xml") {
-            xml_file.SetExt("xsq");
-            // maybe the filename has not changed
-            if (!FileExists(xml_file)) {
-                // xsq not found ... maybe it is xbkp
-                xml_file.SetExt("xbkp");
+        
+        if (rp.IsEmpty()) {
+            if (xml_file.GetExt() != "xml") {
+                xml_file.SetExt("xsq");
+                // maybe the filename has not changed
                 if (!FileExists(xml_file)) {
-                    xml_file.SetExt("xml");
+                    // xsq not found ... maybe it is xbkp
+                    xml_file.SetExt("xbkp");
+                    if (!FileExists(xml_file)) {
+                        xml_file.SetExt("xml");
+                    }
                 }
             }
         }
@@ -368,11 +377,17 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
             logger_base.debug("Could not Find FSEQ File at: '%s'", (const char*)fseq_file.GetFullPath().c_str());
         }
 
+        
+        wxFileName realPath = rp;
+        if (rp.IsEmpty()) {
+            realPath = xml_file;
+        }
+
         // assign global xml file object
         CurrentSeqXmlFile = new xLightsXmlFile(xml_file);
 
         // open the xml file so we can see if it has media
-        CurrentSeqXmlFile->Open(GetShowDirectory());
+        CurrentSeqXmlFile->Open(GetShowDirectory(), false, realPath);
 
         _renderCache.SetSequence(renderCacheDirectory, CurrentSeqXmlFile->GetName().ToStdString());
 
@@ -444,7 +459,7 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
                 while (fcont) {
                     if (audFile != "Backup") {
                         // search directory
-                        detect_audio.SetPath(GetShowDirectory() + wxFileName::GetPathSeparator() + audFile);
+                        detect_audio.SetPath(GetShowDirectory() + GetPathSeparator() + audFile);
                         if (FileExists(detect_audio)) {
                             media_file = detect_audio;
                             ObtainAccessToURL(media_file.GetFullPath().ToStdString());
@@ -492,6 +507,7 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
         wxString mss = CurrentSeqXmlFile->GetSequenceTiming();
         int ms = atoi(mss.c_str());
         logger_base.debug("Sequence Timing: %d", ms);
+        Notebook1->SetSelection(Notebook1->GetPageIndex(PanelSequencer));
         bool loaded_xml = SeqLoadXlightsFile(*CurrentSeqXmlFile, true);
 
         unsigned int numChan = GetMaxNumChannels();
@@ -524,7 +540,7 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
             _seqData.init(numChan, CurrentSeqXmlFile->GetSequenceDurationMS() / ms, ms);
         }
 
-        logger_base.debug("Initializeing Display Elements");
+        logger_base.debug("Initializing Display Elements");
         displayElementsPanel->Initialize();
 
         // if we loaded the fseq but not the xml then we need to populate views
@@ -946,13 +962,13 @@ void xLightsFrame::OnMenuItemImportEffects(wxCommandEvent& event)
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     wxArrayString filters;
-    filters.push_back("All|*.xsq;*.sup;*.lms;*.lpe;*.las;*.loredit;*.xml;*.hlsdata;*.vix;*.tim;*.msq;*.vsa;*.zip;*.piz");
+    filters.push_back("All|*.xsq;*.sup;*.lms;*.lpe;*.las;*.loredit;*.xml;*.hlsdata;*.vix;*.tim;*.msq;*.vsa;*.zip;*.piz;*.xsqz");
     filters.push_back("SuperStar File (*.sup)|*.sup");
     filters.push_back("LOR Music Sequences (*.lms)|*.lms");
     filters.push_back("LOR Pixel Editor Sequences (*.lpe)|*.lpe");
     filters.push_back("LOR Animation Sequences (*.las)|*.las");
     filters.push_back("LOR S5(*.loredit)|*.loredit");
-    filters.push_back("xLights Sequence Package (*.zip;*.piz)|*.zip;*.piz");
+    filters.push_back("xLights Sequence Package (*.zip;*.piz;*.xsqz)|*.zip;*.piz;*.xsqz");
     filters.push_back("xLights Sequence (*.xsq)|*.xsq");
     filters.push_back("Old xLights Sequence (*.xml)|*.xml");
     filters.push_back("HLS hlsIdata Sequences(*.hlsIdata)|*.hlsIdata");
@@ -1014,7 +1030,7 @@ void xLightsFrame::OnMenuItemImportEffects(wxCommandEvent& event)
             ImportVixen3(fn);
         } else if (ext == "vix") {
             ImportVix(fn);
-        } else if (ext == "xml" || ext == "xsq" || ext == "zip" || ext == "piz") {
+        } else if (ext == "xml" || ext == "xsq" || ext == "zip" || ext == "xsqz" || ext == "piz") {
             ImportXLights(fn);
         } else if (ext == "msq") {
             ImportLSP(fn);
@@ -1181,7 +1197,7 @@ void xLightsFrame::ImportXLights(const wxFileName& filename, std::string const& 
     }
 
     xLightsXmlFile xlf(xsqPkg.GetXsqFile());
-    xlf.Open(GetShowDirectory(), true);
+    xlf.Open(GetShowDirectory(), true, xsqPkg.GetXsqFile());
     SequenceElements se(this);
     se.SetFrequency(_sequenceElements.GetFrequency());
     se.SetViewsManager(GetViewsManager()); // This must come first before LoadSequencerFile.
@@ -1250,7 +1266,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
                 hasEffects |= el->GetEffectLayer(l)->GetEffectCount() > 0;
             }
             if (hasEffects) {
-                dlg.AddChannel(el->GetName(), el->GetEffectCount());
+                dlg.AddChannel(el->GetName(), el->GetModelEffectCount());
             }
             elementMap[el->GetName()] = el;
             int s = 0;
@@ -1258,7 +1274,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
                 SubModelElement* sme = el->GetSubModel(sm);
 
                 StrandElement* ste = dynamic_cast<StrandElement*>(sme);
-                std::string smName = sme->GetName();
+                std::string smName = sme->GetName();                
                 if (ste != nullptr) {
                     ++s;
                     if (smName == "") {
@@ -1273,7 +1289,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
                     for (size_t n = 0; n < ste->GetNodeLayerCount(); ++n) {
                         NodeLayer* nl = ste->GetNodeLayer(n, true);
                         if (nl->GetEffectCount() > 0) {
-                            std::string nodeName = nl->GetName();
+                            std::string nodeName = nl->GetNodeName();
                             if (nodeName == "") {
                                 nodeName = wxString::Format("Node %d", (int)(n + 1));
                             }
@@ -2561,7 +2577,7 @@ void MapOnEffects(EffectManager& effectManager, EffectLayer* layer, wxXmlNode* c
     std::string palette = "C_BUTTON_Palette1=#FFFFFF,C_CHECKBOX_Palette1=1";
     if (chancountpernode > 1) {
         xlColor color1(color);
-        palette = "C_BUTTON_Palette1=" + color1 + ",C_CHECKBOX_Palette1=1";
+        palette = "C_BUTTON_Palette1=" + (std::string)color1 + ",C_CHECKBOX_Palette1=1";
     }
 
     for (wxXmlNode* ch = channel->GetChildren(); ch != nullptr; ch = ch->GetNext()) {
@@ -5791,6 +5807,10 @@ static void ImportServoData(int min_limit, int max_limit, EffectLayer* layer, st
         logger_base.crit("ImportServoData cannot have null layer to import onto - this is going to crash.");
     }
 
+    if (layer->GetLayerName().empty()) {
+        layer->SetLayerName(name);
+    }
+    
     float last_pos = -1.0;
     int last_time = 0;
     bool warn = true;
@@ -5804,10 +5824,12 @@ static void ImportServoData(int min_limit, int max_limit, EffectLayer* layer, st
             settings += "E_CHECKBOX_16bit=0,";
         }
         settings += "E_CHOICE_Channel=" + name + ",";
-        settings += "E_VALUECURVE_Servo=Active=TRUE|Id=ID_VALUECURVE_Servo|Type=Ramp|Min=0.00|Max=1000.00|";
         float start_pos = (((float)events[i].start_pos - (float)min_limit) * 100.0) / ((float)max_limit - (float)min_limit);
-        settings += "P1=" + wxString::Format("%3.1f", start_pos * 10.0).ToStdString() + "|";
         float end_pos = (((float)events[i].end_pos - (float)min_limit) * 100.0) / ((float)max_limit - (float)min_limit);
+
+        settings += "E_TEXTCTRL_Servo=" + wxString::Format("%3.1f", start_pos).ToStdString() + ",";
+        settings += "E_TEXTCTRL_EndValue=" + wxString::Format("%3.1f", end_pos).ToStdString() + ",";
+
         if (start_pos < 0.0) {
             if (warn) {
                 DisplayWarning(wxString::Format("%s: Servo Limit Exceeded. start_pos < 0%% : %.2f min/max %d/%d", name, start_pos, min_limit, max_limit).ToStdString());
@@ -5834,7 +5856,6 @@ static void ImportServoData(int min_limit, int max_limit, EffectLayer* layer, st
             }
             end_pos = 0.0;
         }
-        settings += "P2=" + wxString::Format("%3.1f", end_pos * 10.0).ToStdString() + "|RV=TRUE";
         if (last_pos == -1.0) {
             last_pos = start_pos;
         }
@@ -5847,6 +5868,7 @@ static void ImportServoData(int min_limit, int max_limit, EffectLayer* layer, st
             }
             settings2 += "E_CHOICE_Channel=" + name + ",";
             settings2 += "E_TEXTCTRL_Servo=" + wxString::Format("%3.1f", last_pos).ToStdString() + ",";
+            settings2 += "E_TEXTCTRL_EndValue=" + wxString::Format("%3.1f", last_pos).ToStdString() + ",";
             layer->AddEffect(0, "Servo", settings2, palette, last_time, events[i].start_time * timing, false, false);
         }
         layer->AddEffect(0, "Servo", settings, palette, events[i].start_time * timing, events[i].end_time * timing, false, false);
@@ -5864,6 +5886,7 @@ static void ImportServoData(int min_limit, int max_limit, EffectLayer* layer, st
                 }
                 settings3 += "E_CHOICE_Channel=" + name + ",";
                 settings3 += "E_TEXTCTRL_Servo=" + wxString::Format("%3.1f", last_pos).ToStdString() + ",";
+                settings3 += "E_TEXTCTRL_EndValue=" + wxString::Format("%3.1f", last_pos).ToStdString() + ",";
                 layer->AddEffect(0, "Servo", settings3, palette, last_time, sequence_end_time, false, false);
             }
         }

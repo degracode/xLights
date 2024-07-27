@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "RenderableEffect.h"
@@ -97,7 +97,7 @@ protected:
     virtual xlEffectPanel* CreatePanel(wxWindow* parent) override;
 
 private:
-    void RenderSingleStrandChase(RenderBuffer& buffer,
+    void RenderSingleStrandChase(RenderBuffer& buffer, Effect* eff,
                                  const std::string& ColorScheme, int Number_Chases, int chaseSize,
                                  const std::string& Chase_Type1,
                                  bool Chase_3dFade1, bool Chase_Group_All,

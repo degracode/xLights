@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/xml/xml.h>
@@ -189,7 +189,7 @@ bool ViewObjectManager::MergeFromBase(const std::string& baseShowDir, bool promp
     bool changed = false;
 
     wxXmlDocument doc;
-    doc.Load(baseShowDir + wxFileName::GetPathSeparator() + XLIGHTS_RGBEFFECTS_FILE);
+    doc.Load(baseShowDir + GetPathSeparator() + XLIGHTS_RGBEFFECTS_FILE);
     if (!doc.IsOk()) {
         return false;
     }
@@ -214,6 +214,7 @@ bool ViewObjectManager::MergeFromBase(const std::string& baseShowDir, bool promp
             if (curr == nullptr) {
                 // model does not exist
                 changed = true;
+                if (o->HasAttribute("FromBase")) o->DeleteAttribute("FromBase");
                 o->AddAttribute("FromBase", "1");
                 createAndAddObject(new wxXmlNode(*o));
                 logger_base.debug("Adding object from base show folder: '%s'.", (const char*)name.c_str());
@@ -226,6 +227,7 @@ bool ViewObjectManager::MergeFromBase(const std::string& baseShowDir, bool promp
                 if (force || curr->IsFromBase()) {
                     // model does exist ... update it
                     if (force || curr->IsXmlChanged(o)) {
+                        if (o->HasAttribute("FromBase")) o->DeleteAttribute("FromBase");
                         o->AddAttribute("FromBase", "1");
                         changed = true;
                         Delete(name);

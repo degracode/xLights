@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*InternalHeaders(WiringDialog)
@@ -624,7 +624,9 @@ void WiringDialog::RightClick(wxContextMenuEvent& event)
     mnuLayer.AppendSeparator();
     mnuLayer.Append(ID_MNU_EXPORT, "Export");
     mnuLayer.Append(ID_MNU_EXPORTLARGE, "Export Large");
+#ifdef _DEBUG
     mnuLayer.Append(ID_MNU_EXPORTDXF, "Export as DXF");
+#endif
     mnuLayer.Append(ID_MNU_PRINT, "Print");
     mnuLayer.AppendSeparator();
     auto dark = mnuLayer.Append(ID_MNU_DARK, "Dark", "", wxITEM_RADIO);
@@ -700,7 +702,8 @@ void WiringDialog::OnPopup(wxCommandEvent& event)
     }
     else if (id == ID_MNU_PRINT)
     {
-        static wxPrintDialogData printDialogData;
+        wxPrintData printdata;
+        static wxPrintDialogData printDialogData(printdata);
         wxPrinter printer(&printDialogData);
 
         ColorTheme _prePrintTheme = _selectedTheme;

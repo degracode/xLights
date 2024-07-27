@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*Headers(xlColorPickerFields)
@@ -34,7 +34,11 @@ class xlColorPickerFields: public xlColorPicker
 		virtual ~xlColorPickerFields();
 
         virtual void SetColor(xlColor& color );
+		virtual int GetActiveButton();
+        virtual void SetButtonColor(const int, xlColor& color);
+        wxColour GetButtonColor(const int);
         virtual void NotifyColorChange();
+        virtual void ResetPanel();
 
 		//(*Declarations(xlColorPickerFields)
 		wxBitmapButton* BitmapButton_Swatch1;
@@ -116,7 +120,6 @@ class xlColorPickerFields: public xlColorPicker
 
         ColorDisplayMode mDisplayMode;
         wxBitmapButton* mActiveButton;
-        wxWindow* mMsgParent;
 
 		DECLARE_EVENT_TABLE()
 };

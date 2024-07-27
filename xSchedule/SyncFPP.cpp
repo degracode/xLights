@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "SyncFPP.h"
@@ -100,8 +100,7 @@ void SyncFPP::Ping(bool remote, const std::string& localIP)
     delete fppBroadcastSocket;
 }
 
-void SyncFPP::SendSync(uint32_t frameMS, uint32_t stepLengthMS, uint32_t stepMS, uint32_t playlistMS, const std::string& fseq, const std::string& media, const std::string& step, const std::string& timeItem, uint32_t stepno) const
-{
+void SyncFPP::SendSync(uint32_t frameMS, uint32_t stepLengthMS, uint32_t stepMS, uint32_t playlistMS, const std::string& fseq, const std::string& media, const std::string& step, const std::string& timeItem, uint32_t stepno, int overridetimeSecs) const {
     static std::string lastfseq = "";
     static std::string lastmedia = "";
     static size_t lastfseqmsec = 0;
@@ -215,7 +214,7 @@ void SyncFPP::SendSync(uint32_t frameMS, uint32_t stepLengthMS, uint32_t stepMS,
 
 void SyncFPP::SendStop() const
 {
-    SendSync(50, 0, 0xFFFFFFFF, 0, "", "", "", "", 0);
+    SendSync(50, 0, 0xFFFFFFFF, 0, "", "", "", "", 0, 0);
 }
 
 void SyncBroadcastFPP::SendFPPSync(const std::string& item, uint32_t stepMS, uint32_t frameMS) const

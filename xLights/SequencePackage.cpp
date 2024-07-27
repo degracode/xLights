@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/wfstream.h>
@@ -71,7 +71,7 @@ SequencePackage::SequencePackage(const wxFileName& fileName, xLightsFrame* xligh
 {
     _xlights = xlights;
 
-    if (fileName.GetExt() == "zip" || fileName.GetExt() == "piz") {
+    if (fileName.GetExt() == "zip" || fileName.GetExt() == "piz" || fileName.GetExt() == "xsqz") {
         _xsqOnly = false;
         _pkgFile = fileName;
     } else {
@@ -83,13 +83,16 @@ SequencePackage::SequencePackage(const wxFileName& fileName, xLightsFrame* xligh
 SequencePackage::~SequencePackage()
 {
     // cleanup extracted files
-    if (!_xsqOnly && _tempDir.Exists()) {
+    if (!_xsqOnly && _tempDir.Exists() && !_leaveFiles) {
         wxDir::Remove(_tempDir.GetFullPath(), wxPATH_RMDIR_RECURSIVE);
     }
 }
 
 void SequencePackage::InitDefaultImportOptions()
 {
+    if (_xlights == nullptr)
+        return;
+
     // Set default target media directories based on a few assumptions. User
     // can still change these in the Mapping Dialog to whatever they would like.
 
@@ -97,7 +100,6 @@ void SequencePackage::InitDefaultImportOptions()
 
     // always default faces/shaders to default download folder as they tend to be reused
     _importOptions.SetDir(MediaTargetDir::FACES_DIR, wxString::Format("%s%c%s", showFolder, PATH_SEP, SUBFLD_FACES), true);
-    _importOptions.SetDir(MediaTargetDir::SHADERS_DIR, wxString::Format("%s%c%s", showFolder, PATH_SEP, SUBFLD_SHADERS), true);
 
     wxFileName targetXsq(_xlights->GetSeqXmlFileName());
     wxString targetDir = targetXsq.GetPath();
@@ -116,6 +118,7 @@ void SequencePackage::InitDefaultImportOptions()
     // set the defaults for media sub folders
     _importOptions.SetDir(MediaTargetDir::GLEDIATORS_DIR, wxString::Format("%s%c%s", mediaBaseFolder, PATH_SEP, SUBFLD_GLEDIATORS), true);
     _importOptions.SetDir(MediaTargetDir::IMAGES_DIR, wxString::Format("%s%c%s", mediaBaseFolder, PATH_SEP, SUBFLD_IMAGES), true);
+    _importOptions.SetDir(MediaTargetDir::SHADERS_DIR, wxString::Format("%s%c%s", mediaBaseFolder, PATH_SEP, SUBFLD_SHADERS), true);
     _importOptions.SetDir(MediaTargetDir::VIDEOS_DIR, wxString::Format("%s%c%s", mediaBaseFolder, PATH_SEP, SUBFLD_VIDEOS), true);
 }
 
@@ -309,6 +312,11 @@ wxXmlDocument& SequencePackage::GetRgbEffectsFile()
     return _rgbEffects;
 }
 
+std::string SequencePackage::GetTempShowFolder() const
+{
+    return wxPathOnly(_xsqFile.GetFullPath()).ToStdString();
+}
+
 bool SequencePackage::ModelsChanged() const
 {
     return _modelsChanged;
@@ -399,12 +407,15 @@ std::string SequencePackage::FixAndImportMedia(Effect* mappedEffect, EffectLayer
 
 void SequencePackage::ImportFaceInfo(Effect* mappedEffect, EffectLayer* target, const std::string& faceName)
 {
+    if (_xlights == nullptr)
+        return;
+
     auto targetModelName = target->GetParentElement()->GetModelName();
     auto srcModelName = mappedEffect->GetParentEffectLayer()->GetParentElement()->GetModelName();
     Model* targetModel = _xlights->AllModels[targetModelName];
 
-    const auto& faceInfo = targetModel->faceInfo.find(faceName);
-    if (faceInfo != targetModel->faceInfo.end()) {
+    const auto& faceInfo = targetModel->GetFaceInfo().find(faceName);
+    if (faceInfo != targetModel->GetFaceInfo().end()) {
         // face already defined don't overwrite it
         return;
     }

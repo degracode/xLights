@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "TextEffect.h"
@@ -50,30 +50,23 @@ TextEffect::~TextEffect()
 
 std::list<std::string> TextEffect::CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff, bool renderCache)
 {
-    std::list<std::string> res;
+    std::list<std::string> res = RenderableEffect::CheckEffectSettings(settings, media, model, eff, renderCache);
 
     wxString textFilename = settings.Get("E_FILEPICKERCTRL_Text_File", "");
     wxString text = ToWXString(settings.Get("E_TEXTCTRL_Text", ""));
     wxString lyricTrack = settings.Get("E_CHOICE_Text_LyricTrack", "");
 
-    if (text == "" && textFilename == "" && lyricTrack == "")
-    {
-        res.push_back(wxString::Format("    ERR: Text effect has no actual text. Model '%s', Start %s", model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
-    }
-    else if (textFilename != "" && !FileExists(textFilename))
-    {
-        res.push_back(wxString::Format("    ERR: Text effect cant find file '%s'. Model '%s', Start %s", textFilename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
-    }
-    else if (textFilename != "" && !IsFileInShowDir(xLightsFrame::CurrentDir, textFilename.ToStdString()))
-    {
-        res.push_back(wxString::Format("    WARN: Text effect file '%s' not under show directory. Model '%s', Start %s", textFilename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+    if (text == "" && textFilename == "" && lyricTrack == "") {
+        res.push_back(wxString::Format("    ERR: Text effect has no actual text. Model '%s', Start %s", model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+    } else if (textFilename != "" && !FileExists(textFilename)) {
+        res.push_back(wxString::Format("    ERR: Text effect cant find file '%s'. Model '%s', Start %s", textFilename, model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+    } else if (textFilename != "" && !IsFileInShowDir(xLightsFrame::CurrentDir, textFilename.ToStdString())) {
+        res.push_back(wxString::Format("    WARN: Text effect file '%s' not under show directory. Model '%s', Start %s", textFilename, model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
     }
 
-    if (model->GetDisplayAs() == "ModelGroup")
-    {
-        res.push_back(wxString::Format("    WARN: Text effect generally does not work well on a model group. Model '%s', Start %s", model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+    if (model->GetDisplayAs() == "ModelGroup") {
+        res.push_back(wxString::Format("    WARN: Text effect generally does not work well on a model group. Model '%s', Start %s", model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
     }
-
     return res;
 }
 
@@ -121,6 +114,9 @@ bool TextEffect::SupportsRenderCache(const SettingsMap& settings) const
 {
     // we dont want to use render cache if text is coming from a file as the file might have changed
     if (ToWXString(settings["TEXTCTRL_Text"]) == "" && FileExists(settings["FILEPICKERCTRL_Text_File"]))
+        return false;
+    // we dont want to use render cache if text is coming from lyric track, if you have text then it overrides the lyric track
+    if (ToWXString(settings["TEXTCTRL_Text"]) == ""  && settings["CHOICE_Text_LyricTrack"] != "")
         return false;
     return true;
 }
@@ -319,6 +315,7 @@ void TextEffect::SetDefaultParameters() {
     SetChoiceValue(tp->Choice_Text_Count, "none");
     SetCheckboxValue(tp, tp->ID_CHECKBOX_TextToCenter, false);
     SetCheckBoxValue(tp->CheckBox_Text_PixelOffsets, false);
+    SetCheckboxValue(tp, tp->ID_CHECKBOX_Text_Color_PerWord, false);
     SetSliderValue(tp->Slider_Text_XStart, 0);
     SetSliderValue(tp->Slider_Text_YStart, 0);
     SetSliderValue(tp->Slider_Text_XEnd, 0);
@@ -534,6 +531,7 @@ void TextEffect::Render(Effect *effect, const SettingsMap &SettingsMap, RenderBu
         int endy = wxAtoi(SettingsMap.Get("SLIDER_Text_YEnd", "0"));
         int endx = wxAtoi(SettingsMap.Get("SLIDER_Text_XEnd", "0"));
         bool pixelOffsets = wxAtoi(SettingsMap.Get("CHECKBOX_Text_PixelOffsets", "0"));
+        bool perWord = wxAtoi(SettingsMap.Get("CHECKBOX_Text_Color_PerWord", "0"));
 
         wxImage * i = RenderTextLine(buffer,
                        buffer.GetTextDrawingContext(),
@@ -544,7 +542,7 @@ void TextEffect::Render(Effect *effect, const SettingsMap &SettingsMap, RenderBu
                        TextEffectsIndex(SettingsMap["CHOICE_Text_Effect"]),
                        TextCountDownIndex(SettingsMap["CHOICE_Text_Count"]),
                        wxAtoi(SettingsMap.Get("TEXTCTRL_Text_Speed", "10")),
-                       startx, starty, endx, endy, pixelOffsets);
+                       startx, starty, endx, endy, pixelOffsets, perWord);
         
         if (i == nullptr) {
             return;
@@ -733,7 +731,8 @@ void DrawLabel(TextDrawingContext *dc,
                int alignment,
                TextRenderCache *cache,
                const std::string &fontString,
-               const std::vector<xlColor> colors)
+               const std::vector<xlColor> colors,
+               const bool perWord = false)
 {
     // find the text position
     wxCoord widthText, heightText, heightLine;
@@ -808,7 +807,6 @@ void DrawLabel(TextDrawingContext *dc,
                         wxString c = curLine[x1];
                         if (c != " ") {
                             SetFont(dc, fontString, colors[curPos % colors.size()]);
-                            curPos++;
                             double loc = xRealStart;
                             if (x1 != 0) {
                                 if (x1 - 1 < d.size()) {
@@ -819,6 +817,9 @@ void DrawLabel(TextDrawingContext *dc,
                                 }
                             }
                             dc->DrawText(c, loc, y);
+                        }
+                        if ((perWord && c == ' ') || (!perWord && c != ' ')) {
+                            curPos++;
                         }
                     }
                 } else {
@@ -906,7 +907,7 @@ wxImage *TextEffect::RenderTextLine(RenderBuffer &buffer,
                                     int dir,
                                     bool center, int Effect, int Countdown, int tspeed,
                                     int startx, int starty, int endx, int endy,
-                                    bool isPixelBased) const
+                                    bool isPixelBased, bool perWord) const
 {
     int i;
     wxString Line = Line_orig;
@@ -1082,7 +1083,7 @@ wxImage *TextEffect::RenderTextLine(RenderBuffer &buffer,
         if (img == nullptr) {
             dc->Clear();
             SetFont(dc, fontString, colors[0]);
-            DrawLabel(dc, msg, rect, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, GetCache(buffer,id), fontString, colors);
+            DrawLabel(dc, msg, rect, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, GetCache(buffer,id), fontString, colors, perWord);
             wxImage *i2 = dc->FlushAndGetImage();
             img = new wxImage(i2->GetSize());
             *img = i2->Copy();
@@ -1456,6 +1457,7 @@ void TextEffect::RenderXLText(Effect* effect, const SettingsMap& settings, Rende
     int endy = wxAtoi(settings.Get("SLIDER_Text_YEnd", "0"));
     int endx = wxAtoi(settings.Get("SLIDER_Text_XEnd", "0"));
     bool pixelOffsets = wxAtoi(settings.Get("CHECKBOX_Text_PixelOffsets", "0"));
+    bool perWord = wxAtoi(settings.Get("CHECKBOX_Text_Color_PerWord", "0"));
 
     int OffsetLeft = startx * buffer.BufferWi / 100;
     int OffsetTop = -starty * buffer.BufferHt / 100;
@@ -1595,17 +1597,16 @@ void TextEffect::RenderXLText(Effect* effect, const SettingsMap& settings, Rende
     auto startOffsetLeft = OffsetLeft;
 
     if (text != "") {
-        int space_offset = 0;
+        int curPos = 0;
         for (int i = 0; i < text.length(); i++) {
-
             if (text[i] == '\n')
             {
                 OffsetLeft = startOffsetLeft;
                 OffsetTop += font->GetHeight() + 1;
             } else {
-                buffer.palette.GetColor((i - space_offset) % num_colors, c);
-                if (text[i] == ' ') {
-                    space_offset++;
+                buffer.palette.GetColor(curPos % num_colors, c);
+                if ((perWord && text[i] == ' ') || (!perWord && text[i] != ' ')) {
+                    curPos++;
                 }
                 char ascii = text[i];
                 int x_start_corner = (ascii % 8) * (char_width + 1) + 1;

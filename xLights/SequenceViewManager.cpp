@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "SequenceViewManager.h"
@@ -340,6 +340,32 @@ SequenceView* SequenceViewManager::GetView(const std::string& name) const
 	}
 
 	return nullptr;
+}
+
+void SequenceViewManager::MoveViewUp(int index) const {
+    SequenceView* it = GetView(index);
+    if (it == nullptr) {
+        return;
+    }
+
+    SequenceView* prevIt = GetView(index - 1);
+    if (prevIt == nullptr) {
+        return;
+    }
+    std::swap(*it, *prevIt);
+}
+
+void SequenceViewManager::MoveViewDown(int index) const {
+    SequenceView* it = GetView(index);
+    if (it == nullptr) {
+        return;
+    }
+
+    SequenceView* nextIt = GetView(index + 1);
+    if (nextIt == nullptr) {
+        return;
+    }
+    std::swap(*it, *nextIt);
 }
 
 int SequenceViewManager::GetViewIndex(const std::string& name) const

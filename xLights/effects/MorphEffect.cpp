@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "MorphEffect.h"
@@ -71,7 +71,7 @@ AssistPanel *MorphEffect::GetAssistPanel(wxWindow *parent, xLightsFrame* xl_fram
 
 std::list<std::string> MorphEffect::CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff, bool renderCache)
 {
-    std::list<std::string> res;
+    std::list<std::string> res = RenderableEffect::CheckEffectSettings(settings, media, model, eff, renderCache);
 
     if (settings.Get("E_VALUECURVE_Morph_Start_X1", "").find("Active=TRUE") != std::string::npos ||
         settings.Get("E_VALUECURVE_Morph_Start_X2", "").find("Active=TRUE") != std::string::npos ||
@@ -96,7 +96,7 @@ std::list<std::string> MorphEffect::CheckEffectSettings(const SettingsMap& setti
         int maxmodel = std::max(model->GetDefaultBufferWi(), model->GetDefaultBufferHt());
 
         if ((minmorph + repeat_skip) * repeat_count > 2 * maxmodel) {
-            res.push_back(wxString::Format("    WARN: Morph effect with repeat count and skip which are larger than necessary. This may lead to slow render times. Model '%s', Start %s", model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+            res.push_back(wxString::Format("    WARN: Morph effect with repeat count and skip which are larger than necessary. This may lead to slow render times. Model '%s', Start %s", model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
         }
     }
 

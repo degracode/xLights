@@ -1,17 +1,17 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
  //(*InternalHeaders(ColorCurveDialog)
-#include <wx/intl.h>
-#include <wx/string.h>
-//*)
+ #include <wx/intl.h>
+ #include <wx/string.h>
+ //*)
 
 #include <wx/dcbuffer.h>
 #include <wx/file.h>
@@ -25,6 +25,7 @@
 #include "xLightsApp.h"
 #include "ExternalHooks.h"
 #include "sequencer/MainSequencer.h"
+#include "xlColourData.h"
 
 #include <log4cpp/Category.hh>
 
@@ -40,8 +41,8 @@ EVT_PAINT(ColorCurvePanel::Paint)
 EVT_MOUSE_CAPTURE_LOST(ColorCurvePanel::mouseCaptureLost)
 END_EVENT_TABLE()
 
-ColorCurvePanel::ColorCurvePanel(ColorCurve* cc, Element* timingElement, int start, int end, wxColourData& colorData ,wxWindow* parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
-    : wxWindow(parent, id, pos, size, style, "ID_VCP"), xlCustomControl(), _colorData(colorData), _timingElement(timingElement)
+ColorCurvePanel::ColorCurvePanel(ColorCurve* cc, Element* timingElement, int start, int end ,wxWindow* parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
+    : wxWindow(parent, id, pos, size, style, "ID_VCP"), xlCustomControl(), _timingElement(timingElement)
 {
     _start = start;
     _end = end;
@@ -57,6 +58,7 @@ ColorCurvePanel::ColorCurvePanel(ColorCurve* cc, Element* timingElement, int sta
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     _grabbedPoint = -1;
     _startPoint = -1;
+    _totalBorderWidth = 3; // The border around the color curve seems to account for 3 pixels, which needs to be accounted for when using the ColorCurvePanel Width.
 
     Refresh();
 }
@@ -70,10 +72,9 @@ void ColorCurvePanel::Select(float x)
 void ColorCurvePanel::Convert(float &x, wxMouseEvent& event) const
 {
     wxSize size = GetSize();
-    float startX = 0.0; // size.GetWidth() / 10.0;
-    float bw = size.GetWidth(); //  *0.8;
+    float bw = size.GetWidth() - _totalBorderWidth;
 
-    x = (event.GetX() - startX) / bw;
+    x = event.GetX() / bw;
     x = ccSortableColorPoint::Normalise(x);
 }
 
@@ -92,21 +93,18 @@ BEGIN_EVENT_TABLE(ColorCurveDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-ColorCurveDialog::ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourData& colorData, wxWindowID id,const wxPoint& pos,const wxSize& size)
+ColorCurveDialog::ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxWindowID id,const wxPoint& pos,const wxSize& size)
 {
     _cc = cc;
 
     //(*Initialize(ColorCurveDialog)
+    wxBoxSizer* ButtonSizer;
     wxFlexGridSizer* FlexGridSizer1;
     wxFlexGridSizer* FlexGridSizer2;
-    wxFlexGridSizer* FlexGridSizer3;
     wxFlexGridSizer* FlexGridSizer4;
-    wxFlexGridSizer* FlexGridSizer5;
     wxFlexGridSizer* FlexGridSizer6;
 
-    Create(parent, id, _("Color Curve"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX, _T("id"));
-    SetClientSize(wxDefaultSize);
-    Move(wxDefaultPosition);
+    Create(parent, wxID_ANY, _("Color Curve"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX, _T("wxID_ANY"));
     FlexGridSizer1 = new wxFlexGridSizer(0, 1, 0, 0);
     FlexGridSizer1->AddGrowableCol(0);
     FlexGridSizer1->AddGrowableRow(2);
@@ -132,18 +130,17 @@ ColorCurveDialog::ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourDat
     FlexGridSizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 2);
     PresetSizer = new wxFlexGridSizer(0, 5, 0, 0);
     FlexGridSizer1->Add(PresetSizer, 1, wxALL|wxEXPAND, 5);
-    FlexGridSizer5 = new wxFlexGridSizer(0, 2, 0, 0);
+    ButtonSizer = new wxBoxSizer(wxHORIZONTAL);
     ButtonLoad = new wxButton(this, ID_BUTTON3, _("Load"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON3"));
-    FlexGridSizer5->Add(ButtonLoad, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+    ButtonSizer->Add(ButtonLoad, 0, wxALL, 5);
     ButtonExport = new wxButton(this, ID_BUTTON4, _("Export"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON4"));
-    FlexGridSizer5->Add(ButtonExport, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    FlexGridSizer1->Add(FlexGridSizer5, 1, wxALL|wxEXPAND, 5);
-    FlexGridSizer3 = new wxFlexGridSizer(0, 3, 0, 0);
+    ButtonSizer->Add(ButtonExport, 0, wxALL, 5);
+    ButtonSizer->Add(-1,-1,1, wxALL|wxEXPAND, 5);
     Button_Ok = new wxButton(this, ID_BUTTON1, _("Ok"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
-    FlexGridSizer3->Add(Button_Ok, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+    ButtonSizer->Add(Button_Ok, 0, wxALL, 5);
     Button_Cancel = new wxButton(this, ID_BUTTON2, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON2"));
-    FlexGridSizer3->Add(Button_Cancel, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    FlexGridSizer1->Add(FlexGridSizer3, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
+    ButtonSizer->Add(Button_Cancel, 0, wxALL, 5);
+    FlexGridSizer1->Add(ButtonSizer, 1, wxALL|wxEXPAND, 5);
     SetSizer(FlexGridSizer1);
     FlexGridSizer1->Fit(this);
     FlexGridSizer1->SetSizeHints(this);
@@ -170,7 +167,7 @@ ColorCurveDialog::ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourDat
 
     Element* timingElement = xLightsApp::GetFrame()->GetMainSequencer()->PanelEffectGrid->GetActiveTimingElement();
 
-    _ccp = new ColorCurvePanel(_cc, timingElement, start, end, colorData, this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
+    _ccp = new ColorCurvePanel(_cc, timingElement, start, end, this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
     _ccp->SetMinSize(wxSize(500, 80));
     _ccp->SetType(_cc->GetType());
     FlexGridSizer6->Add(_ccp, 1, wxALL | wxEXPAND, 2);
@@ -190,6 +187,7 @@ ColorCurveDialog::ColorCurveDialog(wxWindow* parent, ColorCurve* cc, wxColourDat
     PopulatePresets();
 
     SetEscapeId(Button_Cancel->GetId());
+    Fit();
 
     ValidateWindow();
 }
@@ -381,14 +379,10 @@ void ColorCurvePanel::mouseLeftDClick(wxMouseEvent& event)
     }
     ccSortableColorPoint* pt = _cc->GetPointAt(x);
 
-    _colorData.SetColour(pt->color.asWxColor());
-    wxColourDialog cdlg(this, &_colorData);
-
-    if (cdlg.ShowModal() == wxID_OK)
-    {
-        _colorData = cdlg.GetColourData();
+    auto const& [res, color] = xlColourData::INSTANCE.ShowColorDialog(this, pt->color.asWxColor());
+    if (res == wxID_OK) {
         SaveUndo(*pt, true);
-        _cc->SetValueAt(x, _colorData.GetColour());
+        _cc->SetValueAt(x, color);
     }
     Refresh();
     SetToolTip("");
@@ -638,26 +632,27 @@ void ColorCurvePanel::DrawHouse(wxAutoBufferedPaintDC& pdc, int x, int height, b
 void ColorCurvePanel::DrawStopsAsHouses(wxAutoBufferedPaintDC& pdc)
 {
     wxSize s = GetSize();
+    int width = s.GetWidth() - _totalBorderWidth;
     std::list<ccSortableColorPoint> pts = _cc->GetPoints();
 
     wxPointList pl;
-    pl.push_back(new wxPoint(s.GetWidth()*-0.01, 0));
-    pl.push_back(new wxPoint(s.GetWidth()*-0.01, s.GetHeight()*-0.22));
+    pl.push_back(new wxPoint(width*-0.01, 0));
+    pl.push_back(new wxPoint(width*-0.01, s.GetHeight()*-0.22));
     pl.push_back(new wxPoint(0, s.GetHeight()*-0.30));
-    pl.push_back(new wxPoint(s.GetWidth()*0.01, s.GetHeight()*-0.22));
-    pl.push_back(new wxPoint(s.GetWidth()*0.01, 0));
+    pl.push_back(new wxPoint(width*0.01, s.GetHeight()*-0.22));
+    pl.push_back(new wxPoint(width*0.01, 0));
 
     if (pts.size() > 0)
     {
         for (auto p = pts.begin()++; p != pts.end(); ++p)
         {
-            DrawHouse(pdc, p->x * s.GetWidth(), s.GetHeight(), false, _cc->GetValueAt(p->x).asWxColor(), pl);
+            DrawHouse(pdc, p->x * width, s.GetHeight(), false, _cc->GetValueAt(p->x).asWxColor(), pl);
         }
     }
 
     if (_grabbedPoint >= 0)
     {
-        DrawHouse(pdc, _grabbedPoint * s.GetWidth(), s.GetHeight(), true, _cc->GetValueAt(_grabbedPoint).asWxColor(), pl);
+        DrawHouse(pdc, _grabbedPoint * width, s.GetHeight(), true, _cc->GetValueAt(_grabbedPoint).asWxColor(), pl);
     }
 }
 
@@ -666,7 +661,7 @@ void ColorCurvePanel::DrawTiming(wxAutoBufferedPaintDC& pdc, long timeMS)
     wxSize s = GetSize();
     long interval = _end - _start;
     float pos = (float)(timeMS - _start) / (float)interval;
-    int x = pos * s.GetWidth();
+    int x = pos * (s.GetWidth() - _totalBorderWidth);
 
     pdc.SetPen(*wxBLUE);
     pdc.DrawLine(x, 0, x, s.GetHeight());

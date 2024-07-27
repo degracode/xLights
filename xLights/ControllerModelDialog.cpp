@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*InternalHeaders(ControllerModelDialog)
@@ -40,6 +40,7 @@
 #include "outputs/Output.h"
 
 #include <log4cpp/Category.hh>
+#include <cmath>
 
 //(*IdInit(ControllerModelDialog)
 const long ControllerModelDialog::ID_PANEL1 = wxNewId();
@@ -71,7 +72,12 @@ const long ControllerModelDialog::CONTROLLER_BRIGHTNESSCLEAR = wxNewId();
 const long ControllerModelDialog::CONTROLLER_REMOVEALLMODELS = wxNewId();
 const long ControllerModelDialog::CONTROLLER_SMARTREMOTETYPE = wxNewId();
 const long ControllerModelDialog::CONTROLLER_REMOVESMARTREMOTE = wxNewId();
+const long ControllerModelDialog::CONTROLLER_SETSMARTREMOTE = wxNewId();
 const long ControllerModelDialog::CONTROLLER_MODEL_STRINGS = wxNewId();
+const long ControllerModelDialog::CONTROLLER_STARTNULLS = wxNewId();
+const long ControllerModelDialog::CONTROLLER_ENDNULLS = wxNewId();
+const long ControllerModelDialog::CONTROLLER_COLORORDER = wxNewId();
+const long ControllerModelDialog::CONTROLLER_GROUPCOUNT = wxNewId();
 
 BEGIN_EVENT_TABLE(ControllerModelDialog, wxDialog)
 //(*EventTable(ControllerModelDialog)
@@ -109,6 +115,7 @@ wxColour __charcoal(30, 30, 30);
 wxColour __lightGreen(153, 255, 145, wxALPHA_OPAQUE);
 wxColour __darkGreen(6, 60, 0, wxALPHA_OPAQUE);
 wxColour __darkBlue(0, 0, 60, wxALPHA_OPAQUE);
+wxColour __royalBlue(65, 105, 225, wxALPHA_OPAQUE);
 wxColour __lightPurple(184, 150, 255, wxALPHA_OPAQUE);
 wxColour __darkPurple(49, 0, 74, wxALPHA_OPAQUE);
 wxColour __darkRed(60, 0, 0, wxALPHA_OPAQUE);
@@ -127,6 +134,7 @@ wxBrush __over40Brush;
 wxPen __dropTargetPen;
 wxPen __pixelPortOutlinePen;
 wxPen __serialPortOutlinePen;
+wxPen __pwmPortOutlinePen;
 wxPen __vmPortOutlinePen;
 wxPen __lpmPortOutlinePen;
 wxPen __modelOutlinePen;
@@ -172,6 +180,7 @@ void SetColours(bool printing)
 {
     __invalidBrush.SetColour(__lightRed);
     __serialPortOutlinePen.SetColour(*wxGREEN);
+    __pwmPortOutlinePen.SetColour(__royalBlue);
     __over40Brush.SetColour(__lightOrange);
     __modelOutlinePen.SetColour(__grey);
     __modelOutlineLastDroppedPen.SetColour(__magenta);
@@ -239,6 +248,7 @@ public:
     const static int STYLE_PIXELS = 1;
     const static int STYLE_STRINGS = 2;
     const static int STYLE_CHANNELS = 4;
+    const static int STYLE_LABEL = 8;
     enum class HITLOCATION { NONE,
                              LEFT,
                              RIGHT,
@@ -358,6 +368,7 @@ class PortCMObject : public BaseCMObject
 public:
     enum class PORTTYPE { PIXEL,
                           SERIAL,
+                          PWM,
                           VIRTUAL_MATRIX,
                           PANEL_MATRIX };
 
@@ -383,6 +394,8 @@ public:
             return _cud->GetControllerVirtualMatrixPort(_port);
         } else if (_type == PORTTYPE::PANEL_MATRIX) {
             return _cud->GetControllerLEDPanelMatrixPort(_port);
+        } else if (_type == PORTTYPE::PWM) {
+            return _cud->GetControllerPWMPort(_port);
         }
         return nullptr;
     }
@@ -401,6 +414,8 @@ public:
             return _caps->GetMaxPixelPortChannels();
         } else if (_type == PORTTYPE::SERIAL) {
             return _caps->GetMaxSerialPortChannels();
+        } else if (_type == PORTTYPE::PWM) {
+            return 2;
         }
         return 9999999;
     }
@@ -531,6 +546,8 @@ public:
             dc.SetPen(__vmPortOutlinePen);
         } else if (_type == PORTTYPE::PANEL_MATRIX) {
             dc.SetPen(__lpmPortOutlinePen);
+        } else if (_type == PORTTYPE::PWM) {
+            dc.SetPen(__pwmPortOutlinePen);
         } else {
             dc.SetPen(__serialPortOutlinePen);
         }
@@ -552,6 +569,8 @@ public:
             DrawTextLimited(dc, wxString::Format("Virtual Matrix %d", _port), pt, sz - wxSize(4, 4));
         } else if (_type == PORTTYPE::PANEL_MATRIX) {
             DrawTextLimited(dc, wxString::Format("LED Panel %d", _port), pt, sz - wxSize(4, 4));
+        } else if (_type == PORTTYPE::PWM) {
+            DrawTextLimited(dc, wxString::Format("PWM Port %d", _port), pt, sz - wxSize(4, 4));
         } else {
             DrawTextLimited(dc, wxString::Format("Serial Port %d", _port), pt, sz - wxSize(4, 4));
         }
@@ -597,6 +616,8 @@ public:
                 return;
             if (_type == PORTTYPE::PANEL_MATRIX && !_caps->SupportsLEDPanelMatrix())
                 return;
+            if (_type == PORTTYPE::PWM && !_caps->SupportsPWM())
+                return;
         }
         mnu.AppendSeparator();
         if (_type == PORTTYPE::PIXEL || _type == PORTTYPE::SERIAL) {
@@ -604,6 +625,9 @@ public:
         }
         if (_caps != nullptr && (_type == PORTTYPE::PIXEL) && _caps->SupportsSmartRemotes() && (_caps->GetSmartRemoteTypes().size() > 1)) {
             mnu.Append(ControllerModelDialog::CONTROLLER_SMARTREMOTETYPE, "Set Smart Remote Type");
+        }
+        if (_caps != nullptr && (_type == PORTTYPE::PIXEL) && _caps->SupportsSmartRemotes()) {
+            mnu.Append(ControllerModelDialog::CONTROLLER_SETSMARTREMOTE, "Set Smart Remote ID and Increment");
         }
         if (_caps != nullptr && (_type == PORTTYPE::PIXEL) && _caps->SupportsSmartRemotes() && GetSmartRemoteCount() > 0) {
             mnu.Append(ControllerModelDialog::CONTROLLER_REMOVESMARTREMOTE, "Remove Smart Remote");
@@ -624,6 +648,8 @@ public:
                 port = _cud->GetControllerVirtualMatrixPort(GetPort());
             } else if (_type == PORTTYPE::PANEL_MATRIX) {
                 port = _cud->GetControllerLEDPanelMatrixPort(GetPort());
+            } else if (_type == PORTTYPE::PWM) {
+                port = _cud->GetControllerPWMPort(GetPort());
             } else {
                 port = _cud->GetControllerSerialPort(GetPort());
             }
@@ -753,6 +779,44 @@ public:
             int basePort = GetBasePort();
             for (uint8_t p = 0; p < 4; ++p) {
                 _cud->GetControllerPixelPort(basePort + p)->ClearSmartRemoteOnAllModels();
+            }
+            return true;
+        } else if (id == ControllerModelDialog::CONTROLLER_SETSMARTREMOTE) {
+            wxArrayString choices;
+            int sr_count = _caps->GetSmartRemoteCount();
+            if (_caps->GetVendor() == "HinksPix") {
+                for (int i = 0; i < sr_count; i++) {
+                    choices.Add(wxString::Format("%d", i));
+                }
+            } else {
+                for (int i = 0; i < sr_count; i++) {
+                    choices.Add(wxString(char(65 + i)));
+                }
+            }
+            int selection{ -1 };
+            if (GetUDPort()->GetModels().size() != 0 && nullptr != GetUDPort()->GetModels().front()) {
+                selection = GetUDPort()->GetModels().front()->GetSmartRemote() - 1;//0=none, 1=A,Falcon/FPP, 1=0,HinksPix
+            }
+            wxSingleChoiceDialog dlg(parent, "Port Smart Remote ID", "Smart Remote ID", choices);
+            if (selection >= 0 && selection < choices.size()) {
+                dlg.SetSelection(selection);
+            }
+            if (dlg.ShowModal() == wxID_OK) {
+                int startId = dlg.GetSelection();
+                std::string lastName;
+                for (const auto& it : GetUDPort()->GetModels()) {
+                    if (lastName == it->GetModel()->Name()) {//skip multistring models sequentuial ports
+                        continue;
+                    }
+                    it->GetModel()->SetSmartRemote(startId + 1);
+                    int max_cas = std::min(it->GetModel()->GetSRMaxCascade(), (int)std::ceil(it->GetModel()->GetNumStrings() / 4.0));
+                    max_cas = std::max(max_cas, 1);
+                    startId += max_cas;
+                    if (startId >= sr_count) {
+                        startId = (sr_count - 1);
+                    }
+                    lastName = it->GetModel()->Name();
+                }
             }
             return true;
         }
@@ -1157,7 +1221,7 @@ public:
         if (label == "None") {
             SetAllModelsToReceiver(_port, _smartRemote, 0);
             return true;
-        } else if (label >= "0" && label <= "25") {
+        } else if ((label >= "0" && label <= "9") || (label >= "10" && label <= "19")) {
             SetAllModelsToReceiver(_port, _smartRemote, wxAtoi(label) + 1);
             return true;
         } else if (label >= "A" && label <= "Z") {
@@ -1176,6 +1240,7 @@ protected:
     bool _outline = false;
     bool _main = false;
     std::string _displayName;
+    std::string _label;
     int _string = 0;
     UDControllerPort* _port = nullptr;
     int _virtualString;
@@ -1183,8 +1248,8 @@ protected:
     bool _isShadowFor = false;
 
 public:
-    ModelCMObject(UDControllerPort* port, int virtualString, const std::string& name, const std::string displayName, ModelManager* mm, UDController* cud, ControllerCaps* caps, wxPoint location, wxSize size, int style, double scale) :
-        BaseCMObject(cud, caps, location, size, style, scale), _mm(mm), _port(port), _virtualString(virtualString)
+    ModelCMObject(UDControllerPort* port, int virtualString, const std::string& name, const std::string displayName, ModelManager* mm, UDController* cud, ControllerCaps* caps, wxPoint location, wxSize size, int style, double scale, const std::string &label = "") :
+        BaseCMObject(cud, caps, location, size, style, scale), _mm(mm), _port(port), _virtualString(virtualString), _label(label)
     {
         _name = name;
         _main = name == displayName;
@@ -1205,7 +1270,9 @@ public:
             _isShadowFor = m->GetShadowModelFor() != "";
         }
     }
-
+    void SetString(int i) {
+        _string = i;
+    }
     std::string GetName() const
     {
         return _name;
@@ -1386,6 +1453,10 @@ public:
                 DrawTextLimited(dc, wxString::Format("Strings: %d", m->GetNumPhysicalStrings()), pt, sz - wxSize(4, 4));
                 pt += wxSize(0, (VERTICAL_SIZE * scale) / 2);
             }
+            if (_style & STYLE_LABEL) {
+                DrawTextLimited(dc, _label, pt, sz - wxSize(4, 4));
+                pt += wxSize(0, (VERTICAL_SIZE * scale) / 2);
+            }
         }
 
         dc.SetBrush(origBrush);
@@ -1399,30 +1470,29 @@ public:
             if (!GetModel()->HasSingleNode(GetModel()->GetStringType()) && GetModel()->SupportsChangingStringCount()) {
                 mnu.AppendSeparator();
                 mnu.Append(ControllerModelDialog::CONTROLLER_MODEL_STRINGS, "Change String Count");
-                mnu.AppendSeparator();
             }
 
             if (_caps->SupportsSmartRemotes()) {
                 wxMenu* srMenu = new wxMenu();
+                mnu.AppendSeparator();
 
                 int srcount = _caps->GetSmartRemoteCount();
 
                 auto mi = srMenu->AppendRadioItem(wxNewId(), "None");
-                if (GetModel()->GetSmartRemote() == 0)
+                if (GetModel()->GetSmartRemote() == 0){
                     mi->Check();
+                }
 
-
-                    for (int i = 0; i < srcount; i++) {
+                for (int i = 0; i < srcount; i++) {
                     if (_caps->GetVendor() == "HinksPix") {
-                        mi = srMenu->AppendRadioItem(wxNewId(), wxString::Format("%d", i));
+                        mi = srMenu->AppendRadioItem(wxNewId(), wxString::Format("%d", i), "SR Port");
+                    } else {
+                        mi = srMenu->AppendRadioItem(wxNewId(), wxString(char(65 + i)), "SR Port");
                     }
-                    else
-                    {
-                        mi = srMenu->AppendRadioItem(wxNewId(), wxString(char(65 + i)));
+                    if (GetModel()->GetSmartRemote() == i + 1) {
+                        mi->Check();
                     }
-                        if (GetModel()->GetSmartRemote() == i + 1)
-                            mi->Check();
-                    }
+                }
 
                 if (_caps->GetSmartRemoteTypes().size() > 1) {
                     wxMenu* srType = new wxMenu();
@@ -1442,9 +1512,10 @@ public:
 
                 wxMenu* srMax = new wxMenu();
                 for (int i = 0; i < srcount; i++) {
-                    mi = srMax->AppendRadioItem(wxNewId(), wxString::Format("%d", i + 1));
-                    if (GetModel()->GetSRMaxCascade() == i + 1)
+                    mi = srMax->AppendRadioItem(wxNewId(), wxString::Format("%d", i + 1), "Cascade");
+                    if (GetModel()->GetSRMaxCascade() == i + 1) {
                         mi->Check();
+                    }
                 }
 
                 srMenu->AppendSubMenu(srMax, "Cascaded Remotes");
@@ -1461,6 +1532,19 @@ public:
                     mnu.Append(ControllerModelDialog::CONTROLLER_BRIGHTNESSCLEAR, "Clear Brightness");
                 }
             }
+            if (_caps->SupportsPixelPortNullPixels()) {
+                mnu.Append(ControllerModelDialog::CONTROLLER_STARTNULLS, "Set Start Nulls");
+            }
+            if (_caps->SupportsPixelPortEndNullPixels()) {
+                mnu.Append(ControllerModelDialog::CONTROLLER_ENDNULLS, "Set End Nulls");
+            }
+            if (_caps->SupportsPixelPortColourOrder()) {
+                mnu.Append(ControllerModelDialog::CONTROLLER_COLORORDER, "Set Color Order");
+            }
+            if (_caps->SupportsPixelPortGrouping()) {
+                mnu.Append(ControllerModelDialog::CONTROLLER_GROUPCOUNT, "Set Group Count");
+            }
+            
         } else if (GetModel() != nullptr && GetModel()->IsSerialProtocol()) {
             mnu.AppendSeparator();
             mnu.Append(ControllerModelDialog::CONTROLLER_DMXCHANNEL, "Set Channel");
@@ -1503,6 +1587,35 @@ public:
                 GetModel()->SetControllerBrightness(dlg.GetValue());
             }
             return true;
+        } else if (id == ControllerModelDialog::CONTROLLER_STARTNULLS) {
+            wxNumberEntryDialog dlg(parent, "Enter the Model Start Nulls", "Start Nulls", "Start Nulls", GetModel()->GetControllerStartNulls(), 0, 100);
+            if (dlg.ShowModal() == wxID_OK) {
+                GetModel()->SetControllerStartNulls(dlg.GetValue());
+            }
+            return true;
+        } else if (id == ControllerModelDialog::CONTROLLER_ENDNULLS) {
+            wxNumberEntryDialog dlg(parent, "Enter the End Nulls", "End Nulls", "Model End Nulls", GetModel()->GetControllerEndNulls(), 0, 100);
+            if (dlg.ShowModal() == wxID_OK) {
+                GetModel()->SetControllerEndNulls(dlg.GetValue());
+            }
+            return true;
+        } else if (id == ControllerModelDialog::CONTROLLER_COLORORDER) {
+            auto choices = Model::CONTROLLER_COLORORDER;
+            int selection = choices.Index(GetModel()->GetControllerColorOrder());
+            wxSingleChoiceDialog dlg(parent, "Model Color Order", "Color Order", choices);
+            if (selection >= 0 && selection < choices.size()) {
+                dlg.SetSelection(selection);
+            }
+            if (dlg.ShowModal() == wxID_OK) {
+                GetModel()->SetControllerColorOrder(choices[dlg.GetSelection()]);
+            }
+            return true;
+        } else if (id == ControllerModelDialog::CONTROLLER_GROUPCOUNT) {
+            wxNumberEntryDialog dlg(parent, "Enter the Group Count", "Group Count", "Model Group Count", GetModel()->GetControllerGroupCount(), 1, 500);
+            if (dlg.ShowModal() == wxID_OK) {
+                GetModel()->SetControllerGroupCount(dlg.GetValue());
+            }
+            return true;
         } else if (id == ControllerModelDialog::CONTROLLER_BRIGHTNESSCLEAR) {
             GetModel()->ClearControllerBrightness();
             return true;
@@ -1517,6 +1630,7 @@ public:
             return true;
         } else {
             wxString label = ((wxMenu*)event.GetEventObject())->GetLabelText(id);
+            wxString title = ((wxMenu*)event.GetEventObject())->GetHelpString(id);
             auto const types = GetModel()->GetSmartRemoteTypes();
             if (std::find(types.begin(), types.end(), label.ToStdString()) != types.end()) {
                 int const port = GetModel()->GetControllerPort();
@@ -1534,13 +1648,14 @@ public:
             } else if (label == "None") {
                 GetModel()->SetSmartRemote(0);
                 return true;
-            } else if (label >= "0" && label <= "25") {
+            } else if (title == "SR Port") {
+                if (label >= "A" && label <= "Z") {
+                    GetModel()->SetSmartRemote(int(label[0]) - 64);
+                    return true;
+                }
                 GetModel()->SetSmartRemote(wxAtoi(label) + 1);
                 return true;
-            } else if (label >= "A" && label <= "Z") {
-                GetModel()->SetSmartRemote(int(label[0]) - 64);
-                return true;
-            } else {
+            } else if (title == "Cascade") {
                 int max = wxAtoi(label);
                 if (max >= 1) {
                     GetModel()->SetSRMaxCascade(max);
@@ -1774,106 +1889,100 @@ ControllerModelDialog::ControllerModelDialog(wxWindow* parent, UDController* cud
     wxFlexGridSizer* FlexGridSizer3;
     wxFlexGridSizer* FlexGridSizer5;
 
-    Create(parent, wxID_ANY, _("Controller Visualiser"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxRESIZE_BORDER | wxCLOSE_BOX | wxMAXIMIZE_BOX, _T("wxID_ANY"));
-    SetClientSize(wxSize(500, 500));
+    Create(parent, wxID_ANY, _("Controller Visualiser"), wxDefaultPosition, wxDefaultSize, wxCAPTION|wxRESIZE_BORDER|wxCLOSE_BOX|wxMAXIMIZE_BOX, _T("wxID_ANY"));
+    SetClientSize(wxSize(500,500));
     FlexGridSizer1 = new wxFlexGridSizer(1, 1, 0, 0);
     FlexGridSizer1->AddGrowableCol(0);
     FlexGridSizer1->AddGrowableRow(0);
-    SplitterWindow1 = new wxSplitterWindow(this, ID_SPLITTERWINDOW1, wxDefaultPosition, wxDefaultSize, wxSP_3D | wxTAB_TRAVERSAL, _T("ID_SPLITTERWINDOW1"));
-    SplitterWindow1->SetMinimumPaneSize(50);
+    SplitterWindow1 = new wxSplitterWindow(this, ID_SPLITTERWINDOW1, wxDefaultPosition, wxDefaultSize, wxSP_3D|wxSP_LIVE_UPDATE|wxTAB_TRAVERSAL, _T("ID_SPLITTERWINDOW1"));
     SplitterWindow1->SetSashGravity(1);
     Panel3 = new wxPanel(SplitterWindow1, ID_PANEL3, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL3"));
     FlexGridSizer5 = new wxFlexGridSizer(0, 2, 0, 0);
     FlexGridSizer5->AddGrowableCol(0);
     FlexGridSizer5->AddGrowableRow(0);
     PanelController = new wxPanel(Panel3, ID_PANEL1, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE, _T("ID_PANEL1"));
-    FlexGridSizer5->Add(PanelController, 1, wxALL | wxEXPAND, 0);
+    FlexGridSizer5->Add(PanelController, 1, wxALL|wxEXPAND, 0);
     ScrollBar_Controller_V = new wxScrollBar(Panel3, ID_SCROLLBAR1, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL, wxDefaultValidator, _T("ID_SCROLLBAR1"));
     ScrollBar_Controller_V->SetScrollbar(0, 1, 10, 1);
-    FlexGridSizer5->Add(ScrollBar_Controller_V, 1, wxALL | wxEXPAND, 0);
+    FlexGridSizer5->Add(ScrollBar_Controller_V, 1, wxALL|wxEXPAND, 0);
     ScrollBar_Controller_H = new wxScrollBar(Panel3, ID_SCROLLBAR2, wxDefaultPosition, wxDefaultSize, wxSB_HORIZONTAL, wxDefaultValidator, _T("ID_SCROLLBAR2"));
     ScrollBar_Controller_H->SetScrollbar(0, 1, 10, 1);
-    FlexGridSizer5->Add(ScrollBar_Controller_H, 1, wxALL | wxEXPAND, 0);
-    FlexGridSizer5->Add(-1, -1, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 0);
+    FlexGridSizer5->Add(ScrollBar_Controller_H, 1, wxALL|wxEXPAND, 0);
+    FlexGridSizer5->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     BoxSizer1 = new wxBoxSizer(wxHORIZONTAL);
     StaticText1 = new wxStaticText(Panel3, ID_STATICTEXT1, _("Box Size:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
-    BoxSizer1->Add(StaticText1, 0, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL | wxFIXED_MINSIZE, 5);
+    BoxSizer1->Add(StaticText1, 0, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE, 5);
     Slider_Box_Scale = new wxSlider(Panel3, ID_SLIDER_BOX_SCALE, 10, 1, 50, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_BOX_SCALE"));
     Slider_Box_Scale->SetTickFreq(1);
     Slider_Box_Scale->SetToolTip(_("Box Size"));
-    BoxSizer1->Add(Slider_Box_Scale, 1, wxALL | wxEXPAND, 1);
+    BoxSizer1->Add(Slider_Box_Scale, 1, wxALL|wxEXPAND, 1);
     StaticText2 = new wxStaticText(Panel3, ID_STATICTEXT2, _("Font Size:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
-    BoxSizer1->Add(StaticText2, 0, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL | wxFIXED_MINSIZE, 5);
+    BoxSizer1->Add(StaticText2, 0, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE, 5);
     Slider_Font_Scale = new wxSlider(Panel3, ID_SLIDER_FONT_SCALE, 15, 1, 72, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_FONT_SCALE"));
     Slider_Font_Scale->SetTickFreq(1);
     Slider_Font_Scale->SetToolTip(_("Font Size"));
-    BoxSizer1->Add(Slider_Font_Scale, 1, wxALL | wxEXPAND, 1);
-    FlexGridSizer5->Add(BoxSizer1, 1, wxALL | wxEXPAND, 3);
-    FlexGridSizer5->Add(-1, -1, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
-    TextCtrl_Check = new wxTextCtrl(Panel3, ID_TEXTCTRL1, wxEmptyString, wxDefaultPosition, wxSize(-1, 100), wxTE_MULTILINE | wxTE_READONLY | wxALWAYS_SHOW_SB, wxDefaultValidator, _T("ID_TEXTCTRL1"));
-    FlexGridSizer5->Add(TextCtrl_Check, 1, wxALL | wxEXPAND, 5);
-    FlexGridSizer5->Add(-1, -1, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
+    BoxSizer1->Add(Slider_Font_Scale, 1, wxALL|wxEXPAND, 1);
+    FlexGridSizer5->Add(BoxSizer1, 1, wxALL|wxEXPAND, 3);
+    FlexGridSizer5->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+    TextCtrl_Check = new wxTextCtrl(Panel3, ID_TEXTCTRL1, wxEmptyString, wxDefaultPosition, wxSize(-1,100), wxTE_MULTILINE|wxTE_READONLY|wxALWAYS_SHOW_SB, wxDefaultValidator, _T("ID_TEXTCTRL1"));
+    FlexGridSizer5->Add(TextCtrl_Check, 1, wxALL|wxEXPAND, 5);
+    FlexGridSizer5->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     Panel3->SetSizer(FlexGridSizer5);
-    FlexGridSizer5->Fit(Panel3);
-    FlexGridSizer5->SetSizeHints(Panel3);
     Panel4 = new wxPanel(SplitterWindow1, ID_PANEL4, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL4"));
     FlexGridSizer3 = new wxFlexGridSizer(0, 1, 0, 0);
     FlexGridSizer3->AddGrowableCol(0);
     FlexGridSizer3->AddGrowableRow(1);
     CheckBox_HideOtherControllerModels = new wxCheckBox(Panel4, ID_CHECKBOX1, _("Hide models assigned to other controllers"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
     CheckBox_HideOtherControllerModels->SetValue(false);
-    FlexGridSizer3->Add(CheckBox_HideOtherControllerModels, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
+    FlexGridSizer3->Add(CheckBox_HideOtherControllerModels, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     FlexGridSizer2 = new wxFlexGridSizer(0, 2, 0, 0);
     FlexGridSizer2->AddGrowableCol(0);
     FlexGridSizer2->AddGrowableRow(0);
     PanelModels = new wxPanel(Panel4, ID_PANEL2, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE, _T("ID_PANEL2"));
-    FlexGridSizer2->Add(PanelModels, 1, wxALL | wxEXPAND, 0);
+    FlexGridSizer2->Add(PanelModels, 1, wxALL|wxEXPAND, 0);
     ScrollBar_Models = new wxScrollBar(Panel4, ID_SCROLLBAR3, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL, wxDefaultValidator, _T("ID_SCROLLBAR3"));
     ScrollBar_Models->SetScrollbar(0, 1, 10, 1);
-    FlexGridSizer2->Add(ScrollBar_Models, 1, wxALL | wxEXPAND, 0);
-    FlexGridSizer3->Add(FlexGridSizer2, 1, wxALL | wxEXPAND, 0);
+    FlexGridSizer2->Add(ScrollBar_Models, 1, wxALL|wxEXPAND, 0);
+    FlexGridSizer3->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 0);
     Panel4->SetSizer(FlexGridSizer3);
-    FlexGridSizer3->Fit(Panel4);
-    FlexGridSizer3->SetSizeHints(Panel4);
     SplitterWindow1->SplitVertically(Panel3, Panel4);
     SplitterWindow1->SetSashPosition(1000);
-    FlexGridSizer1->Add(SplitterWindow1, 1, wxALL | wxEXPAND, 5);
-    SetSizer(FlexGridSizer1);
+    FlexGridSizer1->Add(SplitterWindow1, 1, wxALL|wxEXPAND, 5);
     SetSizer(FlexGridSizer1);
     Layout();
 
-    PanelController->Connect(wxEVT_PAINT, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerPaint, 0, this);
-    PanelController->Connect(wxEVT_KEY_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerKeyDown, 0, this);
-    PanelController->Connect(wxEVT_LEFT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftDown, 0, this);
-    PanelController->Connect(wxEVT_LEFT_UP, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftUp, 0, this);
-    PanelController->Connect(wxEVT_LEFT_DCLICK, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftDClick, 0, this);
-    PanelController->Connect(wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerRightDown, 0, this);
-    PanelController->Connect(wxEVT_MOTION, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseMove, 0, this);
-    PanelController->Connect(wxEVT_ENTER_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseEnter, 0, this);
-    PanelController->Connect(wxEVT_LEAVE_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseLeave, 0, this);
-    PanelController->Connect(wxEVT_MOUSEWHEEL, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseWheel, 0, this);
-    PanelController->Connect(wxEVT_SIZE, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerResize, 0, this);
-    Connect(ID_SCROLLBAR1, wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP | wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP | wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK | wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_VScroll);
+    PanelController->Connect(wxEVT_PAINT, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerPaint, NULL, this);
+    PanelController->Connect(wxEVT_KEY_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerKeyDown, NULL, this);
+    PanelController->Connect(wxEVT_LEFT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftDown, NULL, this);
+    PanelController->Connect(wxEVT_LEFT_UP, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftUp, NULL, this);
+    PanelController->Connect(wxEVT_LEFT_DCLICK, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerLeftDClick, NULL, this);
+    PanelController->Connect(wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerRightDown, NULL, this);
+    PanelController->Connect(wxEVT_MOTION, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseMove, NULL, this);
+    PanelController->Connect(wxEVT_ENTER_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseEnter, NULL, this);
+    PanelController->Connect(wxEVT_LEAVE_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseLeave, NULL, this);
+    PanelController->Connect(wxEVT_MOUSEWHEEL, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerMouseWheel, NULL, this);
+    PanelController->Connect(wxEVT_SIZE, (wxObjectEventFunction)&ControllerModelDialog::OnPanelControllerResize, NULL, this);
+    Connect(ID_SCROLLBAR1, wxEVT_SCROLL_TOP|wxEVT_SCROLL_BOTTOM|wxEVT_SCROLL_LINEUP|wxEVT_SCROLL_LINEDOWN|wxEVT_SCROLL_PAGEUP|wxEVT_SCROLL_PAGEDOWN|wxEVT_SCROLL_THUMBTRACK|wxEVT_SCROLL_THUMBRELEASE|wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_VScroll);
     Connect(ID_SCROLLBAR1, wxEVT_SCROLL_THUMBTRACK, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_VScrollThumbTrack);
     Connect(ID_SCROLLBAR1, wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_VScrollChanged);
-    Connect(ID_SCROLLBAR2, wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP | wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP | wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK | wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_HScroll);
+    Connect(ID_SCROLLBAR2, wxEVT_SCROLL_TOP|wxEVT_SCROLL_BOTTOM|wxEVT_SCROLL_LINEUP|wxEVT_SCROLL_LINEDOWN|wxEVT_SCROLL_PAGEUP|wxEVT_SCROLL_PAGEDOWN|wxEVT_SCROLL_THUMBTRACK|wxEVT_SCROLL_THUMBRELEASE|wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_HScroll);
     Connect(ID_SCROLLBAR2, wxEVT_SCROLL_THUMBTRACK, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_HScrollThumbTrack);
     Connect(ID_SCROLLBAR2, wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_Controller_HScrollChanged);
     Connect(ID_SLIDER_BOX_SCALE, wxEVT_COMMAND_SLIDER_UPDATED, (wxObjectEventFunction)&ControllerModelDialog::OnSlider_ScaleCmdSliderUpdated);
     Connect(ID_SLIDER_FONT_SCALE, wxEVT_COMMAND_SLIDER_UPDATED, (wxObjectEventFunction)&ControllerModelDialog::OnSlider_ScaleCmdSliderUpdated);
     Connect(ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED, (wxObjectEventFunction)&ControllerModelDialog::OnCheckBox_HideOtherControllerModelsClick);
-    PanelModels->Connect(wxEVT_PAINT, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsPaint, 0, this);
-    PanelModels->Connect(wxEVT_KEY_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsKeyDown, 0, this);
-    PanelModels->Connect(wxEVT_LEFT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftDown, 0, this);
-    PanelModels->Connect(wxEVT_LEFT_UP, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftUp, 0, this);
-    PanelModels->Connect(wxEVT_LEFT_DCLICK, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftDClick, 0, this);
-    PanelModels->Connect(wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsRightDown, 0, this);
-    PanelModels->Connect(wxEVT_MOTION, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseMove, 0, this);
-    PanelModels->Connect(wxEVT_ENTER_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseEnter, 0, this);
-    PanelModels->Connect(wxEVT_LEAVE_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseLeave, 0, this);
-    PanelModels->Connect(wxEVT_MOUSEWHEEL, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseWheel, 0, this);
-    PanelModels->Connect(wxEVT_SIZE, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsResize, 0, this);
-    Connect(ID_SCROLLBAR3, wxEVT_SCROLL_TOP | wxEVT_SCROLL_BOTTOM | wxEVT_SCROLL_LINEUP | wxEVT_SCROLL_LINEDOWN | wxEVT_SCROLL_PAGEUP | wxEVT_SCROLL_PAGEDOWN | wxEVT_SCROLL_THUMBTRACK | wxEVT_SCROLL_THUMBRELEASE | wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_ModelsScroll);
+    PanelModels->Connect(wxEVT_PAINT, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsPaint, NULL, this);
+    PanelModels->Connect(wxEVT_KEY_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsKeyDown, NULL, this);
+    PanelModels->Connect(wxEVT_LEFT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftDown, NULL, this);
+    PanelModels->Connect(wxEVT_LEFT_UP, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftUp, NULL, this);
+    PanelModels->Connect(wxEVT_LEFT_DCLICK, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsLeftDClick, NULL, this);
+    PanelModels->Connect(wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsRightDown, NULL, this);
+    PanelModels->Connect(wxEVT_MOTION, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseMove, NULL, this);
+    PanelModels->Connect(wxEVT_ENTER_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseEnter, NULL, this);
+    PanelModels->Connect(wxEVT_LEAVE_WINDOW, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseLeave, NULL, this);
+    PanelModels->Connect(wxEVT_MOUSEWHEEL, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsMouseWheel, NULL, this);
+    PanelModels->Connect(wxEVT_SIZE, (wxObjectEventFunction)&ControllerModelDialog::OnPanelModelsResize, NULL, this);
+    Connect(ID_SCROLLBAR3, wxEVT_SCROLL_TOP|wxEVT_SCROLL_BOTTOM|wxEVT_SCROLL_LINEUP|wxEVT_SCROLL_LINEDOWN|wxEVT_SCROLL_PAGEUP|wxEVT_SCROLL_PAGEDOWN|wxEVT_SCROLL_THUMBTRACK|wxEVT_SCROLL_THUMBRELEASE|wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_ModelsScroll);
     Connect(ID_SCROLLBAR3, wxEVT_SCROLL_THUMBTRACK, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_ModelsScrollThumbTrack);
     Connect(ID_SCROLLBAR3, wxEVT_SCROLL_CHANGED, (wxObjectEventFunction)&ControllerModelDialog::OnScrollBar_ModelsScrollChanged);
     //*)
@@ -2284,6 +2393,26 @@ void ControllerModelDialog::ReloadModels()
         }
         y += VERTICAL_GAP + VERTICAL_SIZE;
     }
+    
+    for (int i = 0; i < std::max((_caps == nullptr ? 0 : _caps->GetMaxPWMPort()), _cud->GetMaxPWMPort()); i++) {
+        _controllers.push_back(new PortCMObject(PortCMObject::PORTTYPE::PWM, i + 1, _cud, _caps,
+                                                wxPoint(LEFT_RIGHT_MARGIN, y), wxSize(HORIZONTAL_SIZE, VERTICAL_SIZE),
+                                                BaseCMObject::STYLE_CHANNELS, false, _scale));
+        auto sp = _cud->GetControllerPWMPort(i + 1);
+        if (sp != nullptr) {
+            int x = LEFT_RIGHT_MARGIN + HORIZONTAL_SIZE + FIRST_MODEL_GAP_MULTIPLIER * HORIZONTAL_GAP;
+            for (const auto& it : sp->GetModels()) {
+                auto cmm = new ModelCMObject(sp, 0, it->GetName(), it->GetName(), _mm, _cud, _caps, wxPoint(x, y), wxSize(HORIZONTAL_SIZE, VERTICAL_SIZE),
+                                             BaseCMObject::STYLE_LABEL, _scale, it->GetLabel());
+                cmm->SetString(it->GetString());
+                _controllers.push_back(cmm);
+                x += HORIZONTAL_SIZE + HORIZONTAL_GAP;
+            }
+            if (x > maxx)
+                maxx = x;
+        }
+        y += VERTICAL_GAP + VERTICAL_SIZE;
+    }
     for (int i = 0; i < std::max((_caps == nullptr ? 0 : _caps->GetMaxVirtualMatrixPort()), _cud->GetMaxVirtualMatrixPort()); i++) {
         _controllers.push_back(new PortCMObject(PortCMObject::PORTTYPE::VIRTUAL_MATRIX, i + 1, _cud, _caps,
                                                 wxPoint(LEFT_RIGHT_MARGIN, y), wxSize(HORIZONTAL_SIZE, VERTICAL_SIZE),
@@ -2617,6 +2746,9 @@ void ControllerModelDialog::DropModelFromModelsPaneOnModel(ModelCMObject* droppe
     } else if (port->GetPortType() == PortCMObject::PORTTYPE::PANEL_MATRIX) {
         m->SetControllerProtocol("LED Panel Matrix");
         m->SetSmartRemote(0);
+    } else if (port->GetPortType() == PortCMObject::PORTTYPE::PWM) {
+        m->SetControllerProtocol("PWM");
+        m->SetSmartRemote(0);
     } else {
         if (port->GetModelCount() == 0) {
             if (_caps != nullptr && !_caps->IsValidSerialProtocol(m->GetControllerProtocol()) && _caps->GetSerialProtocols().size() > 0)
@@ -2754,6 +2886,9 @@ void ControllerModelDialog::DropFromModels(const wxPoint& location, const std::s
                 m->SetSmartRemote(0);
             } else if (port->GetPortType() == PortCMObject::PORTTYPE::PANEL_MATRIX) {
                 m->SetControllerProtocol("LED Panel Matrix");
+                m->SetSmartRemote(0);
+            } else if (port->GetPortType() == PortCMObject::PORTTYPE::PWM) {
+                m->SetControllerProtocol("PWM");
                 m->SetSmartRemote(0);
             } else {
                 if (port->GetModelCount() == 0) {
@@ -3051,6 +3186,9 @@ void ControllerModelDialog::DropFromController(const wxPoint& location, const st
                     m->SetSmartRemote(0);
                 } else if (port->GetPortType() == PortCMObject::PORTTYPE::PANEL_MATRIX) {
                     m->SetControllerProtocol("LED Panel Matrix");
+                    m->SetSmartRemote(0);
+                } else if (port->GetPortType() == PortCMObject::PORTTYPE::PWM) {
+                    m->SetControllerProtocol("PWM");
                     m->SetSmartRemote(0);
                 } else {
                     if (port->GetModelCount() == 0) {
@@ -3713,7 +3851,7 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
     bool isSubsequentString = false;
 
     auto m = mob->GetModel();
-    if (m == nullptr && mob->GetString() > 0) {
+    if (m == nullptr) {
         // this is a 2nd+ string on a model
         isSubsequentString = true;
         m = _mm->GetModel(mob->GetName());
@@ -3728,9 +3866,7 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
         if (!isSubsequentString) {
             sr += wxString::Format("\nSmart Remote Type: %s", m->GetSmartRemoteType());
             sr += wxString::Format("\nSmart Remote Cascade Down Port: %s", toStr(m->GetSRCascadeOnPort()));
-            if (m->GetSRCascadeOnPort()) {
-                sr += wxString::Format("\nSmart Remote Cascade Length: %d", m->GetSRMaxCascade());
-            }
+            sr += wxString::Format("\nSmart Remote Cascade Length: %d", m->GetSRMaxCascade());
         }
         sr += "\n";
     }
@@ -3763,6 +3899,7 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
     std::string usc;
     std::string dmx;
     std::string stringSettings;
+    std::string stringText = "Strings " + std::to_string(m->GetNumPhysicalStrings())+ "\n";
     if (m->IsSerialProtocol()) {
         dmx = wxString::Format("\nChannel %d", m->GetControllerDMXChannel());
         UDControllerPortModel* udm = mob->GetUDModel();
@@ -3778,6 +3915,18 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
         }
     } else if (m->IsMatrixProtocol()) {
         // Any extra matrix properties to display?
+    } else if (m->IsPWMProtocol()) {
+        UDControllerPortModel* udm = mob->GetUDModel();
+        if (udm) {
+            usc = std::to_string(udm->GetStartChannel() + 1) + "\nBits: ";
+            if (udm->GetStartChannel() == udm->GetEndChannel()) {
+                usc += "8";
+            } else {
+                usc += "16";
+            }
+            isSubsequentString = udm->GetString() != 0;
+            stringText = "";
+        }
     } else {
         UDControllerPortModel* udm = mob->GetUDModel();
         if (udm != nullptr) {
@@ -3820,7 +3969,7 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
 
     // Not a fan of this code here but I dont have a better place for it right now
     std::string special;
-    if (_controller->GetVendor() == "HinksPix" && _controller->GetModel() == "PRO") {
+    if (_controller->GetVendor() == "HinksPix" && Contains(_controller->GetModel(), "PRO")) {
         if (m->GetSmartRemote() != 0) {
             int absPort = m->GetControllerPort();
             int absSM = m->GetSmartRemote();
@@ -3857,14 +4006,14 @@ std::string ControllerModelDialog::GetModelTooltip(ModelCMObject* mob)
     }
 
     if (_autoLayout) {
-        return wxString::Format("Name: %s\n%sController Name: %s\n%s%sStrings %d\n%sPort: %d\nProtocol: %s%s%s%s%s",
-                                mob->GetDisplayName(), shadow, controllerName, mc, sccc,
-                                m->GetNumPhysicalStrings(), sr, mob->GetPort() != nullptr ? (mob->GetPort()->GetPort() == 0 ? m->GetControllerPort() : mob->GetPort()->GetPort()) : m->GetControllerPort(), m->GetControllerProtocol(), dmx, mdescription, stringSettings, special)
+        return wxString::Format("Name: %s\n%sController Name: %s\n%s%s%s%sPort: %d\nProtocol: %s%s%s%s%s",
+                                mob->GetDisplayName(), shadow, controllerName, mc, sccc, stringText,
+                                sr, mob->GetPort() != nullptr ? (mob->GetPort()->GetPort() == 0 ? m->GetControllerPort() : mob->GetPort()->GetPort()) : m->GetControllerPort(), m->GetControllerProtocol(), dmx, mdescription, stringSettings, special)
             .ToStdString();
     } else {
-        return wxString::Format("name: %s\n%sController Name: %s\nIP/Serial: %s\n%sStrings %d\nSmart Remote: %s\nPort: %d\nProtocol: %s%s%s%s%s",
-                                mob->GetDisplayName(), shadow, controllerName, universe, sccc,
-                                m->GetNumPhysicalStrings(), sr, mob->GetPort() != nullptr ? (mob->GetPort()->GetPort() == 0 ? m->GetControllerPort() : mob->GetPort()->GetPort()) : m->GetControllerPort(), m->GetControllerProtocol(), dmx, mdescription, stringSettings, special)
+        return wxString::Format("name: %s\n%sController Name: %s\nIP/Serial: %s\n%s%sSmart Remote: %s\nPort: %d\nProtocol: %s%s%s%s%s",
+                                mob->GetDisplayName(), shadow, controllerName, universe, sccc, stringText,
+                                sr, mob->GetPort() != nullptr ? (mob->GetPort()->GetPort() == 0 ? m->GetControllerPort() : mob->GetPort()->GetPort()) : m->GetControllerPort(), m->GetControllerProtocol(), dmx, mdescription, stringSettings, special)
             .ToStdString();
     }
 }

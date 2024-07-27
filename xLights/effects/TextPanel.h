@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*Headers(TextPanel)
@@ -62,6 +62,7 @@ class TextPanel: public xlEffectPanel
 		virtual void ValidateWindow() override;
 
 		//(*Declarations(TextPanel)
+		BulkEditCheckBox* CheckBox_Text_Color_PerWord;
 		BulkEditCheckBox* CheckBox_Text_PixelOffsets;
 		BulkEditChoice* Choice_Text_Count;
 		BulkEditChoice* Choice_Text_Dir;
@@ -129,6 +130,7 @@ class TextPanel: public xlEffectPanel
 		static const long ID_CHOICE_Text_Count;
 		static const long ID_BITMAPBUTTON_CHOICE_Text_Count;
 		static const long ID_CHECKBOX_Text_PixelOffsets;
+		static const long ID_CHECKBOX_Text_Color_PerWord;
 		static const long ID_STATICTEXT_Text_XStart;
 		static const long ID_SLIDER_Text_XStart;
 		static const long IDD_TEXTCTRL_Text_XStart;

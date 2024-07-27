@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "DmxModel.h"
@@ -40,6 +40,8 @@ class DmxServo3d : public DmxModel
         void UpdateBits() { update_bits = true; }
         bool Is16Bit() const { return _16bit; }
 
+        void GetPWMOutputs(std::map<uint32_t, PWMOutput> &channels) const override;
+
     protected:
         virtual void InitModel() override;
         void Clear();
@@ -47,7 +49,7 @@ class DmxServo3d : public DmxModel
         void DrawModel(ModelPreview* preview, xlGraphicsContext *ctx, xlGraphicsProgram *sprogram, xlGraphicsProgram *tprogram, bool active);
 
         virtual void ExportXlightsModel() override;
-        virtual void ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y) override;
+        [[nodiscard]] virtual bool ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y) override;
 
         float brightness = 100.0f;
 

@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "DmxColorAbility.h"
@@ -28,7 +28,7 @@ public:
     void InitColor(wxXmlNode* ModelXml) override;
     bool IsColorChannel(uint32_t channel) const override;
     void SetColorPixels(const xlColor& color, xlColorVector& pixelVector) const override;
-    void AddColorTypeProperties(wxPropertyGridInterface* grid) const override;
+    void AddColorTypeProperties(wxPropertyGridInterface* grid, bool pwm) const override;
     int OnColorPropertyGridChange(wxPropertyGridInterface* grid, wxPropertyGridEvent& event, wxXmlNode* ModelXml, BaseObject* base) override;
     [[nodiscard]] std::list<std::string> CheckModelSettings(Model* m) const override;
     [[nodiscard]] bool IsValidModelSettings(Model* m) const override;
@@ -46,6 +46,7 @@ public:
     void ExportParameters(wxFile& f, wxXmlNode* ModelXml) const override;
     void ImportParameters(wxXmlNode* ImportXml, Model* m) const override;
     void SetNodeNames(std::vector<std::string>& names) const override;
+    int GetNumChannels() const override;
 
     [[nodiscard]] uint32_t GetCyanChannel() const
     {
@@ -68,6 +69,9 @@ public:
     [[nodiscard]] uint8_t GetY(xlColor c) const;
     [[nodiscard]] float GetK(xlColor c) const;
     [[nodiscard]] xlColor GetRGB(uint8_t cyan, uint8_t magenta, uint8_t yellow) const;
+    
+    virtual void GetPWMOutputs(std::map<uint32_t, PWMOutput> &map) const override;
+
 
         private:
     uint32_t cyan_channel;

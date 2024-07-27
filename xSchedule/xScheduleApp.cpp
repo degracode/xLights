@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "xScheduleApp.h"
@@ -99,11 +99,14 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ImageHlp.Lib")
 #pragma comment(lib, "avcodec.lib")
+#pragma comment(lib, "avdevice.lib")
+#pragma comment(lib, "avfilter.lib")
 #pragma comment(lib, "avformat.lib")
 #pragma comment(lib, "avutil.lib")
+#pragma comment(lib, "postproc.lib")
 #pragma comment(lib, "swresample.lib")
-#pragma comment(lib, "SDL2.lib")
 #pragma comment(lib, "swscale.lib")
+#pragma comment(lib, "SDL2.lib")
 #endif
 
 IMPLEMENT_APP(xScheduleApp)

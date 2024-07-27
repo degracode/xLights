@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <algorithm>
@@ -239,17 +239,18 @@ extern const wxString xlEMPTY_WXSTRING;
         return r;
     }
 
-    inline std::string Join(std::vector<std::string> const &strings, std::string delim)
+    template <class T>
+    inline std::string Join(T const &strings, std::string delim)
     {
         if (strings.empty()) {
             return std::string();
         }
-     
-        return std::accumulate(strings.begin() + 1, strings.end(), strings[0],
+        auto begin = strings.begin();
+        ++begin;
+        return std::accumulate(begin, strings.end(), strings.front(),
             [&delim](std::string x, std::string y) {
                 return x + delim + y;
             }
         );
     }
-
 //};

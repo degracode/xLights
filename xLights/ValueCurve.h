@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/position.h>
@@ -151,7 +151,7 @@ public:
     void SetActive(bool a) { _active = a; RenderType(); }
     bool IsActive() const { return _active && IsOk(); }
     void ToggleActive() { _active = !_active; if (_active) RenderType(); }
-    void SetValueAt(float offset, float value);
+    void SetValueAt(float offset, float value, bool force = false);
     void DeletePoint(float offset);
     bool IsSetPoint(float offset);
     void SetDivisor(float divisor) { _divisor = divisor; }

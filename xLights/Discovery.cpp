@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/socket.h>
@@ -584,6 +584,16 @@ DiscoveredData* Discovery::DetectControllerType(const std::string &ip, const std
             cd->SetModel(model.ToStdString());
             cd->version = falc.GetFullName();
             cd->platform = "Falcon";
+            std::string mode = falc.GetMode();
+            if (mode == "Player") {
+                cd->mode = "player";
+            } else if (mode == "Remote") {
+                cd->mode = "remote";
+            } else if (mode == "Master") {
+                cd->mode = "player w/multisync";
+            } else {
+                cd->mode = "bridge";
+            }
             int stringCount = falc.NumConfiguredStrings();
             auto variants = ControllerCaps::GetVariants(CONTROLLER_ETHERNET, "Falcon", model);
             for (auto const& a : variants) {
@@ -592,7 +602,6 @@ DiscoveredData* Discovery::DetectControllerType(const std::string &ip, const std
                     cd->SetVariant(a);
                 }
             }
-            std::string mode = falc.GetMode();
             if (("DDP" == mode || "Player" == mode || "Remote" == mode || "Master" == mode)
                 && ce->GetProtocol() != OUTPUT_DDP){
                 ce->SetProtocol(OUTPUT_DDP);
@@ -635,7 +644,7 @@ void Discovery::Discover() {
         //first check to see if any of the socket have received data
         for (const auto& dg : datagrams) {
             for (const auto &socket : dg->sockets) {
-                if (socket->IsOk() && socket->IsData()) {
+                while (socket->IsOk() && socket->IsData()) {
                     socket->Read(&buffer[0], sizeof(buffer));
                     readSize = socket->GetLastIOReadSize();
                     if (readSize != 0) {

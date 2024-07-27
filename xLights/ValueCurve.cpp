@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/wx.h>
@@ -1788,10 +1788,10 @@ float ValueCurve::GetValueAt(float offset, long startMS, long endMS)
                 // find the maximum of any intervening frames
                 float f = 0.0;
                 for (long ms = time; ms < time + msperPoint; ms += frameMS) {
-                    auto pf = __audioManager->GetFrameData(FRAMEDATATYPE::FRAMEDATA_HIGH, "", ms + frameMS);
+                    auto pf = __audioManager->GetFrameData("", ms + frameMS);
                     if (pf != nullptr) {
-                        if (*pf->begin() > f) {
-                            f = *pf->begin();
+                        if (pf->max > f) {
+                            f = pf->max;
                         }
                     }
                 }
@@ -1899,9 +1899,9 @@ float ValueCurve::GetValueAt(float offset, long startMS, long endMS)
         if (__audioManager != nullptr) {
             long time = (float)startMS + offset * (endMS - startMS);
             float f = 0.0;
-            auto pf = __audioManager->GetFrameData(FRAMEDATATYPE::FRAMEDATA_HIGH, "", time);
+            auto pf = __audioManager->GetFrameData("", time);
             if (pf != nullptr) {
-                f = ApplyGain(*pf->begin(), GetParameter3());
+                f = ApplyGain(pf->max, GetParameter3());
                 if (_type == "Inverted Music") {
                     f = 1.0 - f;
                 }
@@ -2023,12 +2023,12 @@ void ValueCurve::RemoveExcessCustomPoints()
     }
 }
 
-void ValueCurve::SetValueAt(float offset, float value)
+void ValueCurve::SetValueAt(float offset, float value, bool force)
 {
     auto it = _values.begin();
     while (it != _values.end() && *it <= offset)
     {
-        if (*it == offset)
+        if (*it == offset && !force)
         {
             _values.remove(*it);
             break;

@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 
@@ -162,6 +162,11 @@ bool DrawGLUtils::LoadGLFunctions() {
     return (glUseProgram != nullptr);
 }
 #else
+
+// OpenGL is marked deprecated in OSX so we'll turn off the deprecation warnings for this file
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 bool DrawGLUtils::LoadGLFunctions() {
     return true;
 }
@@ -2199,3 +2204,7 @@ xlGraphicsContext* xlOGL3GraphicsContext::ApplyMatrix(const glm::mat4 &m) {
     frameDataChanged = true;
     return this;
 }
+
+#ifdef __WXOSX__
+#pragma clang diagnostic pop
+#endif

@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "Experience.h"
@@ -22,6 +22,8 @@
 #include "../xSchedule/wxJSON/jsonwriter.h"
 
 #include <curl/curl.h>
+
+#include "../utils/Curl.h"
 
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
@@ -50,6 +52,18 @@ std::string Experience::PostJSONToURL(const std::string& url, const wxJSONValue&
     return PutURL(url, str, "", "", "application/json");
 }
 #pragma endregion
+
+bool Experience::UploadSequence(const std::string& seq, const std::string& file,std::function<bool(int, std::string)> progress)
+{
+    static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    std::string const baseIP = _fppProxy.empty() ? _ip : _fppProxy;
+    std::string url = "http://" + baseIP + _baseUrl + "/upload";
+    logger_base.debug("Uploading to URL: %s", (const char*)url.c_str());
+
+    wxFileName fn(file);
+    return Curl::HTTPUploadFile(url, seq, fn.GetFullName().ToStdString(), progress);
+}
 
 #pragma region Encode and Decode
 int Experience::EncodeBrightness(int brightness) const
@@ -160,10 +174,10 @@ int32_t Experience::SetInputUniverses(wxJSONValue& data, Controller* controller)
     } else if (out->GetType() == OUTPUT_DDP) {
         data["system"]["operating_mode"] = wxString("ddp");
         DDPOutput* ddp = (DDPOutput*)out;
-        data["system"]["start_channel"] = ddp->IsKeepChannelNumbers() ? ddp->GetStartChannel() : 1;
         if (ddp->IsKeepChannelNumbers()) {
-            startChannel = 1;
+            startChannel = 1;            
         }
+        data["system"]["start_channel"] = startChannel;
     } else  {
         //should never hit this
         DisplayError(wxString::Format(
@@ -269,10 +283,10 @@ bool Experience::SetOutputs(ModelManager* allmodels, OutputManager* outputManage
             }
             port["disabled"] = false;
             stringData["outputs"][p - 1] = port;
-        } else if (fullControl) {
+        } else {
             wxJSONValue vs;
-            vs["sc"] = 1;
-            vs["ec"] = 1;
+            vs["sc"] = 0;
+            vs["ec"] = 0;
             port["virtual_strings"].Append(vs);
             stringData["outputs"][p - 1] = port;
         }
@@ -288,52 +302,72 @@ bool Experience::SetOutputs(ModelManager* allmodels, OutputManager* outputManage
             if (cud.HasPixelPort(portID)) {
                 UDControllerPort* portData = cud.GetControllerPixelPort(portID);
                 portData->CreateVirtualStrings(false);
-
                 for (const auto& pvs : portData->GetVirtualStrings()) {
                     wxJSONValue vs;
-                    vs["n"] = pvs->_description;
-                    vs["sc"] = pvs->_startChannel - startChannel + 1;
-                    vs["ec"] = pvs->Channels() / pvs->_channelsPerPixel;
+
+                    if (pvs->_isDummy) {
+                        vs["sc"] = 0;
+                        vs["ec"] = 0;
+                    } else {
+                        vs["n"] = pvs->_description;
+                        vs["sc"] = pvs->_startChannel - startChannel + 1;
+                        vs["ec"] = pvs->Channels() / pvs->_channelsPerPixel;
+
+                        if (pvs->_reverseSet && pvs->_reverse == "Reverse") {
+                            vs["r"] = true;
+                        }
+                        if (pvs->_gammaSet) {
+                            vs["g"] = EncodeGamma(pvs->_gamma);
+                        }
+                        if (pvs->_brightnessSet) {
+                            vs["b"] = EncodeBrightness(pvs->_brightness);
+                        } else if (fullControl) {
+                            vs["b"] = defaultBrightness;
+                        }
+                        if (pvs->_startNullPixelsSet) {
+                            vs["sn"] = pvs->_startNullPixels;
+                        }
+                        if (pvs->_endNullPixelsSet) {
+                            vs["en"] = pvs->_endNullPixels;
+                        }
+                        if (pvs->_colourOrderSet) {
+                            vs["st"] = EncodeColorOrder(pvs->_colourOrder);
+                        }
+                    }
+
                     if (pvs->_smartRemote > 0) {
                         vs["ri"] = pvs->_smartRemote - 1;
                     }
                     remoteIds.insert(pvs->_smartRemote);
-                    if (pvs->_reverseSet && pvs->_reverse == "Reverse") {
-                        vs["r"] = true;
-                    }
-                    if (pvs->_gammaSet) {
-                        vs["g"] = EncodeGamma(pvs->_gamma);
-                    }
-                    if (pvs->_brightnessSet) {
-                        vs["b"] = EncodeBrightness(pvs->_brightness);
-                    } else if (fullControl) {
-                        vs["b"] = defaultBrightness;
-                    }
-                    if (pvs->_startNullPixelsSet) {
-                        vs["sn"] = pvs->_startNullPixels;
-                    }
-                    if (pvs->_endNullPixelsSet) {
-                        vs["en"] = pvs->_endNullPixels;
-                    }
-                    if (pvs->_colourOrderSet) {
-                        vs["st"] =  EncodeColorOrder(pvs->_colourOrder);
-                    }
                     port["virtual_strings"].Append(vs);
                 }
                 port["disabled"] = false;
                 stringData["outputs"][portID - 1] = port;
-            } else if (fullControl) {
+            } else {
                 wxJSONValue vs;
-                vs["sc"] = 1;
-                vs["ec"] = 1;
+                vs["sc"] = 0;
+                vs["ec"] = 0;
+                vs["ri"] = 0;
                 port["virtual_strings"].Append(vs);
                 stringData["outputs"][portID - 1] = port;
             }
         }
+        //pad end with extra remotes to match other ports on receiver
+        for (int subID = 0; subID < 4; ++subID) {
+            int portID = GetNumberOfPixelOutputs() + (lrIdx * 4) + subID + 1;
+            while (stringData["outputs"][portID - 1]["virtual_strings"].AsArray()->size() < remoteIds.size()) {
+                wxJSONValue vs;
+                vs["sc"] = 0;
+                vs["ec"] = 0;
+                vs["ri"] = stringData["outputs"][portID - 1]["virtual_strings"].AsArray()->size();
+                stringData["outputs"][portID - 1]["virtual_strings"].Append(vs);
+            }
+        }
+
         if (remoteIds.size() != 0) {
             stringData["long_range_ports"][lrIdx]["number_of_receivers"] = remoteIds.size();
             stringData["long_range_ports"][lrIdx]["type"] = wxString("pixel");
-        } else if (fullControl) {
+        } else {
             stringData["long_range_ports"][lrIdx]["number_of_receivers"] = 1;
             stringData["long_range_ports"][lrIdx]["type"] = wxString("pixel");
         }
@@ -360,10 +394,10 @@ bool Experience::SetOutputs(ModelManager* allmodels, OutputManager* outputManage
 
             stringData["long_range_ports"][lrIdx]["number_of_receivers"] = 1;
             stringData["long_range_ports"][lrIdx]["type"] = wxString("dmx");
-        } else if (fullControl) {
+        } else {
             wxJSONValue vs;
-            vs["sc"] = 1;
-            vs["ec"] = 1;
+            vs["sc"] = 0;
+            vs["ec"] = 0;
             sport["virtual_strings"].Append(vs);
             stringData["outputs"][portID - 1] = sport;
             stringData["long_range_ports"][lrIdx]["number_of_receivers"] = 1;
@@ -375,7 +409,6 @@ bool Experience::SetOutputs(ModelManager* allmodels, OutputManager* outputManage
     progress.Update(70, "Uploading String Output Information.");
 
     PostJSONToURL(GetConfigURL(), stringData);
-
     progress.Update(100, "Done.");
     return true;
 }

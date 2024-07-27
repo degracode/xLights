@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*InternalHeaders(LMSImportChannelMapDialog)
@@ -22,6 +22,7 @@
 #include "sequencer/SequenceElements.h"
 #include "xLightsMain.h"
 #include "models/Model.h"
+#include "xlColourData.h"
 
 //(*IdInit(LMSImportChannelMapDialog)
 const long LMSImportChannelMapDialog::ID_CHOICE1 = wxNewId();
@@ -41,7 +42,6 @@ BEGIN_EVENT_TABLE(LMSImportChannelMapDialog,wxDialog)
 	//*)
 END_EVENT_TABLE()
 
-wxColourData LMSImportChannelMapDialog::_colorData;
 
 #ifndef wxEVT_GRID_CELL_CHANGE
 //until CodeBlocks is updated to wxWidgets 3.x
@@ -338,12 +338,10 @@ void LMSImportChannelMapDialog::OnChannelMapGridCellLeftDClick(wxGridEvent& even
 {
     if (event.GetCol() == 4) {
         wxColor c = ChannelMapGrid->GetCellBackgroundColour(event.GetRow(), 4);
-        _colorData.SetColour(c);
-        wxColourDialog dlg(this, &_colorData);
-        if (dlg.ShowModal() == wxID_OK)
+        auto const& [res, color] = xlColourData::INSTANCE.ShowColorDialog(this, c); 
+        if (res == wxID_OK)
         {
-            _colorData = dlg.GetColourData();
-            ChannelMapGrid->SetCellBackgroundColour(event.GetRow(), 4, dlg.GetColourData().GetColour());
+            ChannelMapGrid->SetCellBackgroundColour(event.GetRow(), 4, color);
             ChannelMapGrid->Refresh();
             _dirty = true;
         }
@@ -381,7 +379,7 @@ void LMSImportChannelMapDialog::LoadMapping(wxCommandEvent& event)
     bool modelwarning = false;
     if (_dirty)
     {
-        if (wxMessageBox("Are you sure you dont want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxNO)
+        if (wxMessageBox("Are you sure you don't want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxNO)
         {
             return;
         }
@@ -512,7 +510,7 @@ void LMSImportChannelMapDialog::OnButton_OkClick(wxCommandEvent& event)
 {
     if (_dirty)
     {
-        if (wxMessageBox("Are you sure you dont want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES)
+        if (wxMessageBox("Are you sure you don't want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES)
         {
             EndDialog(wxID_OK);
         }
@@ -528,7 +526,7 @@ void LMSImportChannelMapDialog::OnButton_CancelClick(wxCommandEvent& event)
 {
     if (_dirty)
     {
-        if (wxMessageBox("Are you sure you dont want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES)
+        if (wxMessageBox("Are you sure you don't want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES)
         {
             EndDialog(wxID_CANCEL);
         }

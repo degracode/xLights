@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "FireEffect.h"
@@ -36,10 +36,10 @@ FireEffect::~FireEffect()
 
 std::list<std::string> FireEffect::CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff, bool renderCache)
 {
-    std::list<std::string> res;
+    std::list<std::string> res = RenderableEffect::CheckEffectSettings(settings, media, model, eff, renderCache);
 
     if (media == nullptr && settings.GetBool("E_CHECKBOX_Fire_GrowWithMusic", false)) {
-        res.push_back(wxString::Format("    WARN: Fire effect cant grow to music if there is no music. Model '%s', Start %s", model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+        res.push_back(wxString::Format("    WARN: Fire effect cant grow to music if there is no music. Model '%s', Start %s", model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
     }
 
     return res;
@@ -158,6 +158,7 @@ public:
     virtual ~FireRenderCache() {};
 
     std::vector<int> FireBuffer;
+    wxPoint maxBuffer;
 };
 
 static FireRenderCache* GetCache(RenderBuffer &buffer, int id) {
@@ -201,9 +202,9 @@ void FireEffect::Render(Effect* effect, const SettingsMap& SettingsMap, RenderBu
         HeightPct = 10;
         if (buffer.GetMedia() != nullptr) {
             float f = 0.0;
-            std::list<float> const* const pf = buffer.GetMedia()->GetFrameData(buffer.curPeriod, FRAMEDATA_HIGH, "");
+            auto pf = buffer.GetMedia()->GetFrameData(buffer.curPeriod, "");
             if (pf != nullptr) {
-                f = *pf->cbegin();
+                f = pf->max;
             }
             HeightPct += 90 * f;
         }
@@ -218,46 +219,55 @@ void FireEffect::Render(Effect* effect, const SettingsMap& SettingsMap, RenderBu
     if (HeightPct < 1)
         HeightPct = 1;
 
-    wxPoint maxBuffer = buffer.GetMaxBuffer(SettingsMap);
-    int maxMWi = maxBuffer.x == -1 ? buffer.BufferWi : maxBuffer.x;
-    int maxMHt = maxBuffer.y == -1 ? buffer.BufferHt : maxBuffer.y;
-    if (loc == 2 || loc == 3) {
-        maxMHt = buffer.BufferWi;
-        maxMWi = buffer.BufferHt;
-    }
 
-    int maxWi = buffer.BufferWi;
-    int maxHt = buffer.BufferHt;
+    int curWi = buffer.BufferWi;
+    int curHt = buffer.BufferHt;
     if (loc == 2 || loc == 3) {
-        maxHt = buffer.BufferWi;
-        maxWi = buffer.BufferHt;
+        std::swap(curHt, curWi);
     }
-
-    if (maxMHt < 1)
-        maxMHt = 1;
-    if (maxHt < 1)
-        maxHt = 1;
+    if (curHt < 1) {
+        curHt = 1;
+    }
 
     FireRenderCache* cache = GetCache(buffer, id);
 
     float mod_state = 4.0;
     if (buffer.needToInit) {
         buffer.needToInit = false;
-        cache->FireBuffer.resize(maxMHt * maxMWi);
+
+        cache->maxBuffer = buffer.GetMaxBuffer(SettingsMap);
+        int w = std::max(buffer.BufferWi, cache->maxBuffer.x);
+        int h = std::max(buffer.BufferHt, cache->maxBuffer.y);
+
+        cache->FireBuffer.resize(w * h);
         for (size_t i = 0; i < cache->FireBuffer.size(); ++i) {
             cache->FireBuffer[i] = 0;
         }
     } else {
         mod_state = 4 / (buffer.curPeriod % 4 + 1);
     }
+    int maxMWi = cache->maxBuffer.x == -1 ? buffer.BufferWi : cache->maxBuffer.x;
+    int maxMHt = cache->maxBuffer.y == -1 ? buffer.BufferHt : cache->maxBuffer.y;
+    if (loc == 2 || loc == 3) {
+        std::swap(maxMHt, maxMWi);
+    }
+    if (maxMHt < 1) {
+        maxMHt = 1;
+    }
+
+    if ((maxMHt * maxMWi) > cache->FireBuffer.size()) {
+        // this shouldn't happen, but just in case we'll do this as a safety measure
+        cache->FireBuffer.resize(maxMHt * maxMWi);
+    }
+    
     // build fire
     for (int x = 0; x < maxMWi; ++x) {
         int r = x % 2 == 0 ? 190 + (rand() % 10) : 100 + (rand() % 50);
         SetFireBuffer(x, 0, r, cache->FireBuffer, maxMWi, maxMHt);
     }
-    int step = 255 * 100 / maxHt / HeightPct;
-    for (int y = 1; y < maxHt; ++y) {
-        for (int x = 0; x < maxWi; ++x) {
+    int step = 255 * 100 / curHt / HeightPct;
+    for (int y = 1; y < maxMHt; ++y) {
+        for (int x = 0; x < maxMWi; ++x) {
             int v1 = GetFireBuffer(x - 1, y - 1, cache->FireBuffer, maxMWi, maxMHt);
             int v2 = GetFireBuffer(x + 1, y - 1, cache->FireBuffer, maxMWi, maxMHt);
             int v3 = GetFireBuffer(x, y - 1, cache->FireBuffer, maxMWi, maxMHt);
@@ -293,17 +303,15 @@ void FireEffect::Render(Effect* effect, const SettingsMap& SettingsMap, RenderBu
     }
 
     //  Now play fire
-    for (int y = 0; y < maxHt; ++y) {
-        for (int x = 0; x < maxWi; ++x) {
+    for (int y = 0; y < curHt; ++y) {
+        for (int x = 0; x < curWi; ++x) {
             int xp = x;
             int yp = y;
             if (loc == 1 || loc == 3) {
-                yp = maxHt - y - 1;
+                yp = curHt - y - 1;
             }
             if (loc == 2 || loc == 3) {
-                int t = xp;
-                xp = yp;
-                yp = t;
+                std::swap(xp, yp);
             }
             if (HueShift > 0) {
                 HSVValue hsv = FirePalette[GetFireBuffer(x, y, cache->FireBuffer, maxMWi, maxMHt)];

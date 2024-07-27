@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "BaseController.h"
@@ -34,6 +34,7 @@
 #include "SanDevices.h"
 #include "Minleon.h"
 #include "WLED.h"
+#include "ILightThat.h"
 #include "Experience.h"
 #include "utils/CurlManager.h"
 
@@ -93,6 +94,8 @@ BaseController *BaseController::CreateBaseController(Controller *controller, con
         bc = new Experience(ip, proxy);
     } else if (driver == "WLED") {
         bc = new WLED(ip, proxy);
+    } else if (driver == "ILightThat") {
+        bc = new ILightThat(ip, proxy);
     } else {
         logger_base.warn("Vendor not recognized ... assuming it is a FPP based vendor : %s.", (const char*)vendor.c_str());
         bc = new FPP(ip, proxy, caps->GetModel());

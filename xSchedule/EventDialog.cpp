@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "EventDialog.h"
@@ -44,6 +44,7 @@
 #include <wx/intl.h>
 #include <wx/string.h>
 //*)
+#include <wx/tooltip.h>
 
 //(*IdInit(EventDialog)
 const long EventDialog::ID_CHOICEBOOK1 = wxNewId();
@@ -239,6 +240,8 @@ EventDialog::EventDialog(wxWindow* parent, OutputManager* outputManager, EventBa
     SetMinSize(wxSize(800, 600));
     SetSize(800, 600);
 
+	wxToolTip::SetAutoPop(10000);
+
     ValidateWindow();
 }
 
@@ -246,6 +249,7 @@ EventDialog::~EventDialog()
 {
 	//(*Destroy(EventDialog)
 	//*)
+    wxToolTip::SetAutoPop(-1);
 }
 
 void EventDialog::OnButton_OkClick(wxCommandEvent& event)

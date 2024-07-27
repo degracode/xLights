@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "wx/wx.h"
@@ -125,8 +125,27 @@ class EffectLayer
 
         void CleanupAfterRender();
         void NumberEffects();
+    
+        const std::string &GetLayerName() const {
+            if (name == nullptr) {
+                return NO_NAME;
+            }
+            return *name;
+        }
+        void SetLayerName(const std::string &n) {
+            if (name != nullptr) {
+                delete name;
+                name = nullptr;
+            }
+            if ("" != n) {
+                name = new std::string(n);
+            }
+        }
+
     protected:
     private:
+        std::unique_lock<std::recursive_mutex> acquireLockWaitForRender();
+    
         void SortEffects();
         void PlayEffect(Effect* effect);
 
@@ -142,43 +161,36 @@ class EffectLayer
         int mIndex = 0;
         Element* mParentElement = nullptr;
         std::recursive_mutex lock;
+        std::mutex effectsToDeleteLock;
+    
+        std::string *name = nullptr;
+    
+    protected:
+        static const std::string NO_NAME;
 };
 
-class NamedLayer: public EffectLayer {
+class NodeLayer: public EffectLayer {
 public:
-    NamedLayer(Element *parent) : EffectLayer(parent), name(nullptr) {}
-    NamedLayer(Element *parent, const std::string &n) : EffectLayer(parent) {
-        if ("" == n) {
-            name = nullptr;
-        } else {
-            name = new std::string(n);
-        }
-    }
-    virtual ~NamedLayer() { if (name != nullptr) delete name;}
-    const std::string &GetName() const {
-        if (name == nullptr) {
+    NodeLayer(Element *parent) : EffectLayer(parent) {}
+    NodeLayer(Element *parent, const std::string &n) : EffectLayer(parent) { SetNodeName(n); }
+    virtual ~NodeLayer() { if (nodeName) {delete nodeName;} };
+    
+    const std::string &GetNodeName() const {
+        if (nodeName == nullptr) {
             return NO_NAME;
         }
-        return *name;
+        return *nodeName;
     }
-    void SetName(const std::string &n) {
-        if (name != nullptr) {
-            delete name;
-            name = nullptr;
+    void SetNodeName(const std::string &n) {
+        if (nodeName != nullptr) {
+            delete nodeName;
+            nodeName = nullptr;
         }
         if ("" != n) {
-            name = new std::string(n);
+            nodeName = new std::string(n);
         }
     }
 private:
-    std::string *name = nullptr;
-    static const std::string NO_NAME;
-};
+    std::string *nodeName = nullptr;
 
-class NodeLayer: public NamedLayer {
-public:
-    NodeLayer(Element *parent) : NamedLayer(parent) {}
-    NodeLayer(Element *parent, const std::string &n) : NamedLayer(parent, n) {}
-    virtual ~NodeLayer() {};
-private:
 };

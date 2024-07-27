@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "VideoReader.h"
@@ -20,6 +20,9 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/hwcontext.h>
+#if __has_include(<libavdevice/avdevice.h>)
+#include <libavdevice/avdevice.h>
+#endif
 }
 
 #include "SpecialOptions.h"
@@ -65,6 +68,7 @@ static enum AVPixelFormat get_hw_format(AVCodecContext* ctx, const enum AVPixelF
 }
 
 bool VideoReader::HW_ACCELERATION_ENABLED = false;
+WINHARDWARERENDERTYPE VideoReader::HW_ACCELERATION_TYPE = WINHARDWARERENDERTYPE::FFMPEG_AUTO;
 
 void VideoReader::SetHardwareAcceleratedVideo(bool accel)
 {
@@ -75,6 +79,10 @@ void VideoReader::SetHardwareAcceleratedVideo(bool accel)
 #endif
 }
 
+void VideoReader::SetHardwareRenderType(int type) 
+{
+    HW_ACCELERATION_TYPE = static_cast<WINHARDWARERENDERTYPE>( type );
+}
 
 void VideoReader::InitHWAcceleration() {
     InitVideoToolboxAcceleration();
@@ -113,7 +121,7 @@ VideoReader::VideoReader(const std::string& filename, int maxwidth, int maxheigh
 
 #ifdef __WXMSW__
 
-    if ( HW_ACCELERATION_ENABLED && ::IsWindows8OrGreater() ) {
+    if (HW_ACCELERATION_ENABLED && ::IsWindows8OrGreater() && HW_ACCELERATION_TYPE == WINHARDWARERENDERTYPE::DIRECX11_API) {
         _windowsHardwareVideoReader = new WindowsHardwareVideoReader(filename, _wantAlpha, usenativeresolution, keepaspectratio, maxwidth, maxheight, _pixelFmt);
         if (_windowsHardwareVideoReader->IsOk()) {
             _frames = _windowsHardwareVideoReader->GetFrames();
@@ -340,12 +348,32 @@ void VideoReader::reopenContext(bool allowHWDecoder) {
         avcodec_free_context(&_codecContext);
         _codecContext = nullptr;
     }
-
-    #if LIBAVFORMAT_VERSION_MAJOR > 57
+#if LIBAVFORMAT_VERSION_MAJOR > 57
     enum AVHWDeviceType type = ::AVHWDeviceType::AV_HWDEVICE_TYPE_NONE;
     if (allowHWDecoder && IsHardwareAcceleratedVideo()) {
 #if defined(__WXMSW__)
-        std::list<std::string> hwdecoders;
+        std::list<std::string> hwdecoders = { "cuda", "qsv", "d3d11va", "vulkan" };
+
+        switch (HW_ACCELERATION_TYPE) {
+            case WINHARDWARERENDERTYPE::FFMPEG_CUDA:
+                hwdecoders = { "cuda" };
+                break;
+            case WINHARDWARERENDERTYPE::FFMPEG_QSV:
+                hwdecoders = { "qsv" };
+                break;
+            case WINHARDWARERENDERTYPE::FFMPEG_VULKAN:
+                hwdecoders = { "vulkan" };
+                break;
+            case WINHARDWARERENDERTYPE::FFMPEG_AMF:
+            case WINHARDWARERENDERTYPE::FFMPEG_D3D11VA:
+                hwdecoders = { "d3d11va" };
+                break;
+            case WINHARDWARERENDERTYPE::FFMPEG_AUTO:
+            case WINHARDWARERENDERTYPE::DIRECX11_API:
+            default:
+                break;
+        }
+
 #elif defined(__WXOSX__)
         std::list<std::string> hwdecoders = { "videotoolbox" };
 #else
@@ -373,7 +401,7 @@ void VideoReader::reopenContext(bool allowHWDecoder) {
             }
         }
     }
-    #endif
+#endif
 
     _codecContext = avcodec_alloc_context3(_decoder);
     if (!_codecContext) {
@@ -409,7 +437,11 @@ void VideoReader::reopenContext(bool allowHWDecoder) {
             {
                 _codecContext->hw_device_ctx = av_buffer_ref(_hw_device_ctx);
                 _codecContext->get_format = get_hw_format;
-                logger_base.debug("Hardware decoding enabled for codec '%s'", _codecContext->codec->long_name);
+                const char *devName = "";
+#if __has_include(<libavdevice/avdevice.h>)
+                devName = av_hwdevice_get_type_name(type);
+#endif
+                logger_base.debug("Hardware decoding('%s') enabled for codec '%s'", devName, _codecContext->codec->long_name);
             }
         }
         else
@@ -629,7 +661,7 @@ void VideoReader::Seek(int timestampMS, bool readFrame)
 #ifdef VIDEO_EXTRALOGGING
         logger_base.info("VideoReader: Seeking to %d ms.", timestampMS);
 #endif
-        if (_atEnd && _videoToolboxAccelerated) {
+        if (_atEnd && (_videoToolboxAccelerated || _hw_device_ctx)) {
             // once the end is reached, the hardware decoder is done
             // so we need to reopen it to be able continue decoding
             reopenContext();
@@ -829,6 +861,9 @@ AVFrame* VideoReader::GetNextFrame(int timestampMS, int gracetime)
 #endif
 
     int currenttime = GetPos();
+    // NOTE:  As _frameMS is rounded down to an integer, these times are approximate.
+    //  timeOfNextFrame is as much as 1ms later
+    //  timeOfPrevFrame is as much as 1ms earlier.
     int timeOfNextFrame = currenttime + _frameMS;
     int timeOfPrevFrame = currenttime - _frameMS;
     
@@ -841,7 +876,9 @@ AVFrame* VideoReader::GetNextFrame(int timestampMS, int gracetime)
         //same frame, just return
         return _dstFrame;
     }
-    if (timestampMS >= timeOfPrevFrame && timestampMS < currenttime) {
+    // timeOfPrevFrame is rounded up, subtracting 1 ensures that we don't seek
+    //  for no good reason.
+    if (timestampMS >= timeOfPrevFrame - 1 && timestampMS < currenttime) {
         //prev frame, just return, avoids a seek
         return _dstFrame2;
     }
@@ -865,7 +902,8 @@ AVFrame* VideoReader::GetNextFrame(int timestampMS, int gracetime)
         bool seekedForward = false;
 		while (!_abort && (firstframe || ((currenttime + (_frameMS / 2.0)) < timestampMS)) &&
                currenttime <= _lengthMS &&
-               (av_read_frame(_formatContext, _packet)) == 0) {
+               (av_read_frame(_formatContext, _packet)) == 0)
+        {
             // Is this a packet from the video stream?
 			if (_packet->stream_index == _streamIndex) {
 
@@ -873,7 +911,7 @@ AVFrame* VideoReader::GetNextFrame(int timestampMS, int gracetime)
                 int decodeCount = 0;
                 int ret = avcodec_send_packet(_codecContext, _packet);
                 while (!_abort && ret != 0) {
-                    if (ret != AVERROR(EAGAIN) && _videoToolboxAccelerated) {
+                    if (ret != AVERROR(EAGAIN) && (_videoToolboxAccelerated || _hw_device_ctx )) {
                         logger_base.debug("    Hardware video decoding failed for %s. Reverting to software decoding.", (const char*)_filename.c_str());
                         reopenContext(false);
                         Seek(timestampMS, false);
@@ -927,17 +965,12 @@ AVFrame* VideoReader::GetNextFrame(int timestampMS, int gracetime)
 		return nullptr;
 	} else {
         int currenttime = GetPos();
-        int timeOfNextFrame = currenttime + _frameMS;
-        int timeOfPrevFrame = currenttime - _frameMS;
-        if (timestampMS >= currenttime && timestampMS < timeOfNextFrame) {
+        if (timestampMS >= currenttime) {
             //same frame, just return
             return _dstFrame;
-        }
-        if (timestampMS >= timeOfPrevFrame && timestampMS < currenttime) {
-            //prev frame, just return, avoids a seek
+        } else {
+            //prev frame, occurs if we seeked just a bit too far because not all frames are the same integer number of ms
             return _dstFrame2;
         }
-
-		return _dstFrame;
 	}
 }

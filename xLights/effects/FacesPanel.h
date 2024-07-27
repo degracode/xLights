@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
  //(*Headers(FacesPanel)
@@ -37,21 +37,21 @@ class FacesPanel: public xlEffectPanel
 
 		//(*Declarations(FacesPanel)
 		BulkEditCheckBox* CheckBox_Faces_Outline;
+		BulkEditCheckBox* CheckBox_Fade;
 		BulkEditCheckBox* CheckBox_SuppressShimmer;
 		BulkEditCheckBox* CheckBox_SuppressWhenNotSinging;
 		BulkEditCheckBox* CheckBox_TransparentBlack;
 		BulkEditChoice* Choice_Faces_EyeBlinkFrequency;
 		BulkEditChoice* Choice_Faces_Eyes;
+		BulkEditChoice* Choice_Faces_Phoneme;
 		BulkEditChoice* Choice_Faces_TimingTrack;
 		BulkEditFaceChoice* Face_FaceDefinitonChoice;
 		BulkEditSlider* Slider_Faces_TransparentBlack;
+		BulkEditSpinCtrl* SpinCtrl_LeadFrames;
 		BulkEditStateChoice* Choice1;
 		BulkEditTextCtrl* TextCtrl_Faces_TransparentBlack;
-		wxCheckBox* CheckBox_Fade;
-		wxChoice* Choice_Faces_Phoneme;
 		wxRadioButton* RadioButton1;
 		wxRadioButton* RadioButton2;
-		wxSpinCtrl* SpinCtrl_LeadFrames;
 		wxStaticText* StaticText14;
 		wxStaticText* StaticText1;
 		wxStaticText* StaticText2;

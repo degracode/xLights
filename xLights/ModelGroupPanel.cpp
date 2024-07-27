@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
  //(*InternalHeaders(ModelGroupPanel)
@@ -26,6 +26,7 @@
 #include "OutputModelManager.h"
 #include "xLightsMain.h"
 #include "UtilFunctions.h"
+#include "EditAliasesDialog.h"
 
 #include <log4cpp/Category.hh>
 
@@ -99,6 +100,7 @@ const long ModelGroupPanel::ID_STATICTEXT11 = wxNewId();
 const long ModelGroupPanel::ID_SPINCTRL3 = wxNewId();
 const long ModelGroupPanel::ID_STATICTEXT8 = wxNewId();
 const long ModelGroupPanel::ID_COLOURPICKERCTRL_MG_TAGCOLOUR = wxNewId();
+const long ModelGroupPanel::ID_BUTTON2 = wxNewId();
 const long ModelGroupPanel::ID_CHECKBOX1 = wxNewId();
 const long ModelGroupPanel::ID_CHECKBOX3 = wxNewId();
 const long ModelGroupPanel::ID_CHECKBOX2 = wxNewId();
@@ -120,6 +122,7 @@ const long ModelGroupPanel::ID_LISTCTRL2 = wxNewId();
 const long ModelGroupPanel::ID_MNU_CLEARALL = wxNewId();
 const long ModelGroupPanel::ID_MNU_COPY = wxNewId();
 const long ModelGroupPanel::ID_MNU_SORTBYNAME = wxNewId();
+const long ModelGroupPanel::ID_MNU_SORTBYLOCATION = wxNewId();
 
 BEGIN_EVENT_TABLE(ModelGroupPanel,wxPanel)
 	//(*EventTable(ModelGroupPanel)
@@ -137,6 +140,7 @@ ModelGroupPanel::ModelGroupPanel(wxWindow* parent, ModelManager &Models, LayoutP
 	wxFlexGridSizer* FlexGridSizer2;
 	wxFlexGridSizer* FlexGridSizer3;
 	wxFlexGridSizer* FlexGridSizer4;
+	wxFlexGridSizer* FlexGridSizer5;
 	wxFlexGridSizer* FlexGridSizer6;
 	wxStaticText* StaticText4;
 	wxStaticText* StaticText6;
@@ -191,19 +195,23 @@ ModelGroupPanel::ModelGroupPanel(wxWindow* parent, ModelManager &Models, LayoutP
 	FlexGridSizer4 = new wxFlexGridSizer(0, 4, 0, 0);
 	StaticText10 = new wxStaticText(this, ID_STATICTEXT10, _("X"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT10"));
 	FlexGridSizer4->Add(StaticText10, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_XCentreOffset = new wxSpinCtrl(this, ID_SPINCTRL2, _T("0"), wxDefaultPosition, wxDefaultSize, 0, -1000, 1000, 0, _T("ID_SPINCTRL2"));
+	SpinCtrl_XCentreOffset = new wxSpinCtrl(this, ID_SPINCTRL2, _T("0"), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER, -5000, 5000, 0, _T("ID_SPINCTRL2"));
 	SpinCtrl_XCentreOffset->SetValue(_T("0"));
 	FlexGridSizer4->Add(SpinCtrl_XCentreOffset, 1, wxALL|wxEXPAND, 2);
 	StaticText11 = new wxStaticText(this, ID_STATICTEXT11, _("Y"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT11"));
 	FlexGridSizer4->Add(StaticText11, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	SpinCtrl_YCentreOffset = new wxSpinCtrl(this, ID_SPINCTRL3, _T("0"), wxDefaultPosition, wxDefaultSize, 0, -1000, 1000, 0, _T("ID_SPINCTRL3"));
+	SpinCtrl_YCentreOffset = new wxSpinCtrl(this, ID_SPINCTRL3, _T("0"), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER, -5000, 5000, 0, _T("ID_SPINCTRL3"));
 	SpinCtrl_YCentreOffset->SetValue(_T("0"));
 	FlexGridSizer4->Add(SpinCtrl_YCentreOffset, 1, wxALL|wxEXPAND, 2);
 	FlexGridSizer6->Add(FlexGridSizer4, 1, wxALL|wxEXPAND, 5);
 	StaticText8 = new wxStaticText(this, ID_STATICTEXT8, _("Tag Color:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT8"));
 	FlexGridSizer6->Add(StaticText8, 1, wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 2);
+	FlexGridSizer5 = new wxFlexGridSizer(0, 3, 0, 0);
 	ColourPickerCtrl_ModelGroupTagColour = new wxColourPickerCtrl(this, ID_COLOURPICKERCTRL_MG_TAGCOLOUR, wxColour(0,0,0), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_COLOURPICKERCTRL_MG_TAGCOLOUR"));
-	FlexGridSizer6->Add(ColourPickerCtrl_ModelGroupTagColour, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer5->Add(ColourPickerCtrl_ModelGroupTagColour, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+	ButtonAliases = new wxButton(this, ID_BUTTON2, _("Aliases"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON2"));
+	FlexGridSizer5->Add(ButtonAliases, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer6->Add(FlexGridSizer5, 1, wxALL|wxEXPAND, 5);
 	CheckBox_ShowSubmodels = new wxCheckBox(this, ID_CHECKBOX1, _("Show SubModels to Add"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX1"));
 	CheckBox_ShowSubmodels->SetValue(true);
 	FlexGridSizer6->Add(CheckBox_ShowSubmodels, 1, wxALL|wxEXPAND, 2);
@@ -272,6 +280,7 @@ ModelGroupPanel::ModelGroupPanel(wxWindow* parent, ModelManager &Models, LayoutP
 	Connect(ID_SPINCTRL2,wxEVT_COMMAND_SPINCTRL_UPDATED,(wxObjectEventFunction)&ModelGroupPanel::OnSpinCtrl_XCentreOffsetChange);
 	Connect(ID_SPINCTRL3,wxEVT_COMMAND_SPINCTRL_UPDATED,(wxObjectEventFunction)&ModelGroupPanel::OnSpinCtrl_YCentreOffsetChange);
 	Connect(ID_COLOURPICKERCTRL_MG_TAGCOLOUR,wxEVT_COMMAND_COLOURPICKER_CHANGED,(wxObjectEventFunction)&ModelGroupPanel::OnColourPickerCtrl_ModelGroupTagColourColourChanged);
+	Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&ModelGroupPanel::OnButtonAliasesClick);
 	Connect(ID_CHECKBOX1,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ModelGroupPanel::OnCheckBox_ShowSubmodelsClick);
 	Connect(ID_CHECKBOX3,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ModelGroupPanel::OnCheckBox_ShowInactiveModelsClick);
 	Connect(ID_CHECKBOX2,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&ModelGroupPanel::OnCheckBox_ShowModelGroupsClick);
@@ -308,6 +317,13 @@ ModelGroupPanel::ModelGroupPanel(wxWindow* parent, ModelManager &Models, LayoutP
 
     mdt = new MGTextDropTarget(this, ListBoxAddToModelGroup, "NonModelGroup");
     ListBoxAddToModelGroup->SetDropTarget(mdt);
+
+    // This section is to get the enter key working so it will latch the values in the spin controls
+    // Problem is the event seems to only trigger if the wxTE_PROCESS_ENTER style is added to the control
+    // but CodeBlocks does not appear to offer that flag for the wxSpinCtrl even though its in the documentation.
+    // So if someone regenerates this file that manual change will get lost.
+    Connect(ID_SPINCTRL2, wxEVT_TEXT_ENTER, (wxObjectEventFunction)&ModelGroupPanel::OnSpinCtrlTextEnter);
+    Connect(ID_SPINCTRL3, wxEVT_TEXT_ENTER, (wxObjectEventFunction)&ModelGroupPanel::OnSpinCtrlTextEnter);
 
     _dragRowModel = false;
     _dragRowNonModel = false;
@@ -691,7 +707,7 @@ void ModelGroupPanel::OnButtonDownClick(wxCommandEvent& event)
     MoveSelectedModelsTo(unselected);
 }
 
-void ModelGroupPanel::SaveGroupChanges()
+void ModelGroupPanel::SaveGroupChanges(bool centreUpdate)
 {
     ModelGroup *g = (ModelGroup*)mModels[mGroup];
 
@@ -700,6 +716,10 @@ void ModelGroupPanel::SaveGroupChanges()
     mModels.GetXLightsFrame()->AbortRender();
 
     wxXmlNode *e = g->GetModelXml();
+
+    if (centreUpdate) {
+        e->DeleteAttribute("centreDefined");
+    }
 
     wxString ModelsInGroup = "";
     for (int i = 0; i < ListBoxModelsInGroup->GetItemCount(); i++) {
@@ -1234,12 +1254,12 @@ void ModelGroupPanel::OnListBoxAddToModelGroupItemDeselect(wxListEvent& event)
 
 void ModelGroupPanel::OnSpinCtrl_XCentreOffsetChange(wxSpinEvent& event)
 {
-    SaveGroupChanges();
+    SaveGroupChanges(true);
 }
 
 void ModelGroupPanel::OnSpinCtrl_YCentreOffsetChange(wxSpinEvent& event)
 {
-    SaveGroupChanges();
+    SaveGroupChanges(true);
 }
 
 void ModelGroupPanel::OnListBoxModelsInGroupItemRClick(wxListEvent& event)
@@ -1249,6 +1269,7 @@ void ModelGroupPanel::OnListBoxModelsInGroupItemRClick(wxListEvent& event)
     if(ListBoxModelsInGroup->GetItemCount() != 0) {
         mnu.AppendSeparator();
         mnu.Append(ID_MNU_SORTBYNAME, "Sort By Name");
+        mnu.Append(ID_MNU_SORTBYLOCATION, "Sort By Location");
         mnu.AppendSeparator();
         mnu.Append(ID_MNU_CLEARALL, "Clear");
     }
@@ -1275,6 +1296,8 @@ void ModelGroupPanel::OnPopup(wxCommandEvent& event)
     }
     else if (id == ID_MNU_SORTBYNAME) {
         SortModelsByName();
+    } else if (id == ID_MNU_SORTBYLOCATION) {
+        SortModelsByLocation();
     }
 }
 
@@ -1317,6 +1340,44 @@ void ModelGroupPanel::SortModelsByName()
     models.Sort(wxStringNumberAwareStringCompare);
     for (int i = 0; i < models.size(); ++i) {
         ListBoxModelsInGroup->InsertItem(i, models[i]);
+    }
+    SaveGroupChanges();
+    UpdatePanel(mGroup);
+}
+
+void ModelGroupPanel::SortModelsByLocation()
+{
+    ModelGroup* g = (ModelGroup*)mModels[mGroup];
+    if (g == nullptr)
+        return;
+    std::vector<std::pair<wxString, float>> modelPos;
+
+    for (int i = ListBoxModelsInGroup->GetItemCount(); i >= 0; --i) {
+        wxString const modelName = ListBoxModelsInGroup->GetItemText(i, 0);
+        Model* model = mModels[modelName];
+        float pos;
+        if (model != nullptr) {
+            if (model->GetDisplayAs() == "ModelGroup") {
+                Model* m = dynamic_cast<ModelGroup*>(model)->GetFirstModel();
+                if (m == nullptr)
+                    m = model;
+                pos = m->GetLeft();
+            } else {
+                pos = model->GetLeft();
+            }
+        } else {
+            pos = 0;
+        }
+        modelPos.push_back(std::make_pair(modelName, pos));
+
+        ListBoxModelsInGroup->SetItemState(i, 0, wxLIST_STATE_SELECTED);
+        ListBoxModelsInGroup->DeleteItem(i);
+    }
+    std::sort(modelPos.begin(), modelPos.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.second < rhs.second;
+    });
+    for (int i = 0; i < modelPos.size(); ++i) {
+        ListBoxModelsInGroup->InsertItem(i, modelPos[i].first);
     }
     SaveGroupChanges();
     UpdatePanel(mGroup);
@@ -1365,4 +1426,20 @@ void ModelGroupPanel::OnColourPickerCtrl_ModelGroupTagColourColourChanged(wxColo
 void ModelGroupPanel::OnChoice_DefaultCameraSelect(wxCommandEvent& event)
 {
     SaveGroupChanges();
+}
+
+void ModelGroupPanel::OnButtonAliasesClick(wxCommandEvent& event)
+{
+    ModelGroup* g = (ModelGroup*)mModels[mGroup];
+    if (g == nullptr)
+        return;
+    EditAliasesDialog dlg(this, g);
+
+    dlg.ShowModal();
+}
+
+void ModelGroupPanel::OnSpinCtrlTextEnter(wxCommandEvent& evt)
+{
+    wxWindow* win = dynamic_cast<wxWindow*>(evt.GetEventObject());
+    win->Navigate();
 }

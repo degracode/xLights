@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/preferences.h>
@@ -56,6 +56,11 @@ private:
 
 void xLightsFrame::OnMenuItemPreferencesSelected(wxCommandEvent& event)
 {
+    if (readOnlyMode) {
+        wxMessageBox("Preferences are not available in read only mode", "Read Only Mode", wxICON_INFORMATION | wxOK);
+        return;
+    }
+
     auto ld = _lowDefinitionRender;
 
     if (!mPreferencesEditor.get()) {

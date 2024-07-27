@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/string.h>
@@ -39,7 +39,7 @@ public:
     void ShowMessage(std::string const& text) const;
     [[nodiscard]] std::string PromptString(std::string const& text) const;
     [[nodiscard]] std::string PromptSelection(sol::object const& items, std::string const& message) const;
-    [[nodiscard]] std::list<std::string> PromptSequences() const;
+    [[nodiscard]] std::pair<std::list<std::string>, bool> PromptSequences() const;
     
     [[nodiscard]] sol::object JSONToTable(std::string const& json, sol::this_state s) const;
     [[nodiscard]] std::list<std::string> SplitString(std::string const& text, char const& delimiter) const;

@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/propgrid/propgrid.h>
@@ -318,8 +318,12 @@ void CircleModel::ExportXlightsModel()
     wxString filename = wxFileSelector(_("Choose output file"), wxEmptyString, name, wxEmptyString, "Custom Model files (*.xmodel)|*.xmodel", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (filename.IsEmpty()) return;
     wxFile f(filename);
-    //    bool isnew = !FileExists(filename);
-    if (!f.Create(filename, true) || !f.IsOpened()) DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+    
+    if (!f.Create(filename, true) || !f.IsOpened()) {
+        DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+        return;
+    }
+
     wxString p1 = ModelXml->GetAttribute("parm1");
     wxString p2 = ModelXml->GetAttribute("parm2");
     wxString p3 = ModelXml->GetAttribute("parm3");
@@ -354,7 +358,10 @@ void CircleModel::ExportXlightsModel()
     f.Write(wxString::Format("SourceVersion=\"%s\" ", v));
     f.Write(ExportSuperStringColors());
     f.Write(" >\n");
-
+    wxString aliases = SerialiseAliases();
+    if (aliases != "") {
+        f.Write(aliases);
+    }
     wxString state = SerialiseState();
     if (state != "") {
         f.Write(state);
@@ -372,7 +379,7 @@ void CircleModel::ExportXlightsModel()
     f.Close();
 }
 
-void CircleModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
+bool CircleModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
 {
     if (root->GetName() == "circlemodel") {
         wxString name = root->GetAttribute("name");
@@ -428,8 +435,11 @@ void CircleModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, flo
 
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RGBEFFECTS_CHANGE, "CircleModel::ImportXlightsModel");
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_MODELS_CHANGE_REQUIRING_RERENDER, "CircleModel::ImportXlightsModel");
+
+        return true;
     } else {
         DisplayError("Failure loading Circle model file.");
+        return false;
     }
 }
 

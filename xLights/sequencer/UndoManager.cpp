@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "UndoManager.h"
@@ -186,6 +186,12 @@ void UndoManager::CaptureModifiedEffect( const std::string &element_name, int la
     ModifiedEffectInfo* effect_undo_action = new ModifiedEffectInfo( element_name, layer_index, ef );
     UndoStep* action = new UndoStep(UNDO_EFFECT_MODIFIED, effect_undo_action);
     mUndoSteps.push_back(action);
+}
+void UndoManager::CancelLastStep() {
+    if (!mUndoSteps.empty()) {
+        delete mUndoSteps.back();
+        mUndoSteps.pop_back();
+    }
 }
 
 void UndoManager::UndoLastStep()

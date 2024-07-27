@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/xml/xml.h>
@@ -31,6 +31,8 @@
 #include "xxxSerialOutput.h"
 #include "GenericSerialOutput.h"
 #include "../models/ModelManager.h"
+
+#include <log4cpp/Category.hh>
 
 #pragma region Property Choices
 wxPGChoices ControllerSerial::__types;
@@ -644,7 +646,7 @@ void ControllerSerial::AddProperties(wxPropertyGrid* propertyGrid, ModelManager*
             wxPGChoices i2cDevices;
             for (int x = 0; x < 128; x++) {
                 char buf[12];
-                sprintf(buf, "0x%02X", x);
+                snprintf(buf, sizeof(buf), "0x%02X", x);
                 i2cDevices.Add(buf);
             }
             p = propertyGrid->Append(new wxEnumProperty("I2C Device", "I2CDevice", i2cDevices, Controller::EncodeChoices(i2cDevices, wxString::Format("0x%02X", _speed))));
@@ -663,7 +665,7 @@ void ControllerSerial::AddProperties(wxPropertyGrid* propertyGrid, ModelManager*
         p = propertyGrid->Append(new wxEnumProperty("Speed", "Speed", __speeds, Controller::EncodeChoices(__speeds, wxString::Format("%d", _speed))));
         if (dynamic_cast<SerialOutput*>(_outputs.front())) {
             if (!dynamic_cast<SerialOutput*>(_outputs.front())->AllowsBaudRateSetting()) {
-                p->ChangeFlag(wxPG_PROP_READONLY, true);
+                p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
                 p->SetBackgroundColour(*wxLIGHT_GREY);
                 p->SetHelpString("Speed is fixed for this protocol.");
             }
@@ -685,7 +687,7 @@ void ControllerSerial::AddProperties(wxPropertyGrid* propertyGrid, ModelManager*
         p->SetAttribute("Max", max);
 
         if (IsAutoSize()) {
-            p->ChangeFlag(wxPG_PROP_READONLY, true);
+            p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
             p->SetBackgroundColour(*wxLIGHT_GREY);
             p->SetHelpString("Channels cannot be changed when an output is set to Auto Size.");
         } else {
@@ -694,7 +696,7 @@ void ControllerSerial::AddProperties(wxPropertyGrid* propertyGrid, ModelManager*
     }
 
     p = propertyGrid->Append(new wxStringProperty("Models", "Models", modelManager->GetModelsOnChannels(GetStartChannel(), GetEndChannel(), -1)));
-    p->ChangeFlag(wxPG_PROP_READONLY, true);
+    p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
     p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     p->SetHelpString(modelManager->GetModelsOnChannels(GetStartChannel(), GetEndChannel(), 4));
 

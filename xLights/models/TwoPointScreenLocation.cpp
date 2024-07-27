@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "TwoPointScreenLocation.h"
@@ -117,7 +117,6 @@ void TwoPointScreenLocation::Write(wxXmlNode *ModelXml) {
     ModelXml->DeleteAttribute("X2");
     ModelXml->DeleteAttribute("Y2");
     ModelXml->DeleteAttribute("Z2");
-    ModelXml->DeleteAttribute("Locked");
     ModelXml->AddAttribute("X2", std::to_string(x2));
     ModelXml->AddAttribute("Y2", std::to_string(y2));
     ModelXml->AddAttribute("Z2", std::to_string(z2));
@@ -892,7 +891,7 @@ wxCursor TwoPointScreenLocation::InitializeLocation(int &handle, int x, int y, c
 void TwoPointScreenLocation::AddDimensionProperties(wxPropertyGridInterface* propertyEditor, float factor) const
 {
     wxPGProperty* prop = propertyEditor->Append(new wxFloatProperty(wxString::Format("Length (%s)", RulerObject::GetUnitDescription()), "RealLength", RulerObject::Measure(origin, point2)));
-    //prop->ChangeFlag(wxPG_PROP_READONLY, true);
+    //prop->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
     prop->SetAttribute("Precision", 2);
     //prop->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
 }

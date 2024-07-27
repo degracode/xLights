@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/dnd.h>
@@ -82,6 +82,7 @@ class ViewsModelsPanel : public wxPanel
     void MarkViewsChanged();
     void AddViewToList(const wxString& viewName, bool isChecked);
     bool IsModelAGroup(const std::string& modelname) const;
+    int GetPixelCount(const std::string& modelname);
     void DeleteSelectedView();
     int GetTimingCount();
     static bool IsItemSelected(wxListCtrl* ctrl, int item);
@@ -94,7 +95,7 @@ class ViewsModelsPanel : public wxPanel
     void SelectUsedModels();
     void SelectAllModels();
     void SortModelsByName();
-    void SortModelsByNameGM(bool sortGroupsBySize = false);
+    void SortModelsByNameGM(bool sortGroupsBySize = false, bool sortGroupsByCount = false);
     void SortModelsByCPGM(bool sortGroupsBySize = false);
     void SortModelsBySCGM(bool sortGroupsBySize = false);
     void SortModelsByMasterView();
@@ -138,6 +139,7 @@ public:
     void OnListCtrlItemCheck(wxCommandEvent& event);
     void UpdateModelsForSelectedView();
     void RemoveModelFromLists(const std::string& modelName);
+    void DoMakeMaster();
 
     //(*Declarations(ViewsModelsPanel)
     wxButton* ButtonClone;
@@ -154,6 +156,8 @@ public:
     wxButton* Button_RemoveAll;
     wxButton* Button_RemoveSelected;
     wxButton* Button_Top;
+    wxButton* Button_ViewDown;
+    wxButton* Button_ViewUp;
     wxCheckedListCtrl* ListCtrlModels;
     wxCheckedListCtrl* ListCtrlViews;
     wxListCtrl* ListCtrlNonModels;
@@ -179,6 +183,8 @@ protected:
     static const long ID_BUTTON8;
     static const long ID_BUTTON_IMPORT;
     static const long ID_BUTTON11;
+    static const long ID_BUTTON_VIEWUP;
+    static const long ID_BUTTON_VIEWDOWN;
     static const long ID_STATICTEXT1;
     static const long ID_LISTCTRL_VIEWS;
     static const long ID_STATICTEXT2;
@@ -204,6 +210,7 @@ protected:
     static const long ID_MODELS_SORTMODELSUNDERTHISGROUP;
     static const long ID_MODELS_BUBBLEUPGROUPS;
     static const long ID_MODELS_SORTBYNAMEGMSIZE;
+    static const long ID_MODELS_SORTBYNAMEGMCOUNT;
     static const long ID_MODELS_SORTBYCPGMSIZE;
     static const long ID_MODELS_SORTBYSCGMSIZE;
     static const long ID_MODELS_SORTBYMASTERVIEW;
@@ -241,6 +248,8 @@ private:
     void OnButton_TopClick(wxCommandEvent& event);
     void OnButtonImportClick(wxCommandEvent& event);
     void OnButton_BottomClick(wxCommandEvent& event);
+    void OnButtonView_UpClick(wxCommandEvent& event);
+    void OnButtonView_DownClick(wxCommandEvent& event);
     //*)
 
     void OnDrop(wxCommandEvent& event);

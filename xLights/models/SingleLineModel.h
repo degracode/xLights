@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "Model.h"
@@ -16,7 +16,6 @@ class SingleLineModel : public ModelWithScreenLocation<TwoPointScreenLocation>
 {
     public:
         SingleLineModel(wxXmlNode *node, const ModelManager &manager, bool zeroBased = false);
-    
         SingleLineModel(int lights, const Model &base, int strand, int node = -1);
         SingleLineModel(const ModelManager &manager);
         virtual ~SingleLineModel();
@@ -32,10 +31,12 @@ class SingleLineModel : public ModelWithScreenLocation<TwoPointScreenLocation>
         virtual bool SupportsExportAsCustom() const override { return true; }
         virtual bool SupportsWiringView() const override { return false; }
 
+        const Model *GetParent() { return parent; }
     protected:
         static std::vector<std::string> LINE_BUFFER_STYLES;
         virtual void InitModel() override;
         virtual bool IsNodeFirst(int n) const override;
 
     private:
+        const Model *parent = nullptr;
 };

@@ -3,19 +3,22 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
-#include "DmxModel.h"
-#include "DmxColorAbility.h"
+#include "DmxMovingHeadComm.h"
+#include "DmxDimmerAbility.h"
 #include "DmxPanTiltAbility.h"
 #include "DmxShutterAbility.h"
+#include "DmxMotor.h"
 
-class DmxMovingHead : public DmxModel, public DmxPanTiltAbility, public DmxShutterAbility
+class DmxMotorBase;
+
+class DmxMovingHead : public DmxMovingHeadComm, public DmxDimmerAbility
 {
     public:
         DmxMovingHead(wxXmlNode *node, const ModelManager &manager, bool zeroBased = false);
@@ -32,8 +35,13 @@ class DmxMovingHead : public DmxModel, public DmxPanTiltAbility, public DmxShutt
         virtual void DisplayEffectOnWindow(ModelPreview* preview, double pointSize) override;
         virtual void DrawModel(ModelPreview* preview, xlGraphicsContext *ctx, xlGraphicsProgram *sprogram, xlGraphicsProgram *tprogram, bool is3d, bool active, const xlColor *c);
         virtual std::list<std::string> CheckModelSettings() override;
-        void EnableFixedChannels(xlColorVector& pixelVector) override;
+        void EnableFixedChannels(xlColorVector& pixelVector) const override;
         [[nodiscard]] std::vector<std::string> GenerateNodeNames() const override;
+
+        DmxMotorBase* GetPanMotor() const override { return pan_motor.get(); }
+        DmxMotorBase* GetTiltMotor() const override { return tilt_motor.get(); }
+    
+        uint32_t GetMHDimmerChannel() const override {return GetDimmerChannel();}
 
     protected:
         void Draw3DDMXBaseLeft(xlVertexColorAccumulator &va, const xlColor& c, float pan_angle);
@@ -44,10 +52,13 @@ class DmxMovingHead : public DmxModel, public DmxPanTiltAbility, public DmxShutt
         virtual void InitModel() override;
 
         virtual void ExportXlightsModel() override;
-        virtual void ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y) override;
+        [[nodiscard]] virtual bool ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y) override;
 
         virtual float GetDefaultBeamWidth() const { return 30; }
 
+        std::unique_ptr<DmxMotor> pan_motor = nullptr;
+        std::unique_ptr<DmxMotor> tilt_motor = nullptr;
+        std::map<std::string, PanTiltState> panTiltStates;
 
         bool hide_body = false;
         bool style_changed;
@@ -55,6 +66,4 @@ class DmxMovingHead : public DmxModel, public DmxPanTiltAbility, public DmxShutt
         int dmx_style_val;
         float beam_length;
         float beam_width;
-
-    private:
 };

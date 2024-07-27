@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/xml/xml.h>
@@ -15,6 +15,8 @@
 #include "ChannelBlockModel.h"
 #include "ModelScreenLocation.h"
 #include "../OutputModelManager.h"
+
+#define MAX_CB_CHANNELS 128
 
 std::vector<std::string> ChannelBlockModel::LINE_BUFFER_STYLES;
 
@@ -45,7 +47,7 @@ void ChannelBlockModel::AddTypeProperties(wxPropertyGridInterface* grid, OutputM
 {
     wxPGProperty *p = grid->Append(new wxUIntProperty("# Channels", "ChannelBlockCount", parm1));
     p->SetAttribute("Min", 1);
-    p->SetAttribute("Max", 64);
+    p->SetAttribute("Max", MAX_CB_CHANNELS);
     p->SetEditor("SpinCtrl");
 
     p = grid->Append(new wxBoolProperty("Indiv Colors", "ChannelProperties", true));
@@ -186,14 +188,14 @@ void ChannelBlockModel::InitModel() {
         else {
             offset = (float)1 / (float)num / 2.0;
         }
-        for (auto coord = node->get()->Coords.begin(); coord != node->get()->Coords.end(); ++coord) {
-            coord->screenY = 0;
+        for (auto &coord : node->get()->Coords) {
+            coord.screenY = 0;
             if (num > 1) {
-                coord->screenX = (float)coord->bufX + (float)count / (float)num + offset;
+                coord.screenX = (float)coord.bufX + (float)count / (float)num + offset;
                 count++;
             }
             else {
-                coord->screenX = coord->bufX + offset;
+                coord.screenX = coord.bufX + offset;
             }
         }
     }
@@ -226,8 +228,8 @@ void ChannelBlockModel::InitChannelBlock() {
         wxString nm = ChanColorAttrName(n);
         std::string val = ModelXml->GetAttribute("ChannelProperties." + nm).ToStdString();
         xlColor c = xlColor(val);
-        Nodes[n]->SetMaskColor(c);
         NodeClassCustom* ncc = dynamic_cast<NodeClassCustom*>(Nodes[n].get());
+        ncc->SetMaskColor(c);
         ncc->SetCustomColor(c);
     }
 }

@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <algorithm>
@@ -1737,7 +1737,7 @@ void FileConverter::WriteFalconPiFile(ConvertParameters& params)
                     *t = count;
                     data += 4;
                     ++t;
-                    for (int x = 0; x < count; x++) {
+                    for (size_t x = 0; x < count; ++x) {
                         uint32_t sframe = a.second[x].first;
                         uint32_t eframe = a.second[x].second;
                         sframe /= stepTime;

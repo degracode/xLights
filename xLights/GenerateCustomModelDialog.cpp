@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 //(*InternalHeaders(GenerateCustomModelDialog)
@@ -32,6 +32,7 @@
 #include "xLightsMain.h"
 #include "ExternalHooks.h"
 #include "Parallel.h"
+#include "models/CustomModel.h"
 
 #include <log4cpp/Category.hh>
 
@@ -4074,6 +4075,9 @@ void GenerateCustomModelDialog::OnButton_CM_SaveClick(wxCommandEvent& event)
     f.Write(wxString::Format("NodeNames=\"%s\" ", nn));
     f.Write("CustomModel=\"");
     f.Write(cm);
+    f.Write("\" ");
+    f.Write("CustomModelCompressed=\"");
+    f.Write(CustomModel::CustomModelToCompressed(cm));
     f.Write("\" ");
     f.Write(wxString::Format("SourceVersion=\"%s\" ", v));
     f.Write(" >\n");

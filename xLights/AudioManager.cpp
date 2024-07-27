@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/wx.h>
@@ -26,6 +26,7 @@
 #include "../xSchedule/md5.h"
 #include "ExternalHooks.h"
 #include "Parallel.h"
+#include "UtilFunctions.h"
 
 extern "C"
 {
@@ -65,6 +66,12 @@ SDLManager __sdlManager;
 #endif
 
 #define PCMFUDGE 32768
+
+
+// Due to Ubuntu still using FFMpeg 4.x, we have to use some deprecated API's
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 
 void fill_audio(void* udata, Uint8* stream, int len)
 {
@@ -544,7 +551,7 @@ void AudioData::RestorePos()
             return;
         }
 
-        logger_base.debug("SDL initialized input: '%s'", (const char*)_device.c_str());
+        logger_base.debug("SDL initialized output: '%s'", (const char*)_device.c_str());
     }
 
     OutputSDL::~OutputSDL()
@@ -1111,16 +1118,19 @@ void AudioManager::AudioDeviceChanged() {
     if (oldMediaState == MEDIAPLAYINGSTATE::PLAYING || oldMediaState == MEDIAPLAYINGSTATE::PAUSED) {
         ts = Tell();
     }
-    Stop();
-    auto sdl = __sdlManager.GetOutputSDL(_device);
-    if (sdl != nullptr) {
-        sdl->Reopen();
-    }
+    AbsoluteStop();
+     
     if (oldMediaState == MEDIAPLAYINGSTATE::PLAYING || oldMediaState == MEDIAPLAYINGSTATE::PAUSED) {
-        Seek(ts);
-        if (oldMediaState == MEDIAPLAYINGSTATE::PLAYING) {
-            Play();
-        }
+        wxTheApp->CallAfter([this, ts, oldMediaState]() {
+            auto sdl = __sdlManager.GetOutputSDL(_device);
+            if (!sdl->HasAudio(_sdlid)) {
+                _sdlid = sdl->AddAudio(_pcmdatasize, _pcmdata, 100, _rate, _trackSize, _lengthMS);
+            }
+            Seek(ts);
+            if (oldMediaState == MEDIAPLAYINGSTATE::PLAYING) {
+                Play();
+            }
+        });
     }
  }
 void AudioManager::SetPlaybackRate(float rate)
@@ -1317,22 +1327,20 @@ AudioManager::AudioManager(const std::string& audio_file, int intervalMS, const 
     AddAudioDeviceChangeListener([this]() {AudioDeviceChanged();});
 }
 
-std::list<float> AudioManager::CalculateSpectrumAnalysis(const float* in, int n, float& max, int id) const
+void AudioManager::CalculateSpectrumAnalysis(const float* in, int n, float& max, int id, std::vector<float> &res) const
 {
-	std::list<float> res;
+    res.clear();
+    res.reserve(127);
 	int outcount = n / 2 + 1;
 	kiss_fftr_cfg cfg;
 	kiss_fft_cpx* out = (kiss_fft_cpx*)malloc(sizeof(kiss_fft_cpx) * (outcount));
-	if (out != nullptr)
-	{
-		if ((cfg = kiss_fftr_alloc(n, 0/*is_inverse_fft*/, nullptr, nullptr)) != nullptr)
-		{
+    if (out != nullptr) {
+        if ((cfg = kiss_fftr_alloc(n, 0/*is_inverse_fft*/, nullptr, nullptr)) != nullptr) {
 			kiss_fftr(cfg, in, out);
 			free(cfg);
 		}
 
-		for (int j = 0; j < 127; j++)
-		{
+        for (int j = 0; j < 127; j++) {
             // choose the right bucket for this MIDI note
             double freq = 440.0 * exp2f(((double)j - 69.0) / 12.0);
             int start = freq * (double)n / (double)_rate;
@@ -1342,10 +1350,8 @@ std::list<float> AudioManager::CalculateSpectrumAnalysis(const float* in, int n,
             float val = 0.0;
 
             // got through all buckets up to the next note and take the maximums
-            if (end < outcount-1)
-            {
-                for (int k = start; k <= end; k++)
-                {
+            if (end < outcount-1) {
+                for (int k = start; k <= end; k++) {
                     kiss_fft_cpx* cur = out + k;
                     val = std::max(val, sqrtf(cur->r * cur->r + cur->i * cur->i));
                     //float valscaled = valnew * scaling;
@@ -1353,22 +1359,17 @@ std::list<float> AudioManager::CalculateSpectrumAnalysis(const float* in, int n,
             }
 
 			float db = log10(val);
-			if (db < 0.0)
-			{
+            if (db < 0.0) {
 				db = 0.0;
 			}
 
 			res.push_back(db);
-			if (db > max)
-			{
+            if (db > max) {
 				max = db;
 			}
 		}
-
 		free(out);
 	}
-
-	return res;
 }
 
 void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManagerProgressCallback fn)
@@ -1376,8 +1377,7 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     // dont redo it
-    if (_polyphonicTranscriptionDone)
-    {
+    if (_polyphonicTranscriptionDone) {
         return;
     }
 
@@ -1385,8 +1385,7 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
 
     logger_base.info("DoPolyphonicTranscription: Polyphonic transcription started on file " + _audio_file);
 
-    while (!IsDataLoaded())
-    {
+    while (!IsDataLoaded()) {
         logger_base.debug("DoPolyphonicTranscription: Waiting for audio data to load.");
         wxMilliSleep(100);
     }
@@ -1400,16 +1399,12 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
     _vamp.GetAllAvailablePlugins(this); // this initialises Vamp
     Vamp::Plugin* pt = _vamp.GetPlugin("Polyphonic Transcription");
 
-    if (pt == nullptr)
-    {
+    if (pt == nullptr) {
         logger_base.warn("DoPolyphonicTranscription: Unable to load Polyphonic Transcription VAMP plugin.");
-    }
-    else
-    {
+    } else {
         float *pdata[2];
         long frames = _lengthMS / _intervalMS;
-        while (frames * _intervalMS < _lengthMS)
-        {
+        while (frames * _intervalMS < _lengthMS) {
             frames++;
         }
 
@@ -1431,11 +1426,9 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
         long len = GetTrackSize();
         float totalLen = len;
         int lastProgress = 0;
-        while (len)
-        {
+        while (len) {
             int progress = (((float)(totalLen - len) * 25) / totalLen);
-            if (lastProgress < progress)
-            {
+            if (lastProgress < progress) {
                 fn(dlg, progress);
                 lastProgress = progress;
             }
@@ -1446,25 +1439,20 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
             Vamp::RealTime timestamp = Vamp::RealTime::frame2RealTime(start, GetRate());
             Vamp::Plugin::FeatureSet features = pt->process(pdata, timestamp);
 
-            if (first && features.size() > 0)
-            {
+            if (first && features.size() > 0) {
                 logger_base.warn("DoPolyphonicTranscription: Polyphonic transcription data process oddly retrieved data.");
                 first = false;
             }
-            if (len > pref_step)
-            {
+            if (len > pref_step) {
                 len -= pref_step;
-            }
-            else
-            {
+            } else {
                 len = 0;
             }
             start += pref_step;
         }
 
         // Process the Polyphonic Transcription
-        try
-        {
+        try {
             unsigned int total = 0;
             logger_pianodata.debug("About to extract Polyphonic Transcription result.");
             Vamp::Plugin::FeatureSet features = pt->getRemainingFeatures();
@@ -1493,32 +1481,27 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
                 }
                 int eframe = currentend / _intervalMS;
                 while (sframe <= eframe) {
-                    _frameData[sframe][4].push_back(features[0][j].values[0]);
+                    _frameData[sframe].notes.push_back(features[0][j].values[0]);
                     sframe++;
                 }
             }
 
             fn(dlg, 100);
 
-            if (logger_pianodata.isDebugEnabled())
-            {
+            if (logger_pianodata.isDebugEnabled()) {
                 logger_pianodata.debug("Piano data calculated:");
                 logger_pianodata.debug("Time MS, Keys");
-                for (size_t i = 0; i < _frameData.size(); i++)
-                {
+                for (size_t i = 0; i < _frameData.size(); i++) {
                     long ms = i * _intervalMS;
                     std::string keys = "";
-                    for (const auto& it2 : _frameData[i][4])
-                    {
+                    for (const auto& it2 : _frameData[i].notes) {
                         keys += " " + std::string(wxString::Format("%f", it2).c_str());
                     }
                     logger_pianodata.debug("%ld,%s", ms, (const char *)keys.c_str());
                 }
             }
             //printf("Total points: %u", total);
-        }
-        catch (...)
-        {
+        } catch (...) {
             logger_base.warn("DoPolyphonicTranscription: Polyphonic Transcription threw an error getting the remaining features.");
         }
 
@@ -1532,28 +1515,26 @@ void AudioManager::DoPolyphonicTranscription(wxProgressDialog* dlg, AudioManager
 
 // Frame Data Extraction Functions
 // process audio data and build data for each frame
-void AudioManager::DoPrepareFrameData()
-{
-    static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+void AudioManager::DoPrepareFrameData() {
+    static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     logger_base.info("DoPrepareFrameData: Start processing audio frame data.");
 
-	// lock the mutex
+    // lock the mutex
     std::unique_lock<std::shared_timed_mutex> locker(_mutex);
     logger_base.info("DoPrepareFrameData: Got mutex.");
 
-    if (_data[0] == nullptr)
-    {
+    if (_data[0] == nullptr) {
         logger_base.warn("    DoPrepareFrameData: Exiting as there is no data.");
         return;
     }
 
     wxStopWatch sw;
 
-	// if we have already done it ... bail
-	if (_frameDataPrepared && _frameDataPreparedForInterval == _intervalMS) {
-		logger_base.info("DoPrepareFrameData: Aborting processing audio frame data ... it has already been done.");
-		return;
-	}
+    // if we have already done it ... bail
+    if (_frameDataPrepared && _frameDataPreparedForInterval == _intervalMS) {
+        logger_base.info("DoPrepareFrameData: Aborting processing audio frame data ... it has already been done.");
+        return;
+    }
 
     _frameDataPreparedForInterval = _intervalMS;
 
@@ -1574,14 +1555,13 @@ void AudioManager::DoPrepareFrameData()
 
     _frameData.clear();
 
-	// samples per frame
-	int samplesperframe = _rate * _intervalMS / 1000;
-	int frames = _lengthMS / _intervalMS;
-	while (frames * _intervalMS < _lengthMS)
-	{
-		frames++;
-	}
-	int totalsamples = frames * samplesperframe;
+    // samples per frame
+    int samplesperframe = _rate * _intervalMS / 1000;
+    int frames = _lengthMS / _intervalMS;
+    while (frames * _intervalMS < _lengthMS) {
+        frames++;
+    }
+    int totalsamples = frames * samplesperframe;
 
     logger_base.info("    Length %ldms", _lengthMS);
     logger_base.info("    Interval %dms", _intervalMS);
@@ -1589,169 +1569,124 @@ void AudioManager::DoPrepareFrameData()
     logger_base.info("    Frames %d", frames);
     logger_base.info("    Total samples %d", totalsamples);
 
-	// these are used to normalise output
-	_bigmax = -1;
-	_bigspread = -1;
-	_bigmin = 1;
-	_bigspectogrammax = -1;
+    // these are used to normalise output
+    _bigmax = -1;
+    _bigspread = -1;
+    _bigmin = 1;
+    _bigspectogrammax = -1;
 
-	size_t step = 2048;
-	float *pdata[2];
+    size_t step = 2048;
+    float* pdata[2];
 
-	int pos = 0;
-	std::list<float> spectrogram;
+    int pos = 0;
+    std::vector<float> spectrogram;
+    std::vector<float> subspectrogram;
 
-	// process each frome of the song
-	for (int i = 0; i < frames; i++)
-	{
-		std::vector<std::list<float>> aFrameData;
-		aFrameData.resize(5); // preallocate the spots we will need
+    // process each frome of the song
+    _frameData.resize(frames);
+    for (int i = 0; i < frames; i++) {
+        // accumulators
+        float max = -100.0;
+        float min = 100.0;
+        float spread = -100;
 
-		// accumulators
-		float max = -100.0;
-		float min = 100.0;
-		float spread = -100;
+        // clear the data if we are about to get new data ... dont clear it if we wont
+        // this happens because the spectrogram function has a fixed window based on the parameters we set and it
+        // does not match our time slices exactly so we have to select which one to use
+        if (pos < i * samplesperframe + samplesperframe && pos + step < totalsamples) {
+            spectrogram.clear();
+        }
 
-		// clear the data if we are about to get new data ... dont clear it if we wont
-		// this happens because the spectrogram function has a fixed window based on the parameters we set and it
-		// does not match our time slices exactly so we have to select which one to use
-		if (pos < i * samplesperframe + samplesperframe  && pos + step < totalsamples)
-		{
-			spectrogram.clear();
-		}
-
-		// only get the data if we are not ahead of the music
-		while (pos < i * samplesperframe + samplesperframe && pos + step < totalsamples)
-		{
-			std::list<float> subspectrogram;
-			pdata[0] = GetRawLeftDataPtr(pos);
+        // only get the data if we are not ahead of the music
+        while (pos < i * samplesperframe + samplesperframe && pos + step < totalsamples) {
+            pdata[0] = GetRawLeftDataPtr(pos);
             wxASSERT(pdata[0] != nullptr);
-			pdata[1] = GetRawRightDataPtr(pos);
-			float max2 = 0;
+            pdata[1] = GetRawRightDataPtr(pos);
+            float max2 = 0;
 
-			if (pdata[0] == nullptr)
-			{
-				subspectrogram.clear();
-			}
-			else
-			{
-				subspectrogram = CalculateSpectrumAnalysis(pdata[0], step, max2, i);
-			}
+            if (pdata[0] == nullptr) {
+                subspectrogram.clear();
+            } else {
+                CalculateSpectrumAnalysis(pdata[0], step, max2, i, subspectrogram);
+            }
 
-			// and keep track of the larges value so we can normalise it
-			if (max2 > _bigspectogrammax)
-			{
-				_bigspectogrammax = max2;
-			}
-			pos += step;
+            // and keep track of the larges value so we can normalise it
+            if (max2 > _bigspectogrammax) {
+                _bigspectogrammax = max2;
+            }
+            pos += step;
 
-			// either take the newly calculated values or if we are merging two results take the maximum of each value
-			if (spectrogram.size() == 0)
-			{
-				spectrogram = subspectrogram;
-			}
-			else
-			{
-				if (subspectrogram.size() > 0)
-				{
-					std::list<float>::iterator sub = subspectrogram.begin();
-					for (std::list<float>::iterator fr = spectrogram.begin(); fr != spectrogram.end(); ++fr)
-					{
-						if (*sub > *fr)
-						{
-							*fr = *sub;
-						}
-						++sub;
-					}
-				}
-			}
-		}
+            // either take the newly calculated values or if we are merging two results take the maximum of each value
+            if (spectrogram.size() == 0) {
+                spectrogram = subspectrogram;
+            } else {
+                if (subspectrogram.size() > 0) {
+                    std::vector<float>::iterator sub = subspectrogram.begin();
+                    for (std::vector<float>::iterator fr = spectrogram.begin(); fr != spectrogram.end(); ++fr) {
+                        if (*sub > *fr) {
+                            *fr = *sub;
+                        }
+                        ++sub;
+                    }
+                }
+            }
+        }
 
-		// now do the raw data analysis for the frame
-		for (int j = 0; j < samplesperframe; j++)
-		{
-			float data = GetRawLeftData(i * samplesperframe + j);
+        // now do the raw data analysis for the frame
+        for (int j = 0; j < samplesperframe; j++) {
+            float data = GetRawLeftData(i * samplesperframe + j);
 
-			// Max data
-			if (data > max)
-			{
-				max = data;
-			}
+            // Max data
+            if (data > max) {
+                max = data;
+            }
 
-			// Min data
-			if (data < min)
-			{
-				min = data;
-			}
+            // Min data
+            if (data < min) {
+                min = data;
+            }
 
-			// Spread data
-			if (max - min > spread)
-			{
-				spread = max - min;
-			}
-		}
+            // Spread data
+            if (max - min > spread) {
+                spread = max - min;
+            }
+        }
 
-		if (max > _bigmax)
-		{
-			_bigmax = max;
-		}
-		if (min < _bigmin)
-		{
-			_bigmin = min;
-		}
-		if (spread > _bigspread)
-		{
-			_bigspread = spread;
-		}
+        if (max > _bigmax) {
+            _bigmax = max;
+        }
+        if (min < _bigmin) {
+            _bigmin = min;
+        }
+        if (spread > _bigspread) {
+            _bigspread = spread;
+        }
+        _frameData[i].min = min;
+        _frameData[i].max = max;
+        _frameData[i].spread = spread;
+        _frameData[i].vu = spectrogram;
+    }
 
-		// Now save the results for the frame
-		std::list<float> maxlist;
-		maxlist.push_back(max);
-		std::list<float> minlist;
-		minlist.push_back(min);
-		std::list<float> spreadlist;
-		spreadlist.push_back(spread);
-		aFrameData[0] = maxlist;
-		aFrameData[1] = minlist;
-		aFrameData[2] = spreadlist;
-		aFrameData[3] = spectrogram;
+    // normalise data ... basically scale the data so the highest value is the scale value.
+    float scale = 1.0; // 0-1 ... where 0.x means that the max value displayed would be x0% of model size
+    float bigmaxscale = 1 / (_bigmax * scale);
+    float bigminscale = 1 / (_bigmin * scale);
+    float bigspreadscale = 1 / (_bigspread * scale);
+    float bigspectrogramscale = 1 / (_bigspectogrammax * scale);
+    for (auto &fr : _frameData) {
+        fr.max *= bigmaxscale;
+        fr.min *= bigminscale;
+        fr.spread *= bigspreadscale;
 
-		_frameData.push_back(aFrameData);
-	}
+        for (auto &vu : fr.vu) {
+            vu *= bigspectrogramscale;
+        }
+    }
 
-	// normalise data ... basically scale the data so the highest value is the scale value.
-	float scale = 1.0; // 0-1 ... where 0.x means that the max value displayed would be x0% of model size
-	float bigmaxscale = 1 / (_bigmax * scale);
-	float bigminscale = 1 / (_bigmin * scale);
-	float bigspreadscale = 1 / (_bigspread * scale);
-	float bigspectrogramscale = 1 / (_bigspectogrammax * scale);
-	for (std::vector<std::vector<std::list<float>>>::iterator itframe = _frameData.begin(); itframe != _frameData.end(); ++itframe)
-	{
-		std::list<float>* fl = &(*itframe)[0];
-		std::list<float>::iterator f = fl->begin();
-		*f = (*f * bigmaxscale);
-
-		fl = &(*itframe)[1];
-		f = fl->begin();
-		*f = (*f * bigminscale);
-
-		fl = &(*itframe)[2];
-		f = fl->begin();
-		*f = (*f * bigspreadscale);
-
-		fl = &(*itframe)[3];
-		for (std::list<float>::iterator ff = fl->begin(); ff != fl->end(); ++ff)
-		{
-			*ff = *ff * bigspectrogramscale;
-		}
-	}
-
-	// flag the fact that the data is all ready
-	_frameDataPrepared = true;
-
-	logger_base.info("DoPrepareFrameData: Audio frame data processing complete in %ld. Frames: %d", sw.Time(), frames);
+    // flag the fact that the data is all ready
+    _frameDataPrepared = true;
+    logger_base.info("DoPrepareFrameData: Audio frame data processing complete in %ld. Frames: %d", sw.Time(), frames);
 }
-
 // Called to trigger frame data creation
 void AudioManager::PrepareFrameData(bool separateThread)
 {
@@ -1786,20 +1721,18 @@ void ProgressFunction(wxProgressDialog* pd, int p)
 }
 
 // Get the pre-prepared data for this frame
-const std::list<float>* AudioManager::GetFrameData(int frame, FRAMEDATATYPE fdt, std::string timing)
+const FrameData* AudioManager::GetFrameData(int frame, const std::string &timing, bool needNotes)
 {
     log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    std::list<float>* rc = nullptr;
 
     // Grab the lock so we can safely access the frame data
     std::shared_lock<std::shared_timed_mutex> lock(_mutex);
 
     // make sure we have audio data
-    if (_data[0] == nullptr) return rc;
+    if (_data[0] == nullptr) return nullptr;
 
     // if the frame data has not been prepared
-    if (!_frameDataPrepared)
-    {
+    if (!_frameDataPrepared) {
         logger_base.debug("GetFrameData was called prior to the frame data being prepared.");
         // prepare it
         lock.unlock();
@@ -1807,66 +1740,27 @@ const std::list<float>* AudioManager::GetFrameData(int frame, FRAMEDATATYPE fdt,
 
         lock.lock();
         // wait until the new thread grabs the lock
-        while (!_frameDataPrepared)
-        {
+        while (!_frameDataPrepared) {
             lock.unlock();
             wxMilliSleep(5);
             lock.lock();
         }
     }
-    if (fdt == FRAMEDATA_NOTES && !_polyphonicTranscriptionDone) {
+    if (needNotes && !_polyphonicTranscriptionDone) {
         //need to do the polyphonic stuff
         wxProgressDialog dlg("Processing Audio", "");
         DoPolyphonicTranscription(&dlg, ProgressFunction);
     }
-
-    // now we can grab the data we need
-    try
-    {
-        if (frame < (int)_frameData.size())
-        {
-            std::vector<std::list<float>>* framedata = &_frameData[frame];
-
-            if (framedata == nullptr)
-            {
-                logger_base.crit("AudioManager::GetFrameData framedata is nullptr ... this is going to crash.");
-            }
-
-            switch (fdt)
-            {
-            case FRAMEDATA_HIGH:
-                rc = &framedata->at(0);
-                break;
-            case FRAMEDATA_LOW:
-                rc = &framedata->at(1);
-                break;
-            case FRAMEDATA_SPREAD:
-                rc = &framedata->at(2);
-                break;
-            case FRAMEDATA_VU:
-                rc = &framedata->at(3);
-                break;
-            case FRAMEDATA_ISTIMINGMARK:
-                // we dont need to do anything here
-                break;
-            case FRAMEDATA_NOTES:
-                rc = &framedata->at(4);
-                break;
-            }
-        }
+    if (frame < (int)_frameData.size()) {
+        return &_frameData[frame];
     }
-    catch (...)
-    {
-        rc = nullptr;
-    }
-
-    return rc;
+    return nullptr;
 }
 
-const std::list<float>* AudioManager::GetFrameData(FRAMEDATATYPE fdt, std::string timing, long ms)
+const FrameData* AudioManager::GetFrameData(const std::string &timing, long ms, bool needNotes)
 {
     int frame = ms / _intervalMS;
-    return GetFrameData(frame, fdt, timing);
+    return GetFrameData(frame, timing, needNotes);
 }
 
 // Constant Bitrate Detection Functions
@@ -2203,7 +2097,7 @@ int AudioManager::OpenMediaFile()
     #endif
 
 	AVFormatContext* formatContext = nullptr;
-	int res = avformat_open_input(&formatContext, _audio_file.c_str(), nullptr, nullptr);
+	int res = avformat_open_input(&formatContext, ToUTF8(_audio_file).c_str(), nullptr, nullptr);
 	if (res != 0)
 	{
 		logger_base.error("avformat_open_input Error opening the file %s => %d.", (const char *) _audio_file.c_str(), res);
@@ -3450,7 +3344,7 @@ bool AudioManager::CreateAudioFile(const std::vector<float>& left, const std::ve
     codecContext->channel_layout = AV_CH_LAYOUT_STEREO;
 
     AVFormatContext* formatContext;
-    avformat_alloc_output_context2( &formatContext, nullptr, nullptr, targetFile.c_str() );
+    avformat_alloc_output_context2(&formatContext, nullptr, "wav", targetFile.c_str());
     if (formatContext == nullptr)
     {
         logger_base.error("  Error opening output-context");

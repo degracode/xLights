@@ -83,7 +83,7 @@ CURL* CurlManager::createCurl(const std::string& fullUrl, CurlPrivateData** cpd,
     CURL* c = curl_easy_init();
     curl_easy_setopt(c, CURLOPT_URL, fullUrl.c_str());
     curl_easy_setopt(c, CURLOPT_USERAGENT, USERAGENT.c_str());
-    curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT_MS, 4000L);
+    curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT_MS, 5000L);
     curl_easy_setopt(c, CURLOPT_TIMEOUT_MS, 12000L);
     curl_easy_setopt(c, CURLOPT_ACCEPT_ENCODING, "");
     curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
@@ -107,6 +107,8 @@ CURL* CurlManager::createCurl(const std::string& fullUrl, CurlPrivateData** cpd,
     }
     if (upload) {
         data->req = new std::vector<uint8_t>();
+        curl_easy_setopt(c, CURLOPT_UPLOAD_BUFFERSIZE, 1024 * 1024);
+        curl_easy_setopt(c, CURLOPT_BUFFERSIZE, 1024 * 1024);
         curl_easy_setopt(c, CURLOPT_READDATA, data);
         curl_easy_setopt(c, CURLOPT_READFUNCTION, urlReadData);
         curl_easy_setopt(c, CURLOPT_SEEKDATA, data);

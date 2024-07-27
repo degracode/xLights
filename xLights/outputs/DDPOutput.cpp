@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 // Based on the protocol as described at http://www.3waylabs.com/ddp/
@@ -201,7 +201,7 @@ wxJSONValue DDPOutput::Query(const std::string& ip, uint8_t type, const std::str
     }
 
     logger_base.debug(" DDP query using %s", (const char*)localaddr.IPAddress().c_str());
-    wxDatagramSocket* datagram = new wxDatagramSocket(localaddr, wxSOCKET_BLOCK); // dont use NOWAIT as it can result in dropped packets
+    wxDatagramSocket* datagram = new wxDatagramSocket(localaddr, wxSOCKET_NOWAIT); // wxSOCKET_BLOCK causes xLights to lock up waiting forever - SEH, dont use NOWAIT as it can result in dropped packets
 
     if (datagram == nullptr) {
         logger_base.error("Error initialising DDP query datagram.");
@@ -607,12 +607,12 @@ void DDPOutput::UpdateProperties(wxPropertyGrid* propertyGrid, Controller* c, Mo
     if (p) {
         p->SetValue(GetChannels());
         if (c->IsAutoSize()) {
-            p->ChangeFlag(wxPG_PROP_READONLY, true);
+            p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
             p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
             p->SetHelpString("Channels cannot be changed when an output is set to Auto Size.");
         } else {
             p->SetEditor("SpinCtrl");
-            p->ChangeFlag(wxPG_PROP_READONLY, false);
+            p->ChangeFlag(wxPGPropertyFlags::ReadOnly , false);
             p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
             p->SetHelpString("");
         }

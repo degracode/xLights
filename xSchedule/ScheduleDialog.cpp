@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "ScheduleDialog.h"
@@ -197,6 +197,7 @@ ScheduleDialog::ScheduleDialog(wxWindow* parent, Schedule* schedule, wxWindowID 
 	FlexGridSizer1->Add(StaticText18, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	Choice_FireFrequency = new wxChoice(this, ID_CHOICE1, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE1"));
 	Choice_FireFrequency->SetSelection( Choice_FireFrequency->Append(_("Fire once")) );
+	Choice_FireFrequency->Append(_("Fire every 90 minutes"));
 	Choice_FireFrequency->Append(_("Fire every hour"));
 	Choice_FireFrequency->Append(_("Fire every 30 minutes"));
 	Choice_FireFrequency->Append(_("Fire every 20 minutes"));

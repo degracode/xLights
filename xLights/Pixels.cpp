@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "Pixels.h"
@@ -70,6 +70,8 @@
 // |--------------------------------------------------------------------------------------------------------------------------------------|
 // | SM16716        | RGB, 8 bit, 4 wire     | SM16716, SM16726                                  |                                        |
 // |--------------------------------------------------------------------------------------------------------------------------------------|
+// | SM16825        | RGBWW, 16 bit, 4 wire  |                                                   |                                        |
+// |--------------------------------------------------------------------------------------------------------------------------------------|
 // | SPXL-8Bit      | 8 Bit                  |                                                   | Entec                                  |
 // |--------------------------------------------------------------------------------------------------------------------------------------|
 // | SPXL-16Bit     | 16 Bit                 |                                                   | Entec                                  |
@@ -113,7 +115,7 @@ const static std::vector<std::vector<std::string>> __equivalentPixels =
 {
     { "" }, // No protocol
     { "ws2811", // preferred & default
-      "apa104", "apa106", "cs8812", "gs8202", "gs8206", "gs8208", "ink1002", "ink1003", "lpd1882",
+      "apa104", "apa106", "cs8812", "gs8202", "gs8206", "gs8208", "ink1002", "ink1003", "lb1908", "lpd1882",
       "lx1203", "p9883", "sk6812", "sk6813", "sk6822", "sm16703", "sm16711", "sm16712", "tm1803", "tm1804", "tm1809",
       "tm1812", "tm1914", "ucs1903", "ucs1904", "ucs1909", "ucs1912", "ucs2903", "ucs2909", "ucs2912", "ucs9812",
       "ws2812", "ws2812b", "ws2813", "ws2815", "ws2818",
@@ -150,7 +152,8 @@ const static std::vector<std::vector<std::string>> __equivalentPixels =
     { "ucs9812" }, // I have not researched these
     { "my9231" },  // I have not researched these ... they may fit into an existing category
     { "ws2801", "ws2803" },
-    { "rgb+" } // not sure if these have a functional equivalent ... if they do these should be moved to artificial
+    { "rgb+" }, // not sure if these have a functional equivalent ... if they do these should be moved to artificial
+    { "sm16825", "sm16825 (16)" }
 };
 
 const static std::vector<std::vector<std::string>> __equivalentSerial = {
@@ -167,7 +170,8 @@ const static std::vector<std::vector<std::string>> __equivalentSerial = {
 
 const static std::vector<std::string> __artificalTypes =
 {
-    "tm18xx", "ws281x", " ws2811v1.4", " ws2811 slow", "ucs8903 (16)", "ucs8904 (16)", "gs820x", "rgb+2", "dmx512p", "dmx512p-4"
+    "tm18xx", "ws281x", " ws2811v1.4", " ws2811 slow", "ucs8903 (16)", "ucs8904 (16)", "gs820x", "rgb+2", "dmx512p", "dmx512p-4", 
+    "sm16825 (16)"
 };
 
 bool IsArtificialPixelType(const std::string& p)
@@ -250,6 +254,7 @@ std::vector<std::string> GetAllPixelTypes(bool includeSerial, bool includeArtifi
         res.push_back("Virtual Matrix");
         res.push_back("LED Panel Matrix");
     }
+    res.push_back("PWM");
 
     return res;
 }
@@ -346,6 +351,9 @@ bool IsVirtualMatrixProtocol(const std::string& p1)
 {
     return p1 == "Virtual Matrix";
 }
+bool IsPWMProtocol(const std::string& p1) {
+    return p1 == "PWM";
+}
 
 int GetChannelsPerPixel(const std::string& p)
 {
@@ -354,5 +362,10 @@ int GetChannelsPerPixel(const std::string& p)
     if (std::find(begin(fourChanPixels), end(fourChanPixels), p) != end(fourChanPixels)) {
         return 4;
     }
+    const static std::vector<std::string> fiveChanPixels = { "sm16825", "sm16825 (16)" };
+    if (std::find(begin(fiveChanPixels), end(fiveChanPixels), p) != end(fiveChanPixels)) {
+        return 5;
+    }
+
     return 3;
 }

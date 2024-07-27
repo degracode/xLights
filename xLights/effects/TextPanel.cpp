@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "TextPanel.h"
@@ -60,6 +60,7 @@ const long TextPanel::ID_STATICTEXT_Text_Count = wxNewId();
 const long TextPanel::ID_CHOICE_Text_Count = wxNewId();
 const long TextPanel::ID_BITMAPBUTTON_CHOICE_Text_Count = wxNewId();
 const long TextPanel::ID_CHECKBOX_Text_PixelOffsets = wxNewId();
+const long TextPanel::ID_CHECKBOX_Text_Color_PerWord = wxNewId();
 const long TextPanel::ID_STATICTEXT_Text_XStart = wxNewId();
 const long TextPanel::ID_SLIDER_Text_XStart = wxNewId();
 const long TextPanel::IDD_TEXTCTRL_Text_XStart = wxNewId();
@@ -119,6 +120,7 @@ TextPanel::TextPanel(wxWindow* parent) : xlEffectPanel(parent)
 	wxFlexGridSizer* FlexGridSizer143;
 	wxFlexGridSizer* FlexGridSizer144;
 	wxFlexGridSizer* FlexGridSizer145;
+	wxFlexGridSizer* FlexGridSizer1;
 	wxFlexGridSizer* FlexGridSizer46;
 	wxFlexGridSizer* FlexGridSizer48;
 	wxFlexGridSizer* FlexGridSizer66;
@@ -198,7 +200,7 @@ TextPanel::TextPanel(wxWindow* parent) : xlEffectPanel(parent)
 	FlexGridSizer119->Add(StaticText186, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 	FlexGridSizer66 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer66->AddGrowableCol(0);
-	Slider_Text_Speed = new BulkEditSlider(Panel_Text1, IDD_SLIDER_Text_Speed, 10, 0, 50, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("IDD_SLIDER_Text_Speed"));
+	Slider_Text_Speed = new BulkEditSlider(Panel_Text1, IDD_SLIDER_Text_Speed, 10, 0, 100, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("IDD_SLIDER_Text_Speed"));
 	FlexGridSizer66->Add(Slider_Text_Speed, 1, wxALL|wxEXPAND, 1);
 	TextCtrl72 = new BulkEditTextCtrl(Panel_Text1, ID_TEXTCTRL_Text_Speed, _("10"), wxDefaultPosition, wxDLG_UNIT(Panel_Text1,wxSize(20,-1)), 0, wxDefaultValidator, _T("ID_TEXTCTRL_Text_Speed"));
 	TextCtrl72->SetMaxLength(3);
@@ -240,9 +242,15 @@ TextPanel::TextPanel(wxWindow* parent) : xlEffectPanel(parent)
 	FlexGridSizer69->Add(FlexGridSizer119, 1, wxALL|wxEXPAND, 1);
 	FlexGridSizer141 = new wxFlexGridSizer(0, 1, 0, 0);
 	FlexGridSizer141->AddGrowableCol(0);
+	FlexGridSizer1 = new wxFlexGridSizer(0, 3, 0, 0);
 	CheckBox_Text_PixelOffsets = new BulkEditCheckBox(Panel_Text1, ID_CHECKBOX_Text_PixelOffsets, _("Offsets In Pixels"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX_Text_PixelOffsets"));
 	CheckBox_Text_PixelOffsets->SetValue(false);
-	FlexGridSizer141->Add(CheckBox_Text_PixelOffsets, 1, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
+	FlexGridSizer1->Add(CheckBox_Text_PixelOffsets, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	CheckBox_Text_Color_PerWord = new BulkEditCheckBox(Panel_Text1, ID_CHECKBOX_Text_Color_PerWord, _("Color Per Word"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX_Text_Color_PerWord"));
+	CheckBox_Text_Color_PerWord->SetValue(false);
+	CheckBox_Text_Color_PerWord->SetToolTip(_("Change color after each word if checked"));
+	FlexGridSizer1->Add(CheckBox_Text_Color_PerWord, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	FlexGridSizer141->Add(FlexGridSizer1, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 2);
 	Notebook6 = new wxNotebook(Panel_Text1, IDD_NOTEBOOK1, wxDefaultPosition, wxDefaultSize, 0, _T("IDD_NOTEBOOK1"));
 	Panel16 = new wxPanel(Notebook6, IDD_PANEL6, wxPoint(15,49), wxDefaultSize, wxTAB_TRAVERSAL, _T("IDD_PANEL6"));
 	FlexGridSizer142 = new wxFlexGridSizer(0, 2, 0, 0);
@@ -268,6 +276,8 @@ TextPanel::TextPanel(wxWindow* parent) : xlEffectPanel(parent)
 	GridBagSizer6->Add(Slider_Text_YStart, wxGBPosition(0, 1), wxGBSpan(4, 1), wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer142->Add(GridBagSizer6, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Panel16->SetSizer(FlexGridSizer142);
+	FlexGridSizer142->Fit(Panel16);
+	FlexGridSizer142->SetSizeHints(Panel16);
 	Panel17 = new wxPanel(Notebook6, IDD_PANEL17, wxPoint(104,13), wxDefaultSize, wxTAB_TRAVERSAL, _T("IDD_PANEL17"));
 	FlexGridSizer144 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer144->AddGrowableCol(0);
@@ -292,13 +302,19 @@ TextPanel::TextPanel(wxWindow* parent) : xlEffectPanel(parent)
 	GridBagSizer7->Add(Slider_Text_YEnd, wxGBPosition(0, 1), wxGBSpan(4, 1), wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer144->Add(GridBagSizer7, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	Panel17->SetSizer(FlexGridSizer144);
+	FlexGridSizer144->Fit(Panel17);
+	FlexGridSizer144->SetSizeHints(Panel17);
 	Notebook6->AddPage(Panel16, _("Start Position"), false);
 	Notebook6->AddPage(Panel17, _("End Position"), false);
 	FlexGridSizer141->Add(Notebook6, 1, wxALL|wxEXPAND, 5);
 	FlexGridSizer69->Add(FlexGridSizer141, 1, wxALL|wxEXPAND, 1);
 	Panel_Text1->SetSizer(FlexGridSizer69);
+	FlexGridSizer69->Fit(Panel_Text1);
+	FlexGridSizer69->SetSizeHints(Panel_Text1);
 	FlexGridSizer46->Add(Panel_Text1, 1, wxALL|wxEXPAND, 5);
 	SetSizer(FlexGridSizer46);
+	FlexGridSizer46->Fit(this);
+	FlexGridSizer46->SetSizeHints(this);
 
 	Connect(ID_TEXTCTRL_Text,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&TextPanel::OnTextCtrl_TextText);
 	Connect(ID_FILEPICKERCTRL_Text_File,wxEVT_COMMAND_FILEPICKER_CHANGED,(wxObjectEventFunction)&TextPanel::OnFilePickerCtrl1FileChanged);

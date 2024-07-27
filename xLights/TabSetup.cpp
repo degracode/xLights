@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #ifdef LINUX
@@ -142,9 +142,13 @@ void xLightsFrame::UpdateRecentFilesList(bool reload) {
     MenuFile->FindItem(ID_MENUITEM_OPENRECENTSEQUENCE)->Enable(cnt != 0);
 }
 
-
 bool xLightsFrame::SetDir(const wxString& newdir, bool permanent)
 {
+    if (readOnlyMode) {
+        wxMessageBox("Show directory cannot be changed in read only mode.", "Read Only Mode", wxICON_INFORMATION | wxOK);
+        return false;
+    }
+
     wxString nd = newdir;
     if (nd.EndsWith(wxFileName::GetPathSeparator()))
         nd = nd.SubString(0, nd.size() - 2);
@@ -418,6 +422,12 @@ void xLightsFrame::OnButton_ChangeTemporarilyAgainClick(wxCommandEvent& event)
     PromptForShowDirectory(false);
 }
 
+bool xLightsFrame::OnButton_OpenBaseShowDirClick(wxCommandEvent& event) {
+    displayElementsPanel->SetSequenceElementsModelsViews(nullptr, nullptr, nullptr, nullptr, nullptr);
+    layoutPanel->ClearUndo();
+    return SetDir(_outputManager.GetBaseShowDir(), false);
+}
+
 void xLightsFrame::OnButton_ChangeShowFolderTemporarily(wxCommandEvent& event)
 {
     if (Button_CheckShowFolderTemporarily->GetLabel() == "Change Temporarily") {
@@ -529,16 +539,13 @@ void xLightsFrame::GetControllerDetailsForChannel(int32_t channel, std::string& 
 }
 
 std::string xLightsFrame::GetChannelToControllerMapping(int32_t channel) {
-
     int32_t stch;
     Controller* c = _outputManager.GetController(channel, stch);
 
     if (c != nullptr) {
         return c->GetChannelMapping(channel);
     }
-    else {
-        return wxString::Format("Channel %d could not be mapped to a controller.", channel).ToStdString();
-    }
+    return wxString::Format("Channel %d could not be mapped to a controller.", channel).ToStdString();
 }
 
 // reset test channel listbox
@@ -1348,7 +1355,7 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
                 if (eth != nullptr
                     && eth->GetName() == it->GetName()
                     && eth->GetProtocol() == it->GetProtocol()) {
-                    if (wxMessageBox("The discovered controller matches an existing controller Description but has a different IP address. Do you want to update the IP address for that existing controller in xLights?", "Mismatch IP", wxYES_NO, this) == wxYES) {
+                    if (wxMessageBox("The discovered controller matches an existing controller name but has a different IP address. Do you want to update the IP address for that existing controller in xLights?", "Mismatch IP", wxYES_NO, this) == wxYES) {
                         updated = true;
                         eth->SetIP(it->GetIP());
                         found = true;
@@ -1367,8 +1374,8 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
             if (c.size() == 1
                 && it->GetName() != c.front()->GetName()
                 && c.front()->GetProtocol() == it->GetProtocol()) {
-                // existing zcpp with same ip but different description ... maybe we should update the description
-                if (wxMessageBox("The discovered controller matches an existing controllers IP address but has a different description. Do you want to update the description in xLights?", "Mismatch controller description", wxYES_NO, this) == wxYES) {
+                // existing zcpp with same ip but different name ... maybe we should update the name
+                if (wxMessageBox("The discovered controller matches an existing controller IP address but has a different name. Do you want to update the name for the existing controller in xLights?", "Mismatch controller name", wxYES_NO, this) == wxYES) {
                     renames[c.front()->GetName()] = it->GetName();
                     c.front()->SetName(it->GetName());
                     found = true;
@@ -1452,7 +1459,6 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         Connect(ID_List_Controllers, wxEVT_RIGHT_DOWN, (wxObjectEventFunction)&xLightsFrame::OnListControllersRClick);
         Connect(ID_List_Controllers, wxEVT_LIST_COL_CLICK, (wxObjectEventFunction)&xLightsFrame::OnListControllersColClick);
         Connect(ID_List_Controllers, wxEVT_LIST_ITEM_RIGHT_CLICK, (wxObjectEventFunction)&xLightsFrame::OnListControllersItemRClick);
-        Connect(ID_List_Controllers, wxEVT_LIST_ITEM_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnListItemSelectedControllers);
         Connect(ID_List_Controllers, wxEVT_LIST_ITEM_DESELECTED, (wxObjectEventFunction)&xLightsFrame::OnListItemDeselectedControllers);
         Connect(ID_List_Controllers, wxEVT_LIST_BEGIN_DRAG, (wxObjectEventFunction)&xLightsFrame::OnListItemBeginDragControllers);
         Connect(ID_List_Controllers, wxEVT_LIST_ITEM_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnListItemSelectedControllers);
@@ -1462,6 +1468,12 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         List_Controllers->AppendColumn("Address");
         List_Controllers->AppendColumn("Universes/Id");
         List_Controllers->AppendColumn("Channels");
+        List_Controllers->AppendColumn("Vendor");
+        List_Controllers->AppendColumn("Model");
+        List_Controllers->AppendColumn("Variant");
+        List_Controllers->AppendColumn("Active");
+        List_Controllers->AppendColumn("Auto Layout");
+        List_Controllers->AppendColumn("Auto Size");
         List_Controllers->AppendColumn("Description");
 
         ButtonAddControllerEthernet->SetToolTip("Use this button to add E1.31, Artnet, DDP and ZCPP controllers.");
@@ -1482,11 +1494,11 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         Controllers_PropertyEditor->Connect(wxEVT_PG_CHANGED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridChange, 0, this);
         Controllers_PropertyEditor->Connect(wxEVT_PG_ITEM_COLLAPSED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridCollapsed, 0, this);
         Controllers_PropertyEditor->Connect(wxEVT_PG_ITEM_EXPANDED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridExpanded, 0, this);
-        Controllers_PropertyEditor->SetValidationFailureBehavior(wxPG_VFB_MARK_CELL | wxPG_VFB_BEEP);
+        Controllers_PropertyEditor->SetValidationFailureBehavior(wxPGVFBFlags::MarkCell | wxPGVFBFlags::Beep);
 
-        Controllers_PropertyEditor->AddActionTrigger(wxPG_ACTION_NEXT_PROPERTY, WXK_RETURN);
+        Controllers_PropertyEditor->AddActionTrigger(wxPGKeyboardAction::NextProperty, WXK_RETURN);
         Controllers_PropertyEditor->DedicateKey(WXK_RETURN);
-        Controllers_PropertyEditor->AddActionTrigger(wxPG_ACTION_NEXT_PROPERTY, WXK_TAB);
+        Controllers_PropertyEditor->AddActionTrigger(wxPGKeyboardAction::NextProperty, WXK_TAB);
         Controllers_PropertyEditor->DedicateKey(WXK_TAB);
     }
 
@@ -1507,12 +1519,17 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         if (std::find(begin(selections), end(selections), it->GetName()) != selections.end()) {
             List_Controllers->SetItemState(row, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
         }
-        //List_Controllers->SetItem(row, 1, it->GetColumn6Label());
         List_Controllers->SetItem(row, 1, it->GetColumn1Label());
         List_Controllers->SetItem(row, 2, it->GetColumn2Label());
         List_Controllers->SetItem(row, 3, it->GetColumn3Label());
         List_Controllers->SetItem(row, 4, it->GetColumn4Label());
         List_Controllers->SetItem(row, 5, it->GetColumn5Label());
+        List_Controllers->SetItem(row, 6, it->GetColumn6Label());
+        List_Controllers->SetItem(row, 7, it->GetColumn7Label());
+        List_Controllers->SetItem(row, 8, it->GetColumn8Label());
+        List_Controllers->SetItem(row, 9, it->GetColumn9Label());
+        List_Controllers->SetItem(row, 10, it->GetColumn10Label());
+        List_Controllers->SetItem(row, 11, it->GetColumn11Label());
         if (it->IsFromBase())
         {
             if (it->IsActive()) {
@@ -1528,13 +1545,13 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
 
     auto sz = 0;
     for (int i = 0; i < List_Controllers->GetColumnCount() - 1; i++) {
-        List_Controllers->SetColumnWidth(i, wxLIST_AUTOSIZE);
-        if (List_Controllers->GetColumnWidth(i) < 100) List_Controllers->SetColumnWidth(i, 100);
+        List_Controllers->SetColumnWidth(i, wxLIST_AUTOSIZE_USEHEADER);
+        //if (List_Controllers->GetColumnWidth(i) < 75) List_Controllers->SetColumnWidth(i, 75);
         sz += List_Controllers->GetColumnWidth(i);
     }
 
     int lc = List_Controllers->GetColumnCount() - 1;
-    List_Controllers->SetColumnWidth(lc, wxLIST_AUTOSIZE);
+    List_Controllers->SetColumnWidth(lc, wxLIST_AUTOSIZE_USEHEADER);
     if (List_Controllers->GetColumnWidth(lc) < 100) List_Controllers->SetColumnWidth(lc, 100);
 
     if (sz + List_Controllers->GetColumnWidth(lc) < List_Controllers->GetSize().GetWidth()) {
@@ -1548,13 +1565,6 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         FlexGridSizerSetupControllerButtons->Add(LedPing, 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
         LedPing->Show();
 
-        if (StaticTextDummy != nullptr) {
-            // I remove the static text as this was the only way I seem to be able to make the LED visible
-            FlexGridSizerSetupControllerButtons->Detach(StaticTextDummy);
-            Panel5->RemoveChild(StaticTextDummy);
-            delete StaticTextDummy;
-            StaticTextDummy = nullptr;
-        }
     }
 
     // try to ensure what should be visible is visible in roughly the same part of the screen
@@ -1567,6 +1577,8 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         List_Controllers->EnsureVisible(itemSelected);
     }
 
+    Panel2->SetMinSize(wxSize(400, -1));
+    Panel5->SetMinSize(this->FromDIP(wxSize(380, -1)));
     List_Controllers->Thaw();
 
     Panel2->Layout();

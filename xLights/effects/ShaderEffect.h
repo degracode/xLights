@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "RenderableEffect.h"
@@ -250,6 +250,7 @@ public:
             return 0xFFFF;
         return RenderableEffect::GetSettingVCDivisor(name);
     }
+    static unsigned programIdForShaderCode(ShaderConfig* cfg, ShaderRenderCache *cache);
 
 protected:
     bool SetGLContext(ShaderRenderCache*);
@@ -262,7 +263,6 @@ protected:
         bool& s_shadersInit,
         unsigned& s_vertexArrayId, unsigned& s_vertexBufferId, unsigned& s_rbId, unsigned& s_fbId,
         unsigned& s_rbTex, int& s_rbWidth, int& s_rbHeight);
-    unsigned programIdForShaderCode(ShaderConfig* cfg, ShaderRenderCache *cache);
 
     struct VertexTex
     {

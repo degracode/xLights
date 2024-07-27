@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "FanEffect.h"
@@ -127,6 +127,7 @@ void FanEffect::Render(Effect *effect, const SettingsMap &SettingsMap, RenderBuf
     int acceleration = GetValueCurveInt("Fan_Accel", 0, SettingsMap, eff_pos, FAN_ACCEL_MIN, FAN_ACCEL_MAX, buffer.GetStartTimeMS(), buffer.GetEndTimeMS());
     bool reverse_dir = SettingsMap.GetBool("CHECKBOX_Fan_Reverse");
     bool blend_edges = SettingsMap.GetBool("CHECKBOX_Fan_Blend_Edges");
+    bool scale = SettingsMap.GetBool("CHECKBOX_Fan_Scale");
 
     HSVValue hsv, hsv1;
     int num_colors = buffer.palette.Size();
@@ -141,6 +142,12 @@ void FanEffect::Render(Effect *effect, const SettingsMap &SettingsMap, RenderBuf
 
     double radius1 = start_radius;
     double radius2 = end_radius;
+
+    if (scale) { // convert to percentage of buffer, i.e 100 is 100% of buffer size
+        double bufferMax = std::max(buffer.BufferHt, buffer.BufferWi);
+        radius1 = radius1 * (bufferMax / 200.0); // 200 bc radius is half of the width
+        radius2 = radius2 * (bufferMax / 200.0);
+    }
 
     int xc_adj = (center_x-50)*buffer.BufferWi / 100;
     int yc_adj = (center_y-50)*buffer.BufferHt / 100;

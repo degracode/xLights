@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/filename.h>
@@ -57,6 +57,10 @@ class SequencePackage {
         bool HasRGBEffects() const;
         bool HasMissingMedia() const;
         bool ModelsChanged() const;
+        void SetLeaveFiles(bool leave) {
+         _leaveFiles = leave;
+        }
+        std::string GetTempShowFolder() const;
         SeqPkgImportOptions* GetImportOptions();
         wxFileName& GetXsqFile();
         wxXmlDocument& GetRgbEffectsFile();
@@ -76,6 +80,7 @@ class SequencePackage {
         wxXmlDocument   _rgbEffects;
         wxFileName      _xlNetworks;
         wxFileName      _pkgRoot;
+        bool _leaveFiles = false;
         std::list<std::string> _missingMedia;
         std::map<std::string, wxFileName> _media;
         bool _modelsChanged = false;

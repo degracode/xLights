@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <vector>
@@ -23,6 +23,7 @@ bool IsArtificialPixelType(const std::string& p);
 bool IsPixelProtocol(const std::string& p);
 bool IsSerialProtocol(const std::string& p);
 bool IsMatrixProtocol(const std::string& p1);
+bool IsPWMProtocol(const std::string& p1);
 bool IsLEDPanelMatrixProtocol(const std::string& p1);
 bool IsVirtualMatrixProtocol(const std::string& p1);
 int GetChannelsPerPixel(const std::string& p);

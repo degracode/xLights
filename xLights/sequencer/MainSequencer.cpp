@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
  
 //(*InternalHeaders(MainSequencer)
@@ -526,8 +526,29 @@ bool MainSequencer::HandleSequencerKeyBinding(wxKeyEvent& event)
             }
             else if (type == "TIMING_SPLIT") {
                 SplitTimingMark();
-            }
-            else if (type == "ZOOM_IN") {
+            } else if (type == "EFFECTS_TO_TIMING") {
+                PanelEffectGrid->CreateTimingFromSelectedEffects();
+            } else if (type == "SELECT_TIMING_1") {
+                PanelRowHeadings->SelectTiming(0);
+            } else if (type == "SELECT_TIMING_2") {
+                PanelRowHeadings->SelectTiming(1);
+            } else if (type == "SELECT_TIMING_3") {
+                PanelRowHeadings->SelectTiming(2);
+            } else if (type == "SELECT_TIMING_4") {
+                PanelRowHeadings->SelectTiming(3);
+            } else if (type == "SELECT_TIMING_5") {
+                PanelRowHeadings->SelectTiming(4);
+            } else if (type == "SELECT_TIMING_6") {
+                PanelRowHeadings->SelectTiming(5);
+            } else if (type == "SELECT_TIMING_7") {
+                PanelRowHeadings->SelectTiming(6);
+            } else if (type == "SELECT_TIMING_8") {
+                PanelRowHeadings->SelectTiming(7);
+            } else if (type == "SELECT_TIMING_9") {
+                PanelRowHeadings->SelectTiming(8);
+            } else if (type == "SELECT_NO_TIMING") {
+                PanelRowHeadings->SelectTiming(-1);
+            } else if (type == "ZOOM_IN") {
                 PanelTimeLine->ZoomIn();
             }
             else if (type == "ZOOM_OUT") {
@@ -1205,8 +1226,10 @@ void MainSequencer::GetPresetData(wxString& copy_data)
     }
 }
 
-void MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
+bool MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
     log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    bool effectsPresent = false;
 
     int start_column = PanelEffectGrid->GetStartColumn();
     int column_start_time = -1000;
@@ -1249,7 +1272,7 @@ void MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
                                "\t" + start_time + "\t" + end_time + "\t" + row + "\t" + column_start;
                 if( i < number_of_timing_rows )
                 {
-                    number_of_timings++;
+                    ++number_of_timings;
                     last_timing_row = row_number;
                     if( first_timing_row < 0 )
                     {
@@ -1259,7 +1282,7 @@ void MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
                 }
                 else
                 {
-                    number_of_effects++;
+                    ++number_of_effects;
                     if( column_start_time == -1000 && mSequenceElements->GetSelectedTimingRow() >= 0 )
                     {
                         if (tel == nullptr)
@@ -1315,6 +1338,8 @@ void MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
         last_timing_row -= first_timing_row;  // calculate the total number of timing rows
     }
 
+    effectsPresent = number_of_timings + number_of_effects > 0;
+
     wxString num_timings = wxString::Format("%d",number_of_timings);
     wxString num_effects = wxString::Format("%d",number_of_effects);
     wxString num_timing_rows = wxString::Format("%d",number_of_timing_rows);
@@ -1328,10 +1353,14 @@ void MainSequencer::GetSelectedEffectsData(wxString& copy_data) {
         copy_data += "\tNO_PASTE_BY_CELL\n" + effect_data;
     }
     UnTagAllEffects();
+
+    return effectsPresent;
 }
 
-void MainSequencer::GetACEffectsData(wxString& copy_data) {
+bool MainSequencer::GetACEffectsData(wxString& copy_data) {
     log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+
+    bool effectsPresent = false;
 
     int start_column = PanelEffectGrid->GetStartColumn();
     int end_column = PanelEffectGrid->GetEndColumn();
@@ -1353,11 +1382,11 @@ void MainSequencer::GetACEffectsData(wxString& copy_data) {
             column_end_time = eff2->GetEndTimeMS();
         }
         else {
-            return;
+            return false;
         }
     }
     else {
-        return;  // there should always be a range selection in AC copy mode
+        return false;  // there should always be a range selection in AC copy mode
     }
 
     for (int i = 0; i < mSequenceElements->GetRowInformationSize(); i++)
@@ -1398,7 +1427,7 @@ void MainSequencer::GetACEffectsData(wxString& copy_data) {
 
                         effect_data += ef->GetEffectName() + "\t" + settings + "\t" + ef->GetPaletteAsString() +
                             "\t" + start_time + "\t" + end_time + "\t" + row + "\t" + column_start;
-                        number_of_effects++;
+                        ++number_of_effects;
                         Effect* te_start = tel->GetEffectByTime(adj_start_time + 1); // if we don't add 1ms, it picks up the end of the previous timing instead of the start of this one
                         Effect* te_end = tel->GetEffectByTime(adj_end_time);
                         if (te_start != nullptr && te_end != nullptr)
@@ -1425,6 +1454,9 @@ void MainSequencer::GetACEffectsData(wxString& copy_data) {
             }
         }
     }
+
+    effectsPresent = number_of_effects + number_of_timings > 0;
+
     wxString num_timings = wxString::Format("%d", number_of_timings);
     wxString num_effects = wxString::Format("%d", number_of_effects);
     wxString num_timing_rows = wxString::Format("%d", number_of_timing_rows);
@@ -1438,17 +1470,20 @@ void MainSequencer::GetACEffectsData(wxString& copy_data) {
     copy_data = "CopyFormatAC\t" + num_timings + "\t" + num_effects + "\t" + num_timing_rows + "\t" + last_row + "\t" + starting_column + "\t" + ending_column + "\t" + starting_row + "\t" + ending_row + "\t" + starting_time + "\t" + ending_time;
     copy_data += "\tPASTE_BY_CELL\n" + effect_data;
     UnTagAllEffects();
+
+    return effectsPresent;
 }
 
 bool MainSequencer::CopySelectedEffects() {
     wxString copy_data;
+    bool dataPresent = false;
     if (PanelEffectGrid->IsACActive()) {
-        GetACEffectsData(copy_data);
+        dataPresent = GetACEffectsData(copy_data);
     }
     else {
-        GetSelectedEffectsData(copy_data);
+        dataPresent = GetSelectedEffectsData(copy_data);
     }
-    if (!copy_data.IsEmpty() && wxTheClipboard != nullptr && wxTheClipboard->Open()) {
+    if (dataPresent && !copy_data.IsEmpty() && wxTheClipboard != nullptr && wxTheClipboard->Open()) {
         if (!wxTheClipboard->SetData(new wxTextDataObject(copy_data))) {
             DisplayError("Unable to copy data to clipboard.", this);
         }

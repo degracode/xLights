@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #ifdef LINUX
@@ -127,7 +127,7 @@ ZCPPOutput::ZCPPOutput(Controller* c, wxXmlNode* node, std::string showdir) : IP
         wxString fileName = GetIP();
         fileName.Replace(".", "_");
         fileName += ".zcpp";
-        fileName = showdir + wxFileName::GetPathSeparator() + fileName;
+        fileName = showdir + GetPathSeparator() + fileName;
 
         if (FileExists(fileName)) {
             wxFile zf;
@@ -646,7 +646,7 @@ bool ZCPPOutput::SetModelData(Controller* c, std::list<ZCPP_packet_t*> modelData
 
     fileName.Replace(".", "_");
     fileName += ".zcpp";
-    fileName = showDir + wxFileName::GetPathSeparator() + fileName;
+    fileName = showDir + GetPathSeparator() + fileName;
 
     if (_modelData.size() != modelData.size() || _extraConfig.size() != extraConfig.size() || !FileExists(fileName)) {
         // different size so must be different
@@ -965,12 +965,12 @@ void ZCPPOutput::UpdateProperties(wxPropertyGrid* propertyGrid, Controller* c, M
     if (p) {
         p->SetValue(GetChannels());
         if (c->IsAutoSize()) {
-            p->ChangeFlag(wxPG_PROP_READONLY, true);
+            p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
             p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
             p->SetHelpString("Channels cannot be changed when an output is set to Auto Size.");
         } else {
             p->SetEditor("SpinCtrl");
-            p->ChangeFlag(wxPG_PROP_READONLY, false);
+            p->ChangeFlag(wxPGPropertyFlags::ReadOnly , false);
             p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
             p->SetHelpString("");
         }
@@ -980,7 +980,7 @@ void ZCPPOutput::AddProperties(wxPropertyGrid* propertyGrid, wxPGProperty *befor
     IPOutput::AddProperties(propertyGrid, before, c, allSameSize, expandProperties);
     
     auto p = propertyGrid->Insert(before, new wxStringProperty("Multicast Address", "MulticastAddressDisplay", ZCPP_GetDataMulticastAddress(_ip)));
-    p->ChangeFlag(wxPG_PROP_READONLY, true);
+    p->ChangeFlag(wxPGPropertyFlags::ReadOnly , true);
     p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
 
     p = propertyGrid->Insert(before, new wxBoolProperty("Supports Virtual Strings", "SupportsVirtualStrings", IsSupportsVirtualStrings()));

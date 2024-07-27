@@ -2,11 +2,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "Minleon.h"
@@ -574,9 +574,9 @@ Minleon::Minleon(const std::string& ip, const std::string& proxy, const std::str
     logger_base.debug("Connecting to Minleon on %s.", (const char*)_ip.c_str());
 
     logger_base.debug("Getting minleon status.");
-    auto status = DDPOutput::Query(_ip, DDP_ID_STATUS, forceLocalIP);
 
 #ifdef USEDDP
+    auto status = DDPOutput::Query(_ip, DDP_ID_STATUS, forceLocalIP);
     if (!status.IsNull()) {
         _protocol = "DDP";
         _version = status["status"]["ver"].AsString();

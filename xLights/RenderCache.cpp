@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "RenderCache.h"
@@ -23,13 +23,10 @@
 #include "TraceLog.h"
 #include "ExternalHooks.h"
 
-
 #ifdef __WXOSX__
 #include <sys/mman.h>
 #define USE_MMAP_RENDERCACHE
 #endif
-
-
 
 #pragma region RenderCache
 
@@ -93,6 +90,81 @@ RenderCache::RenderCache()
 RenderCache::~RenderCache()
 {
     Close();
+
+    EnforceMaximumSize();
+}
+
+void RenderCache::SetMaximumSizeMB(size_t mb)
+{
+    _maximumSizeMB = mb;
+    EnforceMaximumSize();
+}
+
+void RenderCache::EnforceMaximumSize()
+{
+    // zero means no limit
+    if (_maximumSizeMB == 0)
+        return;
+
+    if (_baseCache == "")
+        return;
+
+    if (!wxDir::Exists(_baseCache))
+        return;
+
+    wxDir dir(_baseCache);
+    wxULongLong total = dir.GetTotalSize(_baseCache);
+    if ((total / 1024 / 1024).ToULong() < _maximumSizeMB)
+        return;
+
+    // get the size and last written date of all render cache entries
+    typedef struct CACHE_ENTRY {
+        wxULongLong size = 0;
+        std::string name;
+        wxDateTime modified;
+
+        bool operator<(const struct CACHE_ENTRY& ce) const
+        {
+            return modified < ce.modified;
+        }
+    } CACHE_ENTRY;
+
+    std::list<CACHE_ENTRY> entries;
+
+    // wxArrayString dirs;
+    // GetAllFilesInDir(_baseCache, dirs, wxALL_FILES_PATTERN, wxDIR_DIRS);
+
+    // each sequence is in a directory
+    // for (const auto& d : dirs) {
+    wxArrayString files;
+    GetAllFilesInDir(_baseCache, files, "*.cache", wxDIR_FILES | wxDIR_DIRS);
+
+    for (const auto& f : files) {
+        wxFileName fn(f);
+        CACHE_ENTRY ce;
+        ce.name = f;
+        ce.size = fn.GetSize();
+        ce.modified = fn.GetModificationTime();
+
+        if ((ce.size / 1024 / 1024).ToULong() > _maximumSizeMB / 2) {
+            // we always delete anything larger than half the maximum as these are essentially making the cache useless
+            wxRemoveFile(ce.name);
+            total -= ce.size;
+        } else {
+            entries.push_back(ce);
+        }
+    }
+    //}
+
+    entries.sort();
+
+    while ((total / 1024 / 1024).ToULong() > _maximumSizeMB && entries.size() > 0) {
+        if (wxFile::Exists(entries.front().name)) {
+            wxRemoveFile(entries.front().name);
+            total -= entries.front().size;
+        }
+        entries.pop_front();
+    }
 }
 
 void RenderCache::LoadCache()
@@ -122,11 +194,16 @@ void RenderCache::SetSequence(const std::string& path, const std::string& sequen
 
     Close();
 
+    if (path != "") {
+        _baseCache = path + GetPathSeparator() + "RenderCache";
+        EnforceMaximumSize();
+    }
+
     if (!IsEnabled())
     {
         if (sequenceFile != "")
         {
-            _cacheFolder = path + wxFileName::GetPathSeparator() + "RenderCache" + wxFileName::GetPathSeparator() + sequenceFile + "_RENDER_CACHE";
+            _cacheFolder = path + GetPathSeparator() + "RenderCache" + GetPathSeparator() + sequenceFile + "_RENDER_CACHE";
             if (wxDir::Exists(_cacheFolder))
             {
                 if (GetBitness() == "32bit")
@@ -145,11 +222,11 @@ void RenderCache::SetSequence(const std::string& path, const std::string& sequen
 
     if (sequenceFile != "")
     {
-        _cacheFolder = path + wxFileName::GetPathSeparator() + "RenderCache" + wxFileName::GetPathSeparator() + sequenceFile + "_RENDER_CACHE";
+        _cacheFolder = path + GetPathSeparator() + "RenderCache" + GetPathSeparator() + sequenceFile + "_RENDER_CACHE";
 
         if (!wxDir::Exists(_cacheFolder))
         {
-            wxString common = path + wxFileName::GetPathSeparator() + "RenderCache";
+            wxString common = path + GetPathSeparator() + "RenderCache";
             if (!wxDir::Exists(common))
             {
                 logger_base.debug("Creating render cache folder %s.", (const char *)common.c_str());
@@ -221,6 +298,7 @@ bool RenderCache::IsEffectOkForCaching(Effect* effect) const
 
     return true;
 }
+
 RenderCache::PerEffectCache* RenderCache::GetPerEffectCache(const std::string &s) {
     std::unique_lock<std::recursive_mutex> lock(_cacheLock);
     PerEffectCache *r = _cache[s];
@@ -261,6 +339,10 @@ RenderCacheItem* RenderCache::GetItem(Effect* effect, RenderBuffer* buffer)
                 (const char*)buffer->GetModelName().c_str(),
                 effect->GetParentEffectLayer()->GetLayerNumber(),
                 effect->GetStartTimeMS());
+
+            if (item != nullptr)
+                item->Touch();
+
             return item;
         }
     }
@@ -390,12 +472,18 @@ void RenderCache::CleanupCache(SequenceElements* sequenceElements)
     }
     logger_base.debug("    Cleaned up %d items in the cache.", deleted);
 
-    for (int i = 0; i < sequenceElements->GetElementCount(); i++) {
+    for (int i = 0; i < sequenceElements->GetElementCount(); ++i) {
         Element* em = sequenceElements->GetElement(i);
         purgeCache(em, false);
     }
 
     logger_base.debug("    Cache purge done.");
+}
+
+void RenderCache::SetRenderCacheFolder(const std::string& path)
+{
+    _baseCache = path + GetPathSeparator() + "RenderCache";
+    EnforceMaximumSize();
 }
 
 void RenderCache::Purge(SequenceElements* sequenceElements, bool dodelete)
@@ -511,7 +599,7 @@ RenderCacheItem::RenderCacheItem(RenderCache* renderCache, Effect* effect, Rende
             effect->GetParentEffectLayer()->GetLayerNumber(),
             effect->GetStartTimeMS()).ToStdString();
     _effectName = effect->GetEffectName();
-    _cacheFile = renderCache->GetCacheFolder() + wxFileName::GetPathSeparator() + file;
+    _cacheFile = renderCache->GetCacheFolder() + GetPathSeparator() + file;
     _properties["Effect"] = effect->GetEffectName();
     _properties["Element"] = effect->GetParentEffectLayer()->GetParentElement()->GetFullName();
     _properties["EffectLayer"] = wxString::Format("%d", effect->GetParentEffectLayer()->GetLayerNumber());
@@ -726,6 +814,12 @@ bool RenderCacheItem::GetFrame(RenderBuffer* buffer)
 
     logger_rcache.info("RenderCache::GetFrame %d on model %s failed due to fall through.", frame, (const char*)mname.c_str());
     return false;
+}
+
+void RenderCacheItem::Touch() const
+{
+    wxFileName fn(_cacheFile);
+    fn.Touch();
 }
 
 void RenderCacheItem::Save()

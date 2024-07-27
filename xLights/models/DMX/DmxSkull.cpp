@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/propgrid/propgrid.h>
@@ -23,6 +23,7 @@
 #include "Servo.h"
 #include "SkullConfigDialog.h"
 #include "DmxColorAbilityRGB.h"
+#include "../../controllers/ControllerCaps.h"
 #include "../../ModelPreview.h"
 #include "../../xLightsVersion.h"
 #include "../../xLightsMain.h"
@@ -252,23 +253,26 @@ void DmxSkull::AddTypeProperties(wxPropertyGridInterface* grid, OutputManager* o
     p = grid->Append(new wxBoolProperty("Mesh Only", "MeshOnly", mesh_only));
     p->SetAttribute("UseCheckbox", true);
 
+    ControllerCaps *caps = GetControllerCaps();
+    bool doPWM = IsPWMProtocol() && caps != nullptr && caps->SupportsPWM();
+    
     if (has_jaw && jaw_servo != nullptr) {
-        jaw_servo->AddTypeProperties(grid);
+        jaw_servo->AddTypeProperties(grid, doPWM);
     }
     if (has_pan && pan_servo != nullptr) {
-        pan_servo->AddTypeProperties(grid);
+        pan_servo->AddTypeProperties(grid, doPWM);
     }
     if (has_tilt && tilt_servo != nullptr) {
-        tilt_servo->AddTypeProperties(grid);
+        tilt_servo->AddTypeProperties(grid, doPWM);
     }
     if (has_nod && nod_servo != nullptr) {
-        nod_servo->AddTypeProperties(grid);
+        nod_servo->AddTypeProperties(grid, doPWM);
     }
     if (has_eye_ud && eye_ud_servo != nullptr) {
-        eye_ud_servo->AddTypeProperties(grid);
+        eye_ud_servo->AddTypeProperties(grid, doPWM);
     }
     if (has_eye_lr && eye_lr_servo != nullptr) {
-        eye_lr_servo->AddTypeProperties(grid);
+        eye_lr_servo->AddTypeProperties(grid, doPWM);
     }
 
     grid->Append(new wxPropertyCategory("Orientation Properties", "OrientProperties"));
@@ -323,7 +327,8 @@ void DmxSkull::AddTypeProperties(wxPropertyGridInterface* grid, OutputManager* o
         p->SetAttribute("Max", 512);
         p->SetEditor("SpinCtrl");
         if (nullptr != color_ability) {
-            color_ability->AddColorTypeProperties(grid);
+            ControllerCaps *caps = GetControllerCaps();
+            color_ability->AddColorTypeProperties(grid, IsPWMProtocol() && caps && caps->SupportsPWM());
         }
     }
 
@@ -629,7 +634,7 @@ void DmxSkull::DisplayModelOnWindow(ModelPreview* preview, xlGraphicsContext* ct
         boundingBox[4] = 0.5;
         boundingBox[5] = 0.5;
     }
-    sprogram->addStep([=](xlGraphicsContext* ctx) {
+    sprogram->addStep([this, is_3d](xlGraphicsContext* ctx) {
         ctx->PushMatrix();
         if (!is_3d) {
             //not 3d, flatten to the 0 plane
@@ -639,7 +644,7 @@ void DmxSkull::DisplayModelOnWindow(ModelPreview* preview, xlGraphicsContext* ct
         ctx->Scale(0.7f, 0.7f, 0.7f);
         ctx->Translate(0, -0.7f, is_3d ? 0 : 0.5f);
     });
-    tprogram->addStep([=](xlGraphicsContext* ctx) {
+    tprogram->addStep([this, is_3d](xlGraphicsContext* ctx) {
         ctx->PushMatrix();
         if (!is_3d) {
             //not 3d, flatten to the 0 plane
@@ -892,9 +897,11 @@ void DmxSkull::ExportXlightsModel()
     if (filename.IsEmpty())
         return;
     wxFile f(filename);
-    //    bool isnew = !FileExists(filename);
-    if (!f.Create(filename, true) || !f.IsOpened())
+
+    if (!f.Create(filename, true) || !f.IsOpened()) {
         DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+        return;
+    }
 
     f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<dmxmodel \n");
 
@@ -968,10 +975,11 @@ void DmxSkull::ExportXlightsModel()
     f.Close();
 }
 
-void DmxSkull::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
+bool DmxSkull::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
 {
     if (root->GetName() == "dmxmodel") {
-        ImportBaseParameters(root);
+        if (!ImportBaseParameters(root))
+            return false;
 
         wxString name = root->GetAttribute("name");
         wxString v = root->GetAttribute("SourceVersion");
@@ -1038,8 +1046,10 @@ void DmxSkull::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float&
 
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RGBEFFECTS_CHANGE, "DmxSkull::ImportXlightsModel");
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_MODELS_CHANGE_REQUIRING_RERENDER, "DmxSkull::ImportXlightsModel");
+        return true;
     } else {
         DisplayError("Failure loading DmxSkull model file.");
+        return false;
     }
 }
 
@@ -1121,4 +1131,30 @@ void DmxSkull::DisableUnusedProperties(wxPropertyGridInterface* grid)
     }
 
     // Don't remove ModelStates ... these can be used for DMX devices that use a value range to set a colour or behaviour
+}
+
+
+void DmxSkull::GetPWMOutputs(std::map<uint32_t, PWMOutput> &channels) const {
+    DmxModel::GetPWMOutputs(channels);
+    if (has_jaw) {
+        jaw_servo->GetPWMOutputs(channels);
+    }
+    if (has_pan) {
+        pan_servo->GetPWMOutputs(channels);
+    }
+    if (has_tilt) {
+        tilt_servo->GetPWMOutputs(channels);
+    }
+    if (has_nod) {
+        nod_servo->GetPWMOutputs(channels);
+    }
+    if (has_eye_ud) {
+        eye_ud_servo->GetPWMOutputs(channels);
+    }
+    if (has_eye_lr) {
+        eye_lr_servo->GetPWMOutputs(channels);
+    }
+    if (eye_brightness_channel > 0) {
+        channels[eye_brightness_channel] = PWMOutput(eye_brightness_channel, PWMOutput::Type::LED, 1, "Eye Brightness");
+    }
 }

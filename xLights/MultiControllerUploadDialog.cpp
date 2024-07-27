@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "MultiControllerUploadDialog.h"
@@ -134,6 +134,7 @@ void MultiControllerUploadDialog::OnButton_UploadClick(wxCommandEvent& event)
         TextCtrl_Log->AppendText(message);
         TextCtrl_Log->AppendText("\n");
         TextCtrl_Log->AppendText("    Done.");
+	TextCtrl_Log->AppendText("\n");
     }
 
     CheckListBox_Controllers->Enable();

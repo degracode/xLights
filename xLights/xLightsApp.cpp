@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #ifdef _DEBUG
@@ -23,6 +23,7 @@
 #include <wx/debugrpt.h>
 #include <wx/version.h>
 #include <wx/dirdlg.h>
+#include <wx/filename.h>
 
 #include <stdlib.h>     /* srand */
 #include <time.h>       /* time */
@@ -37,6 +38,7 @@
 #include "ExternalHooks.h"
 #include "BitmapCache.h"
 #include "utils/CurlManager.h"
+#include "SequencePackage.h"
 
 #ifndef __WXMSW__
 #include "automation/automation.h"
@@ -117,8 +119,11 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ImageHlp.Lib")
 #pragma comment(lib, "avcodec.lib")
+#pragma comment(lib, "avdevice.lib")
+#pragma comment(lib, "avfilter.lib")
 #pragma comment(lib, "avformat.lib")
 #pragma comment(lib, "avutil.lib")
+#pragma comment(lib, "postproc.lib")
 #pragma comment(lib, "swresample.lib")
 #pragma comment(lib, "SDL2.lib")
 #pragma comment(lib, "swscale.lib")
@@ -130,6 +135,7 @@
 #endif
 
 xLightsFrame* xLightsApp::__frame = nullptr;
+wxString cleanupFolder = "";
 
 void InitialiseLogging(bool fromMain)
 {
@@ -269,7 +275,7 @@ std::string DecodeOS(wxOperatingSystemId o)
 void DumpConfig()
 {
     static log4cpp::Category &logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    std::string versionStr = "Version: " + xlights_version_string.c_str();
+    std::string versionStr = "Version: " + xlights_version_string.ToStdString();
     if (IsFromAppStore()) {
         versionStr += " - App Store";
     }
@@ -366,6 +372,12 @@ int main(int argc, char **argv)
     logger_base.info("Main: Starting wxWidgets ...");
     int rc =  wxEntry(argc, argv);
     logger_base.info("Main: wxWidgets exited with rc=" + wxString::Format("%d", rc));
+
+    if (cleanupFolder != "")
+    {
+        wxDir::Remove(cleanupFolder);
+    }
+
     return rc;
 }
 
@@ -415,24 +427,59 @@ void xLightsApp::MacOpenFiles(const wxArrayString &fileNames) {
         showDir = wxPathOnly(showDir);
         if (showDir == old) showDir = "";
     }
-    
+
     if (__frame) {
         xLightsFrame* frame = __frame;
         frame->CallAfter([showDir, fileName, frame] {
-            if (showDir != "" && showDir != frame->showDirectory) {
-                wxString nsd = showDir;
-                if (!ObtainAccessToURL(nsd)) {
-                    wxDirDialog dlg(frame, "Select Show Directory", nsd,  wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-                    if (dlg.ShowModal() == wxID_OK) {
-                        nsd = dlg.GetPath();
+            
+            if (fileName.EndsWith("xsqz") || fileName.EndsWith("zip")) {
+
+                wxFileName fn(fileName);
+                SequencePackage xsqPkg(fn, nullptr);
+
+                if (xsqPkg.IsPkg()) {
+                    xsqPkg.Extract();
+                    xsqPkg.SetLeaveFiles(true);
+
+                    // find the sequence file
+                    auto xsqFile = xsqPkg.GetXsqFile();
+
+                    // temporarily set the show folder
+                    frame->SetReadOnlyMode(false);
+                    xLightsApp::showDir = xsqPkg.GetTempShowFolder();
+                    frame->SetDir(xLightsApp::showDir, false);
+                    
+                    // save the folder and we will remove it when we shutdown
+                    if (!cleanupFolder.empty()) {
+                        wxDir::Remove(cleanupFolder);
                     }
-                    if (!ObtainAccessToURL(nsd)) {
-                        return;
-                    }
+                    cleanupFolder = xLightsApp::showDir;
+                    
+                    // tell xlights not to allow saving ... at least as much as possible
+                    frame->SetReadOnlyMode(true);
+
+                    // open the sequence
+                    const wxString file = xsqFile.GetFullPath();
+                    frame->OpenSequence(file, nullptr);
+                } else {
+                    logger_base.debug("Zip file did not contain sequence.");
                 }
-                frame->SetDir(nsd, false);
+            } else {
+                if (showDir != "" && showDir != frame->showDirectory) {
+                    wxString nsd = showDir;
+                    if (!ObtainAccessToURL(nsd)) {
+                        wxDirDialog dlg(frame, "Select Show Directory", nsd,  wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+                        if (dlg.ShowModal() == wxID_OK) {
+                            nsd = dlg.GetPath();
+                        }
+                        if (!ObtainAccessToURL(nsd)) {
+                            return;
+                        }
+                    }
+                    frame->SetDir(nsd, false);
+                }
+                frame->OpenSequence(fileName, nullptr);
             }
-            frame->OpenSequence(fileName, nullptr);
         });
     } else {
         logger_base.info("       No xLightsFrame");
@@ -559,6 +606,7 @@ bool xLightsApp::OnInit()
 #endif
 
     int ab = 0;
+    std::string readOnlyZipFile = "";
 
     wxCmdLineParser parser(cmdLineDesc, argc, argv);
     switch (parser.Parse()) {
@@ -593,22 +641,35 @@ bool xLightsApp::OnInit()
         }
         for (size_t x = 0; x < parser.GetParamCount(); x++) {
             wxString sequenceFile = parser.GetParam(x);
-            if (x == 0) {
-                logger_base.info("Sequence file passed on command line: %s.", (const char *)sequenceFile.c_str());
-                info += _("Loading sequence ") + sequenceFile + "\n";
-            }
-            if (showDir.IsNull()) {
-                showDir=wxPathOnly(sequenceFile);
-                while (showDir != "" && !FileExists(showDir + "/" + "xlights_rgbeffects.xml"))
-                {
-                    wxString old = showDir;
-                    showDir = wxPathOnly(showDir);
-                    if (showDir == old) showDir = "";
+            if (sequenceFile.Lower().EndsWith(".zip") || sequenceFile.Lower().EndsWith(".xsqz")) {
+                logger_base.info("Sequence zip file passed on command line: %s.", (const char*)sequenceFile.c_str());
+                info += _("Loading read only sequence ") + sequenceFile + "\n";
+                readOnlyZipFile = sequenceFile;
+			} else {
+                if (sequenceFiles.Count() == 0) {
+                    logger_base.info("Sequence file passed on command line: %s.", (const char*)sequenceFile.c_str());
+                    info += _("Loading sequence ") + sequenceFile + "\n";
                 }
+                if (showDir.IsNull()) {
+                    showDir = wxPathOnly(sequenceFile);
+                    while (showDir != "" && !FileExists(showDir + "/" + "xlights_rgbeffects.xml")) {
+                        wxString old = showDir;
+                        showDir = wxPathOnly(showDir);
+                        if (showDir == old)
+                            showDir = "";
+                    }
+                }
+                sequenceFiles.push_back(sequenceFile);
             }
-            sequenceFiles.push_back(sequenceFile);
         }
-        if (!parser.Found("cs") && !parser.Found("r") && !parser.Found("o") && !info.empty())
+
+        if (readOnlyZipFile != "" && sequenceFiles.Count() > 0) {
+            // illegal combination of files
+            info += _("Illegal combination of files. Load of zip file will take priority.\n");
+            sequenceFiles.Clear();
+        }
+
+        if (!parser.Found("cs") && !parser.Found("r") && !parser.Found("o") && !info.empty() && readOnlyZipFile == "")
         {
             DisplayInfo(info); //give positive feedback*/
         }
@@ -619,9 +680,38 @@ bool xLightsApp::OnInit()
     }
 
     bool renderOnlyMode = false;
-    if (parser.Found("r")) {
+    if (readOnlyZipFile == "" &&  parser.Found("r")) {
         logger_base.info("-r: Render mode is ON");
         renderOnlyMode = true;
+    }
+
+    wxFileName xsqFile;
+
+    // opening a zip file with hopefully a packaged sequence in it and then disabling all saving
+    if (readOnlyZipFile != "") {
+        // this is not allowed
+        renderOnlyMode = false;
+
+        wxFileName fn(readOnlyZipFile);
+        SequencePackage xsqPkg(fn, nullptr);
+
+        if (xsqPkg.IsPkg()) {
+            xsqPkg.Extract();
+            xsqPkg.SetLeaveFiles(true);
+
+            // find the sequence file
+            xsqFile = xsqPkg.GetXsqFile();
+
+            // temporarily set the show folder
+            showDir = xsqPkg.GetTempShowFolder();
+
+            // save the folder and we will remove it when we shutdown
+            cleanupFolder = showDir;
+
+        } else {
+            logger_base.debug("Zip file did not contain sequence.");        
+            readOnlyZipFile = "";
+        }
     }
 
     //(*AppInitialize
@@ -644,6 +734,15 @@ bool xLightsApp::OnInit()
 
     if (renderOnlyMode) {
         topFrame->CallAfter(&xLightsFrame::OpenRenderAndSaveSequencesF, sequenceFiles, xLightsFrame::RENDER_EXIT_ON_DONE);
+    }
+
+    if (readOnlyZipFile != "") {
+        // tell xlights not to allow saving ... at least as much as possible
+        topFrame->SetReadOnlyMode(true);
+
+        // open the sequence
+        const wxString file = xsqFile.GetFullPath();
+        topFrame->CallAfter(&xLightsFrame::OpenSequence, file);
     }
 
     if (parser.Found("cs")) {

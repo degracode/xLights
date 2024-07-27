@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/propgrid/propgrid.h>
@@ -62,14 +62,11 @@ void ImageModel::InitRenderBufferNodes(const std::string &type, const std::strin
 
     //newNodes.push_back(NodeBaseClassPtr(Nodes[0]->clone()));
     NodeBaseClass* node = Nodes[0]->clone();
-
-    // remove one of the coordinates
-    node->Coords.erase(node->Coords.begin());
+    node->Coords.resize(1);
 
     // set it to zero zero
     node->Coords[0].bufX = 0;
     node->Coords[0].bufY = 0;
-    node->Coords[0].bufZ = 0;
     float x = 0.0;
     float y = 0.0;
     float z = 0.0;
@@ -402,7 +399,7 @@ void ImageModel::DisplayModelOnWindow(ModelPreview* preview, xlGraphicsContext *
             brightness /= 2.55f;
         }
 
-        preview->getCurrentSolidProgram()->addStep([=](xlGraphicsContext *ctx) {
+        preview->getCurrentSolidProgram()->addStep([=, this](xlGraphicsContext *ctx) {
             ctx->PushMatrix();
             if (!is_3d) {
                 //not 3d, flatten to the 0 plane
@@ -435,7 +432,7 @@ void ImageModel::DisplayModelOnWindow(ModelPreview* preview, xlGraphicsContext *
         vac->AddVertex(-0.5, 0.5, 0, xlRED);
 
         int count = vac->getCount();
-        program->addStep([=](xlGraphicsContext *ctx) {
+        program->addStep([=, this](xlGraphicsContext *ctx) {
             ctx->PushMatrix();
             GetModelScreenLocation().ApplyModelViewMatrices(ctx);
             ctx->drawLines(vac, start, count - start);

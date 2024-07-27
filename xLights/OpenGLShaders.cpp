@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "wx/wx.h"
@@ -76,6 +76,11 @@ static bool canUseFramebufferObjects()
 		&& glFramebufferRenderbuffer != nullptr;
 }
 #else
+// OpenGL is marked deprecated in OSX so we'll turn off the deprecation warnings for this file
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+
 #include "OpenGL/gl.h"
 
 static bool canUseShaders()
@@ -228,3 +233,8 @@ unsigned OpenGLShaders::compile( const std::string& vertexSource, const std::str
 
     return linkSuccess ? program : 0;
 }
+
+#ifdef __WXOSX__
+// OpenGL is marked deprecated in OSX so we'll turn off the deprecation warnings for this file
+#pragma clang diagnostic pop
+#endif

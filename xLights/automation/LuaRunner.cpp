@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "LuaRunner.h"
@@ -26,15 +26,15 @@ LuaRunner::LuaRunner(xLightsFrame* frame) :
 
 std::string LuaRunner::GetUserScriptFolder() const
 {
-    return _frame->GetShowDirectory() + wxFileName::GetPathSeparator() + "scripts" + wxFileName::GetPathSeparator();
+    return _frame->GetShowDirectory() + GetPathSeparator() + "scripts" + GetPathSeparator();
 }
 
 std::string LuaRunner::GetSystemScriptFolder()
 {
 #ifndef __WXMSW__
-    return wxStandardPaths::Get().GetResourcesDir() + wxFileName::GetPathSeparator() + "scripts";
+    return wxStandardPaths::Get().GetResourcesDir() + GetPathSeparator() + "scripts";
 #else
-    return wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath() + wxFileName::GetPathSeparator() + "scripts";
+    return wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath() + GetPathSeparator() + "scripts";
 #endif
 }
 
@@ -65,9 +65,10 @@ std::string LuaRunner::PromptSelection(sol::object const& items, std::string con
     return {};
 }
 
-std::list<std::string> LuaRunner::PromptSequences() const
+std::pair<std::list<std::string>, bool> LuaRunner::PromptSequences() const
 {
     std::list<std::string> sequenceList;
+    bool forceHighDefinitionRender = false;
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     BatchRenderDialog dlg(_frame);
@@ -76,15 +77,18 @@ std::list<std::string> LuaRunner::PromptSequences() const
         wxArrayString files = dlg.GetFileList();
 
         for (auto const& f : files) {
-            wxFileName fname(_frame->GetShowDirectory() + wxFileName::GetPathSeparator() + f);
+            wxFileName fname(_frame->GetShowDirectory() + GetPathSeparator() + f);
             if (FileExists(fname)) {
                 sequenceList.push_back(fname.GetFullPath());
             } else {
                 logger_base.info("PromptSequences: Sequence File not Found: %s.", (const char*)fname.GetFullPath().c_str());
             }
         }
+        if (dlg.CheckBox_ForceHighDefinition->IsChecked()) {
+            forceHighDefinitionRender = true;
+        }
     }
-    return sequenceList;
+    return std::make_pair(sequenceList, forceHighDefinitionRender);
 }
 
 std::list<std::string> LuaRunner::SplitString(std::string const& text, char const& delimiter) const

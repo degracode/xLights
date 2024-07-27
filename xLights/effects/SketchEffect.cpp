@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "SketchEffect.h"
@@ -178,17 +178,20 @@ void SketchEffect::adjustSettings(const std::string& version, Effect* effect, bo
 std::list<std::string> SketchEffect::CheckEffectSettings(const SettingsMap& settings, AudioManager* media, Model* model, Effect* eff, bool renderCache)
 {
     wxLogNull logNo; // suppress popups from png images. See http://trac.wxwidgets.org/ticket/15331
-    std::list<std::string> res;
+    std::list<std::string> res = RenderableEffect::CheckEffectSettings(settings, media, model, eff, renderCache);
 
-    wxString filename = settings.Get("E_FILEPICKER_SketchBackground", "");
-
-    if (filename == "" || !FileExists(filename)) {
-        res.push_back(wxString::Format("    ERR: Sketch effect cant find image file '%s'. Model '%s', Start %s", filename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
-    } else {
-        if (!IsFileInShowDir(xLightsFrame::CurrentDir, filename.ToStdString())) {
-            res.push_back(wxString::Format("    WARN: Sketch effect image file '%s' not under show directory. Model '%s', Start %s", filename, model->GetName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+    if (!xLightsFrame::IsCheckSequenceOptionDisabled("SketchImage")) {
+        wxString filename = settings.Get("E_FILEPICKER_SketchBackground", "");
+        if (filename == "" || !FileExists(filename)) {
+            // this is only a warning as it does not affect rendering
+            res.push_back(wxString::Format("    WARN: Sketch effect cant find image file '%s'. Model '%s', Start %s", filename, model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+        } else {
+            if (!IsFileInShowDir(xLightsFrame::CurrentDir, filename.ToStdString())) {
+                res.push_back(wxString::Format("    WARN: Sketch effect image file '%s' not under show directory. Model '%s', Start %s", filename, model->GetFullName(), FORMATTIME(eff->GetStartTimeMS())).ToStdString());
+            }
         }
     }
+
     return res;
 }
 

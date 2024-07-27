@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "RenderableEffect.h"
@@ -23,6 +23,9 @@ class MetaBall;
 
 #define CIRCLES_SPEED_MIN 1
 #define CIRCLES_SPEED_MAX 30
+
+#define CIRCLES_POS_MIN -50
+#define CIRCLES_POS_MAX 50
 
 class CirclesEffect : public RenderableEffect
 {
@@ -44,6 +47,10 @@ public:
             return CIRCLES_SIZE_MIN;
         if (name == "E_VALUECURVE_Circles_Speed")
             return CIRCLES_SPEED_MIN;
+        if (name == "E_VALUECURVE_Circles_XC")
+            return CIRCLES_POS_MIN;
+        if (name == "E_VALUECURVE_Circles_YC")
+            return CIRCLES_POS_MIN;
         return RenderableEffect::GetSettingVCMin(name);
     }
     virtual double GetSettingVCMax(const std::string& name) const override
@@ -54,6 +61,10 @@ public:
             return CIRCLES_SIZE_MAX;
         if (name == "E_VALUECURVE_Circles_Speed")
             return CIRCLES_SPEED_MAX;
+        if (name == "E_VALUECURVE_Circles_XC")
+            return CIRCLES_POS_MAX;
+        if (name == "E_VALUECURVE_Circles_YC")
+            return CIRCLES_POS_MAX;
         return RenderableEffect::GetSettingVCMax(name);
     }
 

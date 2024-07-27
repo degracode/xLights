@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/xml/xml.h>
@@ -99,6 +99,24 @@ void ColorManager::RestoreSnapshot()
 	{
         colors[it.first] = it.second;
 	}
+}
+
+wxColor ColorManager::CyanOrBlueOverride() {
+    const xlColor* color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_TEXT_HIGHLIGHTED);
+    if (color->asWxColor() == *wxBLACK) {
+        return CyanOrBlue();
+    } else {
+        return color->asWxColor();
+    }
+}
+
+wxColor ColorManager::LightOrMediumGreyOverride() {
+    const xlColor* color = ColorManager::instance()->GetColorPtr(ColorManager::COLOR_TEXT_UNSELECTED);
+    if (color->asWxColor() == *wxBLACK) {
+        return LightOrMediumGrey();
+    } else {
+        return color->asWxColor();
+    }
 }
 
 void ColorManager::SetNewColor(std::string name, xlColor& color)
@@ -208,7 +226,7 @@ void ColorManager::Load(wxXmlNode* colors_node)
 {
 	if (colors_node != nullptr)
 	{
-        colors.clear();
+        ResetDefaults();
         for (wxXmlNode* c = colors_node->GetChildren(); c != nullptr; c = c->GetNext())
         {
             std::string name = c->GetName().ToStdString();

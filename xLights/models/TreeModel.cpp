@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/tokenzr.h>
@@ -22,6 +22,7 @@
 #include "../xLightsMain.h"
 #include "UtilFunctions.h"
 #include "../ModelPreview.h"
+#include "CustomModel.h"
 
 TreeModel::TreeModel(wxXmlNode *node, const ModelManager &manager, bool zeroBased) : MatrixModel(manager)
 {
@@ -44,6 +45,7 @@ static wxPGChoices TREE_DIRECTIONS(wxArrayString(2, TREE_DIRECTION_VALUES));
 
 void TreeModel::InitModel() {
     _alternateNodes = (ModelXml->GetAttribute("AlternateNodes", "false") == "true");
+    _noZig = (ModelXml->GetAttribute("NoZig", "false") == "true");
     bool isHMatrix = (ModelXml->GetAttribute("StrandDir", TREE_DIRECTION_VALUES[1]) == TREE_DIRECTION_VALUES[0]);
     wxStringTokenizer tkz(DisplayAs, " ");
     wxString token = tkz.GetNextToken();
@@ -217,18 +219,20 @@ void TreeModel::SetTreeCoord(long degrees)
                     }
 
                     newh = RenderHt * posOnString;
-                    Nodes[n]->Coords.push_back(Nodes[n]->Coords[c]);
-                    Nodes[n]->Coords.back().screenX = xb + (xt - xb) * posOnString;
-                    Nodes[n]->Coords.back().screenY = RenderHt * newh / h - ((double)RenderHt) / 2.0;
+                    NodeBaseClass::CoordStruct cs = Nodes[n]->Coords[c];
+                    cs.screenX = xb + (xt - xb) * posOnString;
+                    cs.screenY = RenderHt * newh / h - ((double)RenderHt) / 2.0;
+                    Nodes[n]->Coords.push_back(cs);
 
                     posOnString = 1;
                     if (BufferHt > 1) {
                         posOnString = ((bufferY + 0.33) / (double)(BufferHt - 1.0));
                     }
                     newh = RenderHt * posOnString;
-                    Nodes[n]->Coords.push_back(Nodes[n]->Coords[c]);
-                    Nodes[n]->Coords.back().screenX = xb + (xt - xb) * posOnString;
-                    Nodes[n]->Coords.back().screenY = RenderHt * newh / h - ((double)RenderHt) / 2.0;
+                    cs = Nodes[n]->Coords[c];
+                    cs.screenX = xb + (xt - xb) * posOnString;
+                    cs.screenY = RenderHt * newh / h - ((double)RenderHt) / 2.0;
+                    Nodes[n]->Coords.push_back(cs);
                 }
 
             } else {
@@ -388,6 +392,11 @@ void TreeModel::AddStyleProperties(wxPropertyGridInterface *grid) {
 
     p = grid->Append(new wxBoolProperty("Alternate Nodes", "AlternateNodes", _alternateNodes));
     p->SetEditor("CheckBox");
+    p->Enable(_noZig == false);
+
+    p = grid->Append(new wxBoolProperty("Don't Zig Zag", "NoZig", _noZig));
+    p->SetEditor("CheckBox");
+    p->Enable(_alternateNodes == false);
 
     grid->Append(new wxEnumProperty("Strand Direction", "StrandDir", TREE_DIRECTIONS, vMatrix ? 1 : 0));
 }
@@ -399,8 +408,12 @@ void TreeModel::ExportXlightsModel()
     wxString filename = wxFileSelector(_("Choose output file"), wxEmptyString, name, wxEmptyString, "Custom Model files (*.xmodel)|*.xmodel", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (filename.IsEmpty()) return;
     wxFile f(filename);
-    //    bool isnew = !FileExists(filename);
-    if (!f.Create(filename, true) || !f.IsOpened()) DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+
+    if (!f.Create(filename, true) || !f.IsOpened()) {
+        DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+        return;
+    }
+
     wxString p1 = ModelXml->GetAttribute("parm1");
     wxString p2 = ModelXml->GetAttribute("parm2");
     wxString p3 = ModelXml->GetAttribute("parm3");
@@ -419,11 +432,13 @@ void TreeModel::ExportXlightsModel()
     wxString tr = ModelXml->GetAttribute("TreeRotation", "3");
     wxString tsr = ModelXml->GetAttribute("TreeSpiralRotations", "0.0");
     wxString an = ModelXml->GetAttribute("AlternateNodes", "false");
+    wxString nz = ModelXml->GetAttribute("NoZig", "false");
     wxString sdr = ModelXml->GetAttribute("StrandDir", TREE_DIRECTION_VALUES[1]);
     wxString v = xlights_version_string;
 
     f.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<treemodel \n");
     f.Write(wxString::Format("AlternateNodes=\"%s\" ", an));
+    f.Write(wxString::Format("NoZig=\"%s\" ", nz));
     f.Write(wxString::Format("StrandDir=\"%s\" ", sdr));
     f.Write(wxString::Format("name=\"%s\" ", name));
     f.Write(wxString::Format("parm1=\"%s\" ", p1));
@@ -446,6 +461,10 @@ void TreeModel::ExportXlightsModel()
     f.Write(wxString::Format("SourceVersion=\"%s\" ", v));
     f.Write(ExportSuperStringColors());
     f.Write(" >\n");
+    wxString aliases = SerialiseAliases();
+    if (aliases != "") {
+        f.Write(aliases);
+    }
     wxString state = SerialiseState();
     if (state != "")
     {
@@ -470,7 +489,7 @@ void TreeModel::ExportXlightsModel()
     f.Close();
 }
 
-void TreeModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
+bool TreeModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
 {
     if (root->GetName() == "treemodel") {
         wxString name = root->GetAttribute("name");
@@ -496,6 +515,7 @@ void TreeModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float
         wxString pt = root->GetAttribute("PixelType");
         wxString psp = root->GetAttribute("PixelSpacing");
         wxString an = root->GetAttribute("AlternateNodes");
+        wxString nz = root->GetAttribute("NoZig");
         wxString sdr = root->GetAttribute("StrandDir");
 
         // Add any model version conversion logic here
@@ -526,6 +546,7 @@ void TreeModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float
         SetProperty("PixelType", pt);
         SetProperty("PixelSpacing", psp);
         SetProperty("AlternateNodes", an);
+        SetProperty("NoZig", nz);
         SetProperty("StrandDir", sdr);
 
         wxString newname = xlights->AllModels.GenerateModelName(name.ToStdString());
@@ -537,8 +558,10 @@ void TreeModel::ImportXlightsModel(wxXmlNode* root, xLightsFrame* xlights, float
 
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RGBEFFECTS_CHANGE, "TreeModel::ImportXlightsModel");
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_MODELS_CHANGE_REQUIRING_RERENDER, "TreeModel::ImportXlightsModel");
+        return true;
     } else {
         DisplayError("Failure loading Tree model file.");
+        return false;
     }
 }
 
@@ -554,8 +577,10 @@ void TreeModel::ExportAsCustomXModel3D() const
 
     wxFile f(filename);
     //    bool isnew = !FileExists(filename);
-    if (!f.Create(filename, true) || !f.IsOpened())
+    if (!f.Create(filename, true) || !f.IsOpened()) {
         DisplayError(wxString::Format("Unable to create file %s. Error %d\n", filename, f.GetLastError()).ToStdString());
+        return;
+    }
 
     float minx = 99999;
     float miny = 99999;
@@ -589,44 +614,16 @@ void TreeModel::ExportAsCustomXModel3D() const
         data.push_back(layer);
     }
 
-    uint32_t i = 0;
+    int i = 1;
     for (auto& n : Nodes) {
         int xx = SCALE_FACTOR_3D * w * (n->Coords[0].screenX - minx) / w;
         int yy = (SCALE_FACTOR_3D * h) - (SCALE_FACTOR_3D * h * (n->Coords[0].screenY - miny) / h);
-        int zz = SCALE_FACTOR_3D * d * (n->Coords[0].screenZ - minz) / d;
+        int zz = SCALE_FACTOR_3D * d * (maxz - n->Coords[0].screenZ) / d;
         wxASSERT(xx >= 0 && xx < SCALE_FACTOR_3D * w + 1);
         wxASSERT(yy >= 0 && yy < SCALE_FACTOR_3D * h + 1);
         wxASSERT(zz >= 0 && zz < SCALE_FACTOR_3D * d + 1);
         wxASSERT(data[zz][yy][xx] == -1);
         data[zz][yy][xx] = i++;
-    }
-
-    wxString cm = "";
-    for (auto l : data) {
-        if (cm != "")
-            cm += "|";
-        wxString ll = "";
-
-        for (auto r : l) {
-            if (ll != "")
-                ll += ";";
-            wxString rr = "";
-
-            bool first = true;
-            for (auto c : r) {
-                if (first) {
-                    first = false;
-                } else {
-                    rr += ",";
-                }
-
-                if (c != -1) {
-                    rr += wxString::Format("%d ", c);
-                }
-            }
-            ll += rr;
-        }
-        cm += ll;
     }
 
     wxString p1 = wxString::Format("%i", (int)(SCALE_FACTOR_3D * w + 1));
@@ -665,7 +662,10 @@ void TreeModel::ExportAsCustomXModel3D() const
     if (psp != "")
         f.Write(wxString::Format("PixelSpacing=\"%s\" ", psp));
     f.Write("CustomModel=\"");
-    f.Write(cm);
+    f.Write(CustomModel::ToCustomModel(data));
+    f.Write("\" ");
+    f.Write("CustomModelCompressed=\"");
+    f.Write(CustomModel::ToCompressed(data));
     f.Write("\" ");
     f.Write(wxString::Format("SourceVersion=\"%s\" ", v));
     f.Write(ExportSuperStringColors());

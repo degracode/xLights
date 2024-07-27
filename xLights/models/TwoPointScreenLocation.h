@@ -3,11 +3,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include "ModelScreenLocation.h"
@@ -81,6 +81,10 @@ public:
     void UpdateBoundingBox();
 
     virtual float GetYShear() const {return 0.0;}
+    
+    float GetX2() const {return x2;}
+    float GetY2() const {return y2;}
+    float GetZ2() const {return z2;}
 
     virtual int GetDefaultHandle() const override { return END_HANDLE; }
     virtual MSLTOOL GetDefaultTool() const override { return MSLTOOL::TOOL_TRANSLATE; }

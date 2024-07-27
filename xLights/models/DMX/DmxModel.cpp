@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/propgrid/propgrid.h>
@@ -24,7 +24,6 @@
 #include "DmxColorAbility.h"
 #include "DmxColorAbilityRGB.h"
 #include "DmxColorAbilityCMY.h"
-#include "DmxColorAbilityWheel.h"
 #include "DmxPresetAbility.h"
 #include "../ModelScreenLocation.h"
 #include "../../ModelPreview.h"
@@ -197,6 +196,28 @@ int DmxModel::GetChannelValue(int channel, bool bits16)
     return ret_val;
 }
 
+// support for moving heads or devices where coarse and fine channels are not contiguous
+int DmxModel::GetChannelValue(int channel_coarse, int channel_fine)
+{
+    xlColor color_angle;
+    int lsb = 0;
+    int msb = 0;
+    int ret_val = 0;
+
+    if (Nodes.size() > channel_coarse + 1) {
+        Nodes[channel_coarse]->GetColor(color_angle);
+        msb = color_angle.red;
+    }
+    if( channel_fine >= 0 )
+    if (Nodes.size() > channel_fine + 1) {
+        Nodes[channel_fine]->GetColor(color_angle);
+        lsb = color_angle.red;
+    }
+    ret_val = ((msb << 8) | lsb);
+
+    return ret_val;
+}
+
 void DmxModel::SetNodeNames(const std::string& default_names, bool force)
 {
     wxString nn = ModelXml->GetAttribute("NodeNames", "");
@@ -324,7 +345,7 @@ void DmxModel::ExportBaseParameters(wxFile& f)
     }
 }
 
-void DmxModel::ImportBaseParameters(wxXmlNode* root)
+bool DmxModel::ImportBaseParameters(wxXmlNode* root)
 {
     wxString p1 = root->GetAttribute("parm1");
     wxString p2 = root->GetAttribute("parm2");
@@ -354,9 +375,13 @@ void DmxModel::ImportBaseParameters(wxXmlNode* root)
     SetProperty("NodeNames", nn);
     SetProperty("DisplayAs", da);
 
+    _startSide = ss;
+
     if (nullptr != preset_ability) {
         preset_ability->ImportParameters(root, this);
     }
+
+    return true;
 }
 
 std::vector<std::string> DmxModel::GenerateNodeNames() const
@@ -374,9 +399,26 @@ std::vector<std::string> DmxModel::GenerateNodeNames() const
     return names;
 }
 
-void DmxModel::EnableFixedChannels(xlColorVector& pixelVector)
+void DmxModel::EnableFixedChannels(xlColorVector& pixelVector) const
 {
     if (nullptr != preset_ability) {
          preset_ability->SetPresetValues(pixelVector);
     }
+}
+
+void DmxModel::GetPWMOutputs(std::map<uint32_t, PWMOutput> &channels) const {
+    if (nullptr != color_ability) {
+        color_ability->GetPWMOutputs(channels);
+    }
+}
+std::vector<PWMOutput> DmxModel::GetPWMOutputs() const {
+    std::map<uint32_t, PWMOutput> channels;
+    GetPWMOutputs(channels);
+    std::vector<PWMOutput> ret;
+    uint32_t startChannel = GetFirstChannel();
+    for (auto &a : channels) {
+        ret.emplace_back(a.second);
+        ret.back().startChannel += startChannel - 1;
+    }
+    return ret;
 }

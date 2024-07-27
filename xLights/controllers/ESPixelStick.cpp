@@ -1,11 +1,11 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
- * License: https://github.com/smeighan/xLights/blob/master/License.txt
+ * License: https://github.com/xLightsSequencer/xLights/blob/master/License.txt
  **************************************************************/
 
 #include <wx/msgdlg.h>
@@ -644,6 +644,10 @@ bool ESPixelStick::SetOutputsV3(ModelManager* allmodels, OutputManager* outputMa
 
         _wsClient.Send("G1");
         std::string config = GetWSResponse();
+        if (config.empty()) {
+            DisplayError("Failed to get Data from ESPixelStick");
+            return false;
+        }
         config = config.substr(2);
 
         wxJSONValue origJson;

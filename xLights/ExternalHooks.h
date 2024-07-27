@@ -3,7 +3,7 @@
 /***************************************************************
  * This source files comes from the xLights project
  * https://www.xlights.org
- * https://github.com/smeighan/xLights
+ * https://github.com/xLightsSequencer/xLights
  * See the github commit history for a record of contributing
  * developers.
  * Copyright claimed based on commit dates recorded in Github
@@ -25,6 +25,9 @@
 #endif
 
 #ifndef __XL_EXTERNAL_HOOKS__
+
+#include <string>
+#include <list>
 
 #include <functional>
 #include <wx/file.h>
@@ -65,9 +68,13 @@ inline void GetAllFilesInDir(const wxString& dir, wxArrayString& files, const wx
 {
     wxDir::GetAllFiles(dir, &files, filespec, flags);
 }
-inline void SetButtonBackground(wxButton *b, const wxColour &c, int bgType) {
+inline void SetButtonBackground(wxButton* b, const wxColour& c, int bgType)
+{
     b->SetBackgroundColour(c);
     b->Refresh();
 }
+inline void MarkNewFileRevision(const std::string &path, int retainMax = 15) {}
+inline std::list<std::string> GetFileRevisions(const std::string &path) { return std::list<std::string>(); }
+inline std::string GetURLForRevision(const std::string &path, const std::string &rev) { return path; }
 
 #endif
