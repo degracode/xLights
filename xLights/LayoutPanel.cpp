@@ -195,6 +195,7 @@ const long LayoutPanel::ID_MNU_DELETE_EMPTY_MODEL_GROUPS = wxNewId();
 const long LayoutPanel::ID_MNU_RENAME_MODEL_GROUP = wxNewId();
 const long LayoutPanel::ID_MNU_CLONE_MODEL_GROUP = wxNewId();
 const long LayoutPanel::ID_MNU_BULKEDIT_GROUP_TAGCOLOR = wxNewId();
+const long LayoutPanel::ID_MNU_BULKEDIT_GROUP_PREVIEW = wxNewId();
 const long LayoutPanel::ID_MNU_MAKESCVALID = wxNewId();
 const long LayoutPanel::ID_MNU_MAKEALLSCVALID = wxNewId();
 const long LayoutPanel::ID_MNU_MAKEALLSCNOTOVERLAPPING = wxNewId();
@@ -2113,6 +2114,23 @@ void LayoutPanel::BulkEditControllerPreview()
     }
 }
 
+void LayoutPanel::BulkEditGroupControllerPreview() {
+    wxArrayString choices = Model::GetLayoutGroups(xlights->AllModels);
+    int sel = 0;
+    wxSingleChoiceDialog dlg(this, "Preview", "Preview", choices);
+    dlg.SetSelection(sel);
+    OptimiseDialogPosition(&dlg);
+    if (dlg.ShowModal() == wxID_OK) {
+        for (const auto& item : selectedTreeGroups) {
+            Model* model = GetModelFromTreeItem(item);
+            model->SetLayoutGroup(dlg.GetStringSelection().ToStdString());
+        }
+        xlights->GetOutputModelManager()->ClearSelectedModel();
+        xlights->GetOutputModelManager()->AddImmediateWork(OutputModelManager::WORK_RELOAD_ALLMODELS, "BulkEditGroupControllerPreview");
+        RenderLayout();
+    }
+}
+
 void LayoutPanel::CreateModelGroupFromSelected()
 {
     wxTextEntryDialog dlg(this, "Enter name for new group", "Enter name for new group");
@@ -3655,6 +3673,7 @@ void LayoutPanel::FinalizeModel()
 
             // Models that support visitors don't use the ImportXlightsModel method
             // If there are import issues we need to try to fix them inside the XmlSerializer
+            // XmlSerializer::IsXmlSerializerFormat is not working as I expect here, the XML already has the type parameter removed
             if (!_newModel->SupportsVisitors() || !XmlSerializer::IsXmlSerializerFormat(_newModel->GetModelXml())) {
                 xlights->AddTraceMessage("LayoutPanel::FinalizeModel Do the import. " + _lastXlightsModel);
                 xlights->AddTraceMessage("LayoutPanel::FinalizeModel Model type " + _newModel->GetDisplayAs());
@@ -4417,7 +4436,9 @@ void LayoutPanel::OnPreviewMouseMove(wxMouseEvent& event)
         if (wi > 0 && ht > 0) {
             for (size_t i = 0; i < modelPreview->GetModels().size(); i++) {
                 if (modelPreview->GetModels()[i]->Selected || modelPreview->GetModels()[i]->GroupSelected) {
-                    CreateUndoPoint("SingleModel", m->name, "location");
+                    if(!m->IsLocked()) {
+                        CreateUndoPoint("SingleModel", m->name, "location");
+                    }
                     modelPreview->GetModels()[i]->AddOffset(delta_x, delta_y, 0.0);
                     modelPreview->GetModels()[i]->UpdateXmlWithScale();
                     //SetupPropGrid(modelPreview->GetModels()[i]);
@@ -6329,7 +6350,7 @@ void LayoutPanel::Nudge(int key)
             static int repeats = 0;
             static int lastKey = 0;
 
-            if (wxGetUTCTimeMillis() - lastTime > 500 || key != lastKey)
+            if (wxGetUTCTimeMillis() - lastTime > 500 || key != lastKey || xlights->IsDisableKeyAcceleration())
             {
                 lastDelta = 1.0;
                 repeats = 0;
@@ -7841,8 +7862,9 @@ void LayoutPanel::OnModelsPopup(wxCommandEvent& event) {
         xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RELOAD_MODELLIST, "LayoutPanel::OnModelsPopup::ID_MNU_CLONE_MODEL_GROUP");
     } else if (event.GetId() == ID_MNU_BULKEDIT_GROUP_TAGCOLOR) {
         BulkEditGroupTagColor();
-    }
-    else if (event.GetId() == ID_PREVIEW_FLIP_HORIZONTAL) {
+    } else if (event.GetId() == ID_MNU_BULKEDIT_GROUP_PREVIEW) {
+        BulkEditGroupControllerPreview();
+    } else if (event.GetId() == ID_PREVIEW_FLIP_HORIZONTAL) {
         if (editing_models) {
             PreviewModelFlipH();
         } else {
@@ -8527,6 +8549,7 @@ void LayoutPanel::OnItemContextMenu(wxTreeListEvent& event)
     if (selectedTreeGroups.size() > 1) {
         mnuContext.AppendSeparator();
         mnuContext.Append(ID_MNU_BULKEDIT_GROUP_TAGCOLOR, "Bulk Edit Tag Color");
+        mnuContext.Append(ID_MNU_BULKEDIT_GROUP_PREVIEW, "Bulk Edit Preview");
     }
 
     bool foundInvalid = false;

@@ -209,12 +209,26 @@ void ControllerEthernet::SetIP(const std::string& ip) {
     auto const& iip = ip_utils::CleanupIP(ip);
     if (_ip != iip) {
         _ip = iip;
-        if (IsActive()) _resolvedIp = ip_utils::ResolveIP(_ip);
+        if (IsActive()) {
+            std::unique_lock<std::shared_mutex> lock(_resolveMutex);
+            _resolvedIp = _ip;
+            lock.unlock();
+            ip_utils::ResolveIP(_ip, [this](const std::string &r) {
+                std::unique_lock<std::shared_mutex> lock(_resolveMutex);
+                _resolvedIp = r;
+                lock.unlock();
+                std::shared_lock<std::shared_mutex> lock2(_resolveMutex);
+                for (auto& it : GetOutputs()) {
+                    it->SetResolvedIP(_resolvedIp);
+                }
+            });
+        }
         _dirty = true;
         if (_outputManager != nullptr) _outputManager->UpdateUnmanaged();
 
+        std::shared_lock<std::shared_mutex> lock(_resolveMutex);
         for (auto& it : GetOutputs()) {
-            it->SetIP(_ip, IsActive());
+            it->SetIP(_ip, IsActive(), false); // don't resolve as we'll set it above in the callback
             it->SetResolvedIP(_resolvedIp);
         }
     }
@@ -223,16 +237,19 @@ void ControllerEthernet::SetIP(const std::string& ip) {
 // because we dont resolve IPs on creation for inactive controllers then if the controller is set active we need to resolve it then
 void ControllerEthernet::PostSetActive()
 {
-    if (IsActive() && _ip != "" && _resolvedIp == "")
-    {
+    std::unique_lock<std::shared_mutex> lock(_resolveMutex);
+    if (IsActive() && !_ip.empty() && _resolvedIp.empty()) {
         _resolvedIp = ip_utils::ResolveIP(_ip);
+        lock.unlock();
+        std::shared_lock<std::shared_mutex> lock(_resolveMutex);
         for (auto& it : GetOutputs()) {
             it->SetResolvedIP(_resolvedIp);
         }
     }
 }
 std::string ControllerEthernet::GetResolvedIP(bool forceResolve) const {
-    if (_resolvedIp == "" && _ip != "") {
+    std::shared_lock<std::shared_mutex> lock(_resolveMutex);
+    if (_resolvedIp.empty() && !_ip.empty() && forceResolve) {
         return ip_utils::ResolveIP(_ip);
     }
     return _resolvedIp;
@@ -273,6 +290,11 @@ void ControllerEthernet::SetProtocol(const std::string& protocol) {
                 ddpo->SetId(_outputManager->UniqueId());
             }
             SetId(ddpo->GetId());
+            
+            auto c = ControllerCaps::GetControllerConfig(_vendor, _model, _variant);
+            if( c && c->DDPStartsAtOne() )
+                ddpo->SetKeepChannelNumber(false);
+            
         } else if (_type == OUTPUT_TWINKLY) {
             auto to = new TwinklyOutput();
             _outputs.push_back(to);
@@ -715,6 +737,10 @@ Output::PINGSTATE ControllerEthernet::Ping() {
 }
 
 void ControllerEthernet::AsyncPing() {
+    if (!IsActive()) {
+        // don't ping in-active controllers
+        return;
+    }
 
     // if one is already running dont start another
     if (_asyncPing.valid() && _asyncPing.wait_for(std::chrono::microseconds(1)) == std::future_status::timeout) return;

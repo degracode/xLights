@@ -115,6 +115,7 @@
 #include "utils/ip_utils.h"
 #include "TempFileManager.h"
 #include "xlColourData.h"
+#include "utils/Curl.h"
 
 #include "../xSchedule/wxHTTPServer/wxhttpserver.h"
 
@@ -142,201 +143,202 @@
 #define MAXBACKUPFILE_MB 30
 
 //(*IdInit(xLightsFrame)
-const long xLightsFrame::ID_AUITOOLBAR_OPENSHOW = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_NEWSEQUENCE = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_OPEN = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_SAVE = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_SAVEAS = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_RENDERALL = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_MAIN = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_PLAY_NOW = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_PAUSE = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_STOP = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_FIRST_FRAME = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_LAST_FRAME = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_REPLAY_SECTION = wxNewId();
-const long xLightsFrame::ID_CHECKBOX_LIGHT_OUTPUT = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_PLAY = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM2 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM5 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM7 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM3 = wxNewId();
-const long xLightsFrame::ID_TOGGLE_MODEL_PREVIEW = wxNewId();
-const long xLightsFrame::ID_TOGGLE_HOUSE_PREVIEW = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM6 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM8 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM9 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM10 = wxNewId();
-const long xLightsFrame::ID_AUIWINDOWTOOLBAR = wxNewId();
-const long xLightsFrame::ID_PASTE_BY_TIME = wxNewId();
-const long xLightsFrame::ID_PASTE_BY_CELL = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_EDIT = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACDISABLED = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACSELECT = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACOFF = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACON = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACSHIMMER = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACTWINKLE = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACINTENSITY = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACRAMPUP = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACRAMPDOWN = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACRAMPUPDOWN = wxNewId();
-const long xLightsFrame::ID_CHOICE_PARM1 = wxNewId();
-const long xLightsFrame::ID_CHOICE_PARM2 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACFILL = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACCASCADE = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACFOREGROUND = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM_ACBACKGROUND = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_AC = wxNewId();
-const long xLightsFrame::ID_AUITOOLBARITEM14 = wxNewId();
-const long xLightsFrame::ID_AUITOOLBAR_VIEW = wxNewId();
-const long xLightsFrame::ID_AUIEFFECTSTOOLBAR = wxNewId();
-const long xLightsFrame::ID_BUTTON3 = wxNewId();
-const long xLightsFrame::ID_BUTTON11 = wxNewId();
-const long xLightsFrame::ID_BUTTON13 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT4 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT2 = wxNewId();
-const long xLightsFrame::ID_BUTTON14 = wxNewId();
-const long xLightsFrame::ID_BUTTON17 = wxNewId();
-const long xLightsFrame::ID_BUTTON15 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT3 = wxNewId();
-const long xLightsFrame::ID_CHECKBOX1 = wxNewId();
-const long xLightsFrame::ID_BUTTON16 = wxNewId();
-const long xLightsFrame::ID_BUTTON_SAVE_SETUP = wxNewId();
-const long xLightsFrame::ID_BUTTON9 = wxNewId();
-const long xLightsFrame::ID_BUTTON6 = wxNewId();
-const long xLightsFrame::ID_BUTTON10 = wxNewId();
-const long xLightsFrame::ID_BUTTON5 = wxNewId();
-const long xLightsFrame::ID_BITMAPBUTTON1 = wxNewId();
-const long xLightsFrame::ID_BITMAPBUTTON2 = wxNewId();
-const long xLightsFrame::ID_PANEL2 = wxNewId();
-const long xLightsFrame::ID_BUTTON1 = wxNewId();
-const long xLightsFrame::ID_BUTTON2 = wxNewId();
-const long xLightsFrame::ID_BUTTON7 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT1 = wxNewId();
-const long xLightsFrame::ID_BUTTON8 = wxNewId();
-const long xLightsFrame::ID_BUTTON4 = wxNewId();
-const long xLightsFrame::ID_BUTTON12 = wxNewId();
-const long xLightsFrame::ID_PANEL3 = wxNewId();
-const long xLightsFrame::ID_PANEL_SETUP = wxNewId();
-const long xLightsFrame::ID_PANEL_PREVIEW = wxNewId();
-const long xLightsFrame::XLIGHTS_SEQUENCER_TAB = wxNewId();
-const long xLightsFrame::ID_NOTEBOOK1 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT6 = wxNewId();
-const long xLightsFrame::ID_GAUGE1 = wxNewId();
-const long xLightsFrame::ID_PANEL5 = wxNewId();
-const long xLightsFrame::ID_STATICTEXT7 = wxNewId();
-const long xLightsFrame::ID_PANEL1 = wxNewId();
-const long xLightsFrame::ID_NEW_SEQUENCE = wxNewId();
-const long xLightsFrame::ID_OPEN_SEQUENCE = wxNewId();
-const long xLightsFrame::ID_MENUITEM4 = wxNewId();
-const long xLightsFrame::ID_MENUITEM_OPENRECENTSEQUENCE = wxNewId();
-const long xLightsFrame::IS_SAVE_SEQ = wxNewId();
-const long xLightsFrame::ID_SAVE_AS_SEQUENCE = wxNewId();
-const long xLightsFrame::ID_CLOSE_SEQ = wxNewId();
-const long xLightsFrame::ID_SEQ_SETTINGS = wxNewId();
-const long xLightsFrame::ID_MNU_KEYBINDINGS = wxNewId();
-const long xLightsFrame::ID_EXPORT_VIDEO = wxNewId();
-const long xLightsFrame::ID_MENUITEM2 = wxNewId();
-const long xLightsFrame::ID_MENUITEM8 = wxNewId();
-const long xLightsFrame::ID_MENUITEM_RECENTFOLDERS = wxNewId();
-const long xLightsFrame::ID_FILE_BACKUP = wxNewId();
-const long xLightsFrame::ID_FILE_RESTOREBACKUP = wxNewId();
-const long xLightsFrame::ID_FILE_ALTBACKUP = wxNewId();
-const long xLightsFrame::ID_SHIFT_EFFECTS = wxNewId();
-const long xLightsFrame::ID_MNU_SHIFT_SELECTED_EFFECTS = wxNewId();
-const long xLightsFrame::ID_MNU_COLOURREPLACE = wxNewId();
-const long xLightsFrame::ID_MENUITEM13 = wxNewId();
-const long xLightsFrame::ID_MNU_CHECKSEQ = wxNewId();
-const long xLightsFrame::ID_MNU_CLEANUPFILE = wxNewId();
-const long xLightsFrame::ID_MNU_PACKAGESEQUENCE = wxNewId();
-const long xLightsFrame::ID_MNU_DOWNLOADSEQUENCES = wxNewId();
-const long xLightsFrame::ID_MENU_BATCH_RENDER = wxNewId();
-const long xLightsFrame::ID_MENU_FPP_CONNECT = wxNewId();
-const long xLightsFrame::ID_MNU_BULKUPLOAD = wxNewId();
-const long xLightsFrame::ID_MENU_HINKSPIX_EXPORT = wxNewId();
-const long xLightsFrame::ID_MENU_RUN_SCRIPT = wxNewId();
-const long xLightsFrame::ID_EXPORT_MODELS = wxNewId();
-const long xLightsFrame::ID_MNU_EXPORT_EFFECTS = wxNewId();
-const long xLightsFrame::ID_MNU_EXPORT_CONTROLLER_CONNECTIONS = wxNewId();
-const long xLightsFrame::ID_MENU_VIEW_LOG = wxNewId();
-const long xLightsFrame::ID_MENUITEM18 = wxNewId();
-const long xLightsFrame::iD_MNU_VENDORCACHEPURGE = wxNewId();
-const long xLightsFrame::ID_MNU_PURGERENDERCACHE = wxNewId();
-const long xLightsFrame::ID_MNU_CRASH = wxNewId();
-const long xLightsFrame::ID_MNU_DUMPRENDERSTATE = wxNewId();
-const long xLightsFrame::ID_MENU_GENERATE2DPATH = wxNewId();
-const long xLightsFrame::ID_MENUITEM_GenerateCustomModel = wxNewId();
-const long xLightsFrame::ID_MNU_REMAPCUSTOM = wxNewId();
-const long xLightsFrame::ID_MNU_GENERATELYRICS = wxNewId();
-const long xLightsFrame::ID_MENUITEM_CONVERT = wxNewId();
-const long xLightsFrame::ID_MNU_PREPAREAUDIO = wxNewId();
-const long xLightsFrame::ID_MENU_USER_DICT = wxNewId();
-const long xLightsFrame::ID_MNU_XSCHEDULE = wxNewId();
-const long xLightsFrame::ID_MENU_XCAPTURE = wxNewId();
-const long xLightsFrame::ID_MNU_XSCANNER = wxNewId();
-const long xLightsFrame::ID_MENUITEM5 = wxNewId();
-const long xLightsFrame::MNU_ID_ACLIGHTS = wxNewId();
-const long xLightsFrame::ID_MNU_SHOWRAMPS = wxNewId();
-const long xLightsFrame::ID_MENUITEM_SAVE_PERSPECTIVE = wxNewId();
-const long xLightsFrame::ID_MENUITEM_SAVE_AS_PERSPECTIVE = wxNewId();
-const long xLightsFrame::ID_MENUITEM_LOAD_PERSPECTIVE = wxNewId();
-const long xLightsFrame::ID_MNU_PERSPECTIVES_AUTOSAVE = wxNewId();
-const long xLightsFrame::ID_MENUITEM7 = wxNewId();
-const long xLightsFrame::ID_MENUITEM_DISPLAY_ELEMENTS = wxNewId();
-const long xLightsFrame::ID_MENU_TOGGLE_MODEL_PREVIEW = wxNewId();
-const long xLightsFrame::ID_MENU_TOGGLE_HOUSE_PREVIEW = wxNewId();
-const long xLightsFrame::ID_MENUITEM14 = wxNewId();
-const long xLightsFrame::ID_MENUITEM15 = wxNewId();
-const long xLightsFrame::ID_MENUITEM16 = wxNewId();
-const long xLightsFrame::ID_MENUITEM9 = wxNewId();
-const long xLightsFrame::ID_MENUITEM17 = wxNewId();
-const long xLightsFrame::ID_MNU_VALUECURVES = wxNewId();
-const long xLightsFrame::ID_MNU_COLOURDROPPER = wxNewId();
-const long xLightsFrame::ID_MENUITEM_EFFECT_ASSIST_WINDOW = wxNewId();
-const long xLightsFrame::ID_MENUITEM_SELECT_EFFECT = wxNewId();
-const long xLightsFrame::ID_MENUITEM_SEARCH_EFFECTS = wxNewId();
-const long xLightsFrame::ID_MENUITEM_VIDEOPREVIEW = wxNewId();
-const long xLightsFrame::ID_MNU_JUKEBOX = wxNewId();
-const long xLightsFrame::ID_MNU_FINDDATA = wxNewId();
-const long xLightsFrame::ID_MNU_SUPPRESSDOCK_HP = wxNewId();
-const long xLightsFrame::ID_MNU_SUPPRESSDOCK_MP = wxNewId();
-const long xLightsFrame::ID_MENUITEM3 = wxNewId();
-const long xLightsFrame::ID_MENUITEM_WINDOWS_PERSPECTIVE = wxNewId();
-const long xLightsFrame::ID_MENUITEM_WINDOWS_DOCKALL = wxNewId();
-const long xLightsFrame::ID_MENUITEM11 = wxNewId();
-const long xLightsFrame::ID_MENUITEM10 = wxNewId();
-const long xLightsFrame::ID_PLAY_FULL = wxNewId();
-const long xLightsFrame::ID_MNU_1POINT5SPEED = wxNewId();
-const long xLightsFrame::ID_MN_2SPEED = wxNewId();
-const long xLightsFrame::ID_MNU_3SPEED = wxNewId();
-const long xLightsFrame::ID_MNU_4SPEED = wxNewId();
-const long xLightsFrame::ID_PLAY_3_4 = wxNewId();
-const long xLightsFrame::ID_PLAY_1_2 = wxNewId();
-const long xLightsFrame::ID_PLAY_1_4 = wxNewId();
-const long xLightsFrame::ID_MNU_LOUDVOLUME = wxNewId();
-const long xLightsFrame::ID_MNU_MEDVOLUME = wxNewId();
-const long xLightsFrame::ID_MNU_QUIET = wxNewId();
-const long xLightsFrame::ID_MNU_SUPERQUIET = wxNewId();
-const long xLightsFrame::ID_MNU_SILENT = wxNewId();
-const long xLightsFrame::ID_IMPORT_EFFECTS = wxNewId();
-const long xLightsFrame::ID_MNU_TOD = wxNewId();
-const long xLightsFrame::ID_MNU_MANUAL = wxNewId();
-const long xLightsFrame::ID_MNU_ZOOM = wxNewId();
-const long xLightsFrame::ID_MENUITEM1 = wxNewId();
-const long xLightsFrame::idMenuHelpContent = wxNewId();
-const long xLightsFrame::ID_MENU_HELP_FORMUM = wxNewId();
-const long xLightsFrame::ID_MNU_VIDEOS = wxNewId();
-const long xLightsFrame::ID_MENU_HELP_DOWNLOAD = wxNewId();
-const long xLightsFrame::ID_MNU_HELP_RELEASE_NOTES = wxNewId();
-const long xLightsFrame::ID_MENU_HELP_ISSUE = wxNewId();
-const long xLightsFrame::ID_MENU_HELP_FACEBOOK = wxNewId();
-const long xLightsFrame::ID_MNU_DONATE = wxNewId();
-const long xLightsFrame::ID_MNU_UPDATE = wxNewId();
-const long xLightsFrame::ID_TIMER_OutputTimer = wxNewId();
-const long xLightsFrame::ID_TIMER_AutoSave = wxNewId();
-const long xLightsFrame::ID_TIMER_EFFECT_SETTINGS = wxNewId();
-const long xLightsFrame::ID_TIMER_RENDERSTATUS = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_OPENSHOW = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_NEWSEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_OPEN = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_SAVE = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_SAVEAS = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_RENDERALL = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_MAIN = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_PLAY_NOW = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_PAUSE = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_STOP = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_FIRST_FRAME = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_LAST_FRAME = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_REPLAY_SECTION = wxNewId();
+const wxWindowID xLightsFrame::ID_CHECKBOX_LIGHT_OUTPUT = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_PLAY = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM2 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM5 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM7 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM3 = wxNewId();
+const wxWindowID xLightsFrame::ID_TOGGLE_MODEL_PREVIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_TOGGLE_HOUSE_PREVIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM6 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM8 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM9 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM10 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUIWINDOWTOOLBAR = wxNewId();
+const wxWindowID xLightsFrame::ID_PASTE_BY_TIME = wxNewId();
+const wxWindowID xLightsFrame::ID_PASTE_BY_CELL = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_EDIT = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACDISABLED = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACSELECT = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACOFF = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACON = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACSHIMMER = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACTWINKLE = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACINTENSITY = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACRAMPUP = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACRAMPDOWN = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACRAMPUPDOWN = wxNewId();
+const wxWindowID xLightsFrame::ID_CHOICE_PARM1 = wxNewId();
+const wxWindowID xLightsFrame::ID_CHOICE_PARM2 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACFILL = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACCASCADE = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACFOREGROUND = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM_ACBACKGROUND = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_AC = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBARITEM14 = wxNewId();
+const wxWindowID xLightsFrame::ID_AUITOOLBAR_VIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_AUIEFFECTSTOOLBAR = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON3 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON11 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON13 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT4 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT2 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON14 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON17 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON15 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT3 = wxNewId();
+const wxWindowID xLightsFrame::ID_CHECKBOX1 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON16 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON_SAVE_SETUP = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON9 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON6 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON10 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON5 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON18 = wxNewId();
+const wxWindowID xLightsFrame::ID_BITMAPBUTTON1 = wxNewId();
+const wxWindowID xLightsFrame::ID_BITMAPBUTTON2 = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL2 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON1 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON2 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON7 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT1 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON8 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON4 = wxNewId();
+const wxWindowID xLightsFrame::ID_BUTTON12 = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL3 = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL_SETUP = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL_PREVIEW = wxNewId();
+const wxWindowID xLightsFrame::XLIGHTS_SEQUENCER_TAB = wxNewId();
+const wxWindowID xLightsFrame::ID_NOTEBOOK1 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT6 = wxNewId();
+const wxWindowID xLightsFrame::ID_GAUGE1 = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL5 = wxNewId();
+const wxWindowID xLightsFrame::ID_STATICTEXT7 = wxNewId();
+const wxWindowID xLightsFrame::ID_PANEL1 = wxNewId();
+const wxWindowID xLightsFrame::ID_NEW_SEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::ID_OPEN_SEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM4 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_OPENRECENTSEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::IS_SAVE_SEQ = wxNewId();
+const wxWindowID xLightsFrame::ID_SAVE_AS_SEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::ID_CLOSE_SEQ = wxNewId();
+const wxWindowID xLightsFrame::ID_SEQ_SETTINGS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_KEYBINDINGS = wxNewId();
+const wxWindowID xLightsFrame::ID_EXPORT_VIDEO = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM2 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM8 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_RECENTFOLDERS = wxNewId();
+const wxWindowID xLightsFrame::ID_FILE_BACKUP = wxNewId();
+const wxWindowID xLightsFrame::ID_FILE_RESTOREBACKUP = wxNewId();
+const wxWindowID xLightsFrame::ID_FILE_ALTBACKUP = wxNewId();
+const wxWindowID xLightsFrame::ID_SHIFT_EFFECTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SHIFT_SELECTED_EFFECTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_COLOURREPLACE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM13 = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_CHECKSEQ = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_CLEANUPFILE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_PACKAGESEQUENCE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_DOWNLOADSEQUENCES = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_BATCH_RENDER = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_FPP_CONNECT = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_BULKUPLOAD = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_HINKSPIX_EXPORT = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_RUN_SCRIPT = wxNewId();
+const wxWindowID xLightsFrame::ID_EXPORT_MODELS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_EXPORT_EFFECTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_EXPORT_CONTROLLER_CONNECTIONS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_VIEW_LOG = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM18 = wxNewId();
+const wxWindowID xLightsFrame::iD_MNU_VENDORCACHEPURGE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_PURGERENDERCACHE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_CRASH = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_DUMPRENDERSTATE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_GENERATE2DPATH = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_GenerateCustomModel = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_REMAPCUSTOM = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_GENERATELYRICS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_CONVERT = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_PREPAREAUDIO = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_USER_DICT = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_XSCHEDULE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_XCAPTURE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_XSCANNER = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM5 = wxNewId();
+const wxWindowID xLightsFrame::MNU_ID_ACLIGHTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SHOWRAMPS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_SAVE_PERSPECTIVE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_SAVE_AS_PERSPECTIVE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_LOAD_PERSPECTIVE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_PERSPECTIVES_AUTOSAVE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM7 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_DISPLAY_ELEMENTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_TOGGLE_MODEL_PREVIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_TOGGLE_HOUSE_PREVIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM14 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM15 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM16 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM9 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM17 = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_VALUECURVES = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_COLOURDROPPER = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_EFFECT_ASSIST_WINDOW = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_SELECT_EFFECT = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_SEARCH_EFFECTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_VIDEOPREVIEW = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_JUKEBOX = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_FINDDATA = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SUPPRESSDOCK_HP = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SUPPRESSDOCK_MP = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM3 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_WINDOWS_PERSPECTIVE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM_WINDOWS_DOCKALL = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM11 = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM10 = wxNewId();
+const wxWindowID xLightsFrame::ID_PLAY_FULL = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_1POINT5SPEED = wxNewId();
+const wxWindowID xLightsFrame::ID_MN_2SPEED = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_3SPEED = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_4SPEED = wxNewId();
+const wxWindowID xLightsFrame::ID_PLAY_3_4 = wxNewId();
+const wxWindowID xLightsFrame::ID_PLAY_1_2 = wxNewId();
+const wxWindowID xLightsFrame::ID_PLAY_1_4 = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_LOUDVOLUME = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_MEDVOLUME = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_QUIET = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SUPERQUIET = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_SILENT = wxNewId();
+const wxWindowID xLightsFrame::ID_IMPORT_EFFECTS = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_TOD = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_MANUAL = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_ZOOM = wxNewId();
+const wxWindowID xLightsFrame::ID_MENUITEM1 = wxNewId();
+const wxWindowID xLightsFrame::idMenuHelpContent = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_HELP_FORMUM = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_VIDEOS = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_HELP_DOWNLOAD = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_HELP_RELEASE_NOTES = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_HELP_ISSUE = wxNewId();
+const wxWindowID xLightsFrame::ID_MENU_HELP_FACEBOOK = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_DONATE = wxNewId();
+const wxWindowID xLightsFrame::ID_MNU_UPDATE = wxNewId();
+const wxWindowID xLightsFrame::ID_TIMER_OutputTimer = wxNewId();
+const wxWindowID xLightsFrame::ID_TIMER_AutoSave = wxNewId();
+const wxWindowID xLightsFrame::ID_TIMER_EFFECT_SETTINGS = wxNewId();
+const wxWindowID xLightsFrame::ID_TIMER_RENDERSTATUS = wxNewId();
 //*)
 
 // For new sequencer
@@ -398,6 +400,8 @@ wxDEFINE_EVENT(EVT_SEQUENCE_FIRST_FRAME, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEQUENCE_LAST_FRAME, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEQUENCE_REWIND10, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEQUENCE_FFORWARD10, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SEQUENCE_PRIOR_TAG, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SEQUENCE_NEXT_TAG, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEQUENCE_SEEKTO, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEQUENCE_REPLAY_SECTION, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SHOW_DISPLAY_ELEMENTS, wxCommandEvent);
@@ -454,6 +458,8 @@ EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_FIRST_FRAME, xLightsFrame::SequenceFirstFrame
 EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_LAST_FRAME, xLightsFrame::SequenceLastFrame)
 EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_REWIND10, xLightsFrame::SequenceRewind10)
 EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_FFORWARD10, xLightsFrame::SequenceFForward10)
+EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_PRIOR_TAG, xLightsFrame::SequencePriorTag)
+EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_NEXT_TAG, xLightsFrame::SequenceNextTag)
 EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_SEEKTO, xLightsFrame::SequenceSeekTo)
 EVT_COMMAND(wxID_ANY, EVT_SEQUENCE_REPLAY_SECTION, xLightsFrame::SequenceReplaySection)
 EVT_COMMAND(wxID_ANY, EVT_TOGGLE_PLAY, xLightsFrame::TogglePlay)
@@ -612,7 +618,6 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     splash.Update();
     wxYield();
 
-    _fps = -1;
     mCurrentPerpective = nullptr;
     MenuItemPreviews = nullptr;
     _renderMode = renderOnlyMode;
@@ -777,6 +782,7 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     Button_ChangeBaseShowDir = new wxButton(PanelSetup, ID_BUTTON14, _("Change"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON14"));
     FlexGridSizer2->Add(Button_ChangeBaseShowDir, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     Button_OpenBaseShowDir = new wxButton(PanelSetup, ID_BUTTON17, _("Open"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON17"));
+    Button_OpenBaseShowDir->SetToolTip(_("Open the base show folder"));
     FlexGridSizer2->Add(Button_OpenBaseShowDir, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     GridBagSizer1->Add(FlexGridSizer2, wxGBPosition(1, 1), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     Button_ClearBaseShowDir = new wxButton(PanelSetup, ID_BUTTON15, _("Clear"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON15"));
@@ -800,14 +806,18 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     BoxSizer1 = new wxBoxSizer(wxVERTICAL);
     ButtonSaveSetup = new wxButton(PanelSetup, ID_BUTTON_SAVE_SETUP, _("Save"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_SAVE_SETUP"));
     BoxSizer1->Add(ButtonSaveSetup, 1, wxALL|wxEXPAND, 3);
+    BoxSizer1->Add(-1,-1,1, wxALL|wxEXPAND, 5);
     ButtonAddControllerSerial = new wxButton(PanelSetup, ID_BUTTON9, _("Add USB"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON9"));
     BoxSizer1->Add(ButtonAddControllerSerial, 1, wxALL|wxEXPAND, 3);
     ButtonAddControllerEthernet = new wxButton(PanelSetup, ID_BUTTON6, _("Add Ethernet"), wxDefaultPosition, wxSize(98,28), 0, wxDefaultValidator, _T("ID_BUTTON6"));
     BoxSizer1->Add(ButtonAddControllerEthernet, 1, wxALL|wxEXPAND, 3);
     ButtonAddControllerNull = new wxButton(PanelSetup, ID_BUTTON10, _("Add Null"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON10"));
     BoxSizer1->Add(ButtonAddControllerNull, 1, wxALL|wxEXPAND, 3);
+    BoxSizer1->Add(-1,-1,1, wxALL|wxEXPAND, 5);
     ButtonDiscover = new wxButton(PanelSetup, ID_BUTTON5, _("Discover"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON5"));
     BoxSizer1->Add(ButtonDiscover, 1, wxALL|wxEXPAND, 3);
+    ButtonFPPConnect = new wxButton(PanelSetup, ID_BUTTON18, _("FPP Connect"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON18"));
+    BoxSizer1->Add(ButtonFPPConnect, 1, wxALL|wxEXPAND, 3);
     FlexGridSizerNetworks->Add(BoxSizer1, 1, wxALIGN_TOP|wxALIGN_CENTER_HORIZONTAL, 0);
     FlexGridSizer9 = new wxFlexGridSizer(0, 1, 0, 0);
     BitmapButtonMoveNetworkUp = new wxBitmapButton(PanelSetup, ID_BITMAPBUTTON1, GetButtonBitmapBundle("wxART_GO_UP"), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW, wxDefaultValidator, _T("ID_BITMAPBUTTON1"));
@@ -822,8 +832,6 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     FlexGridSizerSetupControllers->AddGrowableCol(0);
     FlexGridSizerSetupControllers->AddGrowableRow(0);
     Panel2->SetSizer(FlexGridSizerSetupControllers);
-    FlexGridSizerSetupControllers->Fit(Panel2);
-    FlexGridSizerSetupControllers->SetSizeHints(Panel2);
     FlexGridSizerNetworks->Add(Panel2, 1, wxALL|wxEXPAND, 2);
     Panel5 = new wxPanel(PanelSetup, ID_PANEL3, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL|wxALWAYS_SHOW_SB|wxFULL_REPAINT_ON_RESIZE, _T("ID_PANEL3"));
     Panel5->SetMinSize(wxSize(200,-1));
@@ -852,21 +860,15 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     FlexGridSizerSetupControllerButtons->Add(Button_OpenProxy, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     FlexGridSizerSetupRight->Add(FlexGridSizerSetupControllerButtons, 1, wxALL|wxALIGN_CENTER_HORIZONTAL, 5);
     Panel5->SetSizer(FlexGridSizerSetupRight);
-    FlexGridSizerSetupRight->Fit(Panel5);
-    FlexGridSizerSetupRight->SetSizeHints(Panel5);
     FlexGridSizerNetworks->Add(Panel5, 1, wxALL|wxEXPAND, 2);
     StaticBoxSizer2->Add(FlexGridSizerNetworks, 1, wxALL|wxEXPAND, 5);
     FlexGridSizerSetup->Add(StaticBoxSizer2, 1, wxALL|wxEXPAND, 5);
     PanelSetup->SetSizer(FlexGridSizerSetup);
-    FlexGridSizerSetup->Fit(PanelSetup);
-    FlexGridSizerSetup->SetSizeHints(PanelSetup);
     PanelPreview = new wxPanel(Notebook1, ID_PANEL_PREVIEW, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL_PREVIEW"));
     FlexGridSizerPreview = new wxFlexGridSizer(1, 1, 0, 0);
     FlexGridSizerPreview->AddGrowableCol(0);
     FlexGridSizerPreview->AddGrowableRow(0);
     PanelPreview->SetSizer(FlexGridSizerPreview);
-    FlexGridSizerPreview->Fit(PanelPreview);
-    FlexGridSizerPreview->SetSizeHints(PanelPreview);
     PanelSequencer = new wxPanel(Notebook1, XLIGHTS_SEQUENCER_TAB, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL|wxWANTS_CHARS, _T("XLIGHTS_SEQUENCER_TAB"));
     m_mgr = new wxAuiManager(PanelSequencer, wxAUI_MGR_ALLOW_FLOATING|wxAUI_MGR_DEFAULT);
     Notebook1->AddPage(PanelSetup, _("Controllers"), true);
@@ -884,15 +886,11 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     ProgressBar = new wxGauge(Panel1, ID_GAUGE1, 100, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(100,-1)), 0, wxDefaultValidator, _T("ID_GAUGE1"));
     GaugeSizer->Add(ProgressBar, 0, wxEXPAND, 0);
     Panel1->SetSizer(GaugeSizer);
-    GaugeSizer->Fit(Panel1);
-    GaugeSizer->SetSizeHints(Panel1);
     StatusBarSizer->Add(Panel1, wxGBPosition(0, 1), wxDefaultSpan, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 0);
     FileNameText = new wxStaticText(AUIStatusBar, ID_STATICTEXT7, _("Label"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT7"));
     StatusBarSizer->Add(FileNameText, wxGBPosition(0, 2), wxDefaultSpan, wxALL|wxEXPAND, 2);
     StatusBarSizer->AddGrowableRow(0);
     AUIStatusBar->SetSizer(StatusBarSizer);
-    StatusBarSizer->Fit(AUIStatusBar);
-    StatusBarSizer->SetSizeHints(AUIStatusBar);
     MainAuiManager->AddPane(AUIStatusBar, wxAuiPaneInfo().Name(_T("Status Bar")).DefaultPane().Caption(_("Status bar")).CaptionVisible(false).CloseButton(false).Bottom().DockFixed().Dockable(false).Floatable(false).FloatingPosition(wxPoint(0,0)).FloatingSize(wxSize(0,0)).Movable(false).PaneBorder(false));
     MainAuiManager->Update();
     MenuBar = new wxMenuBar();
@@ -1178,187 +1176,188 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     RenderStatusTimer.SetOwner(this, ID_TIMER_RENDERSTATUS);
     RenderStatusTimer.Start(100, false);
 
-    Connect(ID_AUITOOLBAR_OPENSHOW,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
-    Connect(ID_AUITOOLBAR_NEWSEQUENCE,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonNewSequenceClick);
-    Connect(ID_AUITOOLBAR_OPEN,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnBitmapButtonOpenSeqClick);
-    Connect(ID_AUITOOLBAR_SAVE,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnBitmapButtonSaveSeqClick);
-    Connect(ID_AUITOOLBAR_SAVEAS,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonClickSaveAs);
-    Connect(ID_AUITOOLBAR_RENDERALL,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemRenderAllClick);
-    Connect(ID_AUITOOLBAR_PLAY_NOW,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPlayButtonClick);
-    Connect(ID_AUITOOLBAR_PAUSE,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPauseButtonClick);
-    Connect(ID_AUITOOLBAR_STOP,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemStopClick);
-    Connect(ID_AUITOOLBAR_FIRST_FRAME,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarFirstFrameClick);
-    Connect(ID_AUITOOLBAR_LAST_FRAME,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarLastFrameClick);
-    Connect(ID_AUITOOLBAR_REPLAY_SECTION,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemReplaySectionClick);
-    Connect(ID_CHECKBOX_LIGHT_OUTPUT,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnCheckBoxLightOutputClick);
-    Connect(ID_AUITOOLBARITEM2,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideEffectSettingsWindow);
-    Connect(ID_AUITOOLBARITEM5,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideColorWindow);
-    Connect(ID_AUITOOLBARITEM7,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideBufferSettingsWindow);
-    Connect(ID_AUITOOLBARITEM3,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideLayerTimingWindow);
-    Connect(ID_TOGGLE_MODEL_PREVIEW,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideModelPreview);
-    Connect(ID_TOGGLE_HOUSE_PREVIEW,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideHousePreview);
-    Connect(ID_AUITOOLBARITEM6,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideDisplayElementsWindow);
-    Connect(ID_AUITOOLBARITEM8,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemShowHideEffects);
-    Connect(ID_AUITOOLBARITEM9,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideEffectAssistWindow);
-    Connect(ID_AUITOOLBARITEM10,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::ShowHideSelectEffectsWindow);
-    Connect(ID_PASTE_BY_TIME,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPasteByTimeClick);
-    Connect(ID_PASTE_BY_CELL,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPasteByCellClick);
-    Connect(ID_AUITOOLBARITEM_ACDISABLED,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_DisableClick);
-    Connect(ID_AUITOOLBARITEM_ACSELECT,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_SelectClick);
-    Connect(ID_AUITOOLBARITEM_ACOFF,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_OffClick);
-    Connect(ID_AUITOOLBARITEM_ACON,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_OnClick);
-    Connect(ID_AUITOOLBARITEM_ACSHIMMER,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_ShimmerClick);
-    Connect(ID_AUITOOLBARITEM_ACTWINKLE,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_TwinkleClick);
-    Connect(ID_AUITOOLBARITEM_ACINTENSITY,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_IntensityClick);
-    Connect(ID_AUITOOLBARITEM_ACRAMPUP,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_RampUpClick);
-    Connect(ID_AUITOOLBARITEM_ACRAMPDOWN,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_RampDownClick);
-    Connect(ID_AUITOOLBARITEM_ACRAMPUPDOWN,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_RampUpDownClick);
-    Connect(ID_CHOICE_PARM1,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnChoiceParm1Select);
-    Connect(ID_CHOICE_PARM2,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnChoiceParm2Select);
-    Connect(ID_AUITOOLBARITEM_ACFILL,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_FillClick);
-    Connect(ID_AUITOOLBARITEM_ACCASCADE,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_CascadeClick);
-    Connect(ID_AUITOOLBARITEM_ACFOREGROUND,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_ForegroundClick);
-    Connect(ID_AUITOOLBARITEM_ACBACKGROUND,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAC_BackgroundClick);
-    Connect(ID_AUITOOLBAR_AC,wxEVT_COMMAND_AUITOOLBAR_TOOL_DROPDOWN,(wxObjectEventFunction)&xLightsFrame::OnACToolbarDropdown);
-    Connect(wxID_ZOOM_IN,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemZoominClick);
-    Connect(wxID_ZOOM_OUT,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItem_ZoomOutClick);
-    Connect(ID_AUITOOLBARITEM14,wxEVT_COMMAND_TOOL_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnMenu_Settings_SequenceSelected);
-    Connect(ID_BUTTON3,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
-    Connect(ID_BUTTON11,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_ChangeShowFolderTemporarily);
-    Connect(ID_BUTTON13,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_ChangeTemporarilyAgainClick);
-    Connect(ID_BUTTON14,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_ChangeBaseShowDirClick);
-    Connect(ID_BUTTON17,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_ChangeBaseShowDirClick);
-    Connect(ID_BUTTON15,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_ClearBaseShowDirClick);
-    Connect(ID_CHECKBOX1,wxEVT_COMMAND_CHECKBOX_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnCheckBox_AutoUpdateBaseClick);
-    Connect(ID_BUTTON16,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_UpdateBaseClick);
-    Connect(ID_BUTTON_SAVE_SETUP,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonSaveSetupClick);
-    Connect(ID_BUTTON9,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerSerialClick);
-    Connect(ID_BUTTON6,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerEthernetClick);
-    Connect(ID_BUTTON10,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerNullClick);
-    Connect(ID_BUTTON5,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonDiscoverClick);
-    Connect(ID_BITMAPBUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonNetworkMoveUpClick);
-    Connect(ID_BITMAPBUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonNetworkMoveDownClick);
-    Connect(ID_BUTTON1,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonVisualiseClick);
-    Connect(ID_BUTTON2,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonUploadInputClick);
-    Connect(ID_BUTTON7,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonOpenClick);
-    Connect(ID_BUTTON8,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonControllerDeleteClick);
-    Connect(ID_BUTTON4,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButtonUploadOutputClick);
-    Connect(ID_BUTTON12,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&xLightsFrame::OnButton_OpenProxyClick);
-    m_mgr->Connect(wxEVT_AUI_PANE_CLOSE,(wxObjectEventFunction)&xLightsFrame::OnPaneClose,0,this);
-    PanelSequencer->Connect(wxEVT_PAINT,(wxObjectEventFunction)&xLightsFrame::OnPanelSequencerPaint,0,this);
-    Connect(ID_NOTEBOOK1,wxEVT_COMMAND_AUINOTEBOOK_PAGE_CHANGED,(wxObjectEventFunction)&xLightsFrame::OnNotebook1PageChanged1);
-    Connect(ID_NOTEBOOK1,wxEVT_COMMAND_AUINOTEBOOK_PAGE_CHANGING,(wxObjectEventFunction)&xLightsFrame::OnNotebook1PageChanging);
-    Connect(ID_NEW_SEQUENCE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnButtonNewSequenceClick);
-    Connect(ID_OPEN_SEQUENCE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Open_SequenceSelected);
-    Connect(IS_SAVE_SEQ,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Save_Selected);
-    Connect(ID_SAVE_AS_SEQUENCE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_SaveAs_SequenceSelected);
-    Connect(ID_CLOSE_SEQ,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Close_SequenceSelected);
-    Connect(wxID_PREFERENCES,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemPreferencesSelected);
-    Connect(ID_SEQ_SETTINGS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenu_Settings_SequenceSelected);
-    Connect(ID_MNU_KEYBINDINGS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_KeyBindingsSelected);
-    Connect(ID_EXPORT_VIDEO,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Export_VideoSelected);
-    Connect(ID_MENUITEM2,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
-    Connect(ID_FILE_BACKUP,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemBackupSelected);
-    Connect(ID_FILE_RESTOREBACKUP,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemRestoreBackupSelected);
-    Connect(ID_FILE_ALTBACKUP,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnmAltBackupMenuItemSelected);
-    Connect(wxID_EXIT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnQuit);
-    Connect(ID_SHIFT_EFFECTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemShiftEffectsSelected);
-    Connect(ID_MNU_SHIFT_SELECTED_EFFECTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemShiftSelectedEffectsSelected);
-    Connect(ID_MNU_COLOURREPLACE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ColorReplaceSelected);
-    Connect(ID_MENUITEM13,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnActionTestMenuItemSelected);
-    Connect(ID_MNU_CHECKSEQ,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemCheckSequenceSelected);
-    Connect(ID_MNU_CLEANUPFILE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_CleanupFileLocationsSelected);
-    Connect(ID_MNU_PACKAGESEQUENCE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_PackageSequenceSelected);
-    Connect(ID_MNU_DOWNLOADSEQUENCES,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_DownloadSequencesSelected);
-    Connect(ID_MENU_BATCH_RENDER,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemBatchRenderSelected);
-    Connect(ID_MENU_FPP_CONNECT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_FPP_ConnectSelected);
-    Connect(ID_MNU_BULKUPLOAD,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemBulkControllerUploadSelected);
-    Connect(ID_MENU_HINKSPIX_EXPORT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemHinksPixExportSelected);
-    Connect(ID_MENU_RUN_SCRIPT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemRunScriptSelected);
-    Connect(ID_EXPORT_MODELS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnmExportModelsMenuItemSelected);
-    Connect(ID_MNU_EXPORT_EFFECTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ExportEffectsSelected);
-    Connect(ID_MNU_EXPORT_CONTROLLER_CONNECTIONS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ExportControllerConnectionsSelected);
-    Connect(ID_MENU_VIEW_LOG,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ViewLogSelected);
-    Connect(ID_MENUITEM18,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemPackageDebugFiles);
-    Connect(iD_MNU_VENDORCACHEPURGE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_PurgeVendorCacheSelected);
-    Connect(ID_MNU_PURGERENDERCACHE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_PurgeRenderCacheSelected);
-    Connect(ID_MNU_CRASH,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_CrashXLightsSelected);
-    Connect(ID_MNU_DUMPRENDERSTATE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_LogRenderStateSelected);
-    Connect(ID_MENU_GENERATE2DPATH,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Generate2DPathSelected);
-    Connect(ID_MENUITEM_GenerateCustomModel,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenu_GenerateCustomModelSelected);
-    Connect(ID_MNU_REMAPCUSTOM,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_RemapCustomSelected);
-    Connect(ID_MNU_GENERATELYRICS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_GenerateLyricsSelected);
-    Connect(ID_MENUITEM_CONVERT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemConvertSelected);
-    Connect(ID_MNU_PREPAREAUDIO,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_PrepareAudioSelected);
-    Connect(ID_MENU_USER_DICT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemUserDictSelected);
-    Connect(ID_MNU_XSCHEDULE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_xScheduleSelected);
-    Connect(ID_MENU_XCAPTURE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_xCaptureSelected);
-    Connect(ID_MNU_XSCANNER,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_xScannerSelected);
-    Connect(wxID_ZOOM_IN,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemZoominClick);
-    Connect(wxID_ZOOM_OUT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItem_ZoomOutClick);
-    Connect(ID_MENUITEM5,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ResetToolbarLocations);
-    Connect(MNU_ID_ACLIGHTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ACLIghtsSelected);
-    Connect(ID_MNU_SHOWRAMPS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ShowACRampsSelected);
-    Connect(ID_MENUITEM_SAVE_PERSPECTIVE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemViewSavePerspectiveSelected);
-    Connect(ID_MENUITEM_SAVE_AS_PERSPECTIVE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemViewSaveAsPerspectiveSelected);
-    Connect(ID_MENUITEM_LOAD_PERSPECTIVE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemLoadEditPerspectiveSelected);
-    Connect(ID_MNU_PERSPECTIVES_AUTOSAVE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_PerspectiveAutosaveSelected);
-    Connect(ID_MENUITEM_DISPLAY_ELEMENTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideDisplayElementsWindow);
-    Connect(ID_MENU_TOGGLE_MODEL_PREVIEW,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideModelPreview);
-    Connect(ID_MENU_TOGGLE_HOUSE_PREVIEW,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideHousePreview);
-    Connect(ID_MENUITEM14,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideEffectSettingsWindow);
-    Connect(ID_MENUITEM15,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideColorWindow);
-    Connect(ID_MENUITEM16,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideLayerTimingWindow);
-    Connect(ID_MENUITEM9,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideBufferSettingsWindow);
-    Connect(ID_MENUITEM17,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideEffectDropper);
-    Connect(ID_MNU_VALUECURVES,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ValueCurvesSelected);
-    Connect(ID_MNU_COLOURDROPPER,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ColourDropperSelected);
-    Connect(ID_MENUITEM_EFFECT_ASSIST_WINDOW,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHideEffectAssistWindow);
-    Connect(ID_MENUITEM_SELECT_EFFECT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemSelectEffectSelected);
-    Connect(ID_MENUITEM_SEARCH_EFFECTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemSearchEffectsSelected);
-    Connect(ID_MENUITEM_VIDEOPREVIEW,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemShowHideVideoPreview);
-    Connect(ID_MNU_JUKEBOX,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_JukeboxSelected);
-    Connect(ID_MNU_FINDDATA,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemFindDataSelected);
-    Connect(ID_MNU_SUPPRESSDOCK_HP,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_SuppressDock);
-    Connect(ID_MNU_SUPPRESSDOCK_MP,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_SuppressDock);
-    Connect(ID_MENUITEM_WINDOWS_PERSPECTIVE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ShowHidePerspectivesWindow);
-    Connect(ID_MENUITEM_WINDOWS_DOCKALL,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuDockAllSelected);
-    Connect(ID_MENUITEM11,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::ResetWindowsToDefaultPositions);
-    Connect(ID_PLAY_FULL,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_MNU_1POINT5SPEED,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_MN_2SPEED,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_MNU_3SPEED,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_MNU_4SPEED,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_PLAY_3_4,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_PLAY_1_2,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_PLAY_1_4,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
-    Connect(ID_MNU_LOUDVOLUME,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_LoudVolSelected);
-    Connect(ID_MNU_MEDVOLUME,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_MedVolSelected);
-    Connect(ID_MNU_QUIET,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_QuietVolSelected);
-    Connect(ID_MNU_SUPERQUIET,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_VQuietVolSelected);
-    Connect(ID_MNU_SILENT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_SilentVolSelected);
-    Connect(ID_IMPORT_EFFECTS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItemImportEffects);
-    Connect(ID_MNU_TOD,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_TODSelected);
-    Connect(ID_MNU_MANUAL,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_UserManualSelected);
-    Connect(ID_MNU_ZOOM,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ZoomSelected);
-    Connect(ID_MENUITEM1,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_ShowKeyBindingsSelected);
-    Connect(idMenuHelpContent,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnBitmapButtonTabInfoClick);
-    Connect(ID_MENU_HELP_FORMUM,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_ForumSelected);
-    Connect(ID_MNU_VIDEOS,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_VideoTutorialsSelected);
-    Connect(ID_MENU_HELP_DOWNLOAD,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_DownloadSelected);
-    Connect(ID_MNU_HELP_RELEASE_NOTES,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_ReleaseNotesSelected);
-    Connect(ID_MENU_HELP_ISSUE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_Isue_TrackerSelected);
-    Connect(ID_MENU_HELP_FACEBOOK,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_FacebookSelected);
-    Connect(ID_MNU_DONATE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_DonateSelected);
-    Connect(ID_MNU_UPDATE,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnMenuItem_UpdateSelected);
-    Connect(wxID_ABOUT,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&xLightsFrame::OnAbout);
-    Connect(ID_TIMER_OutputTimer,wxEVT_TIMER,(wxObjectEventFunction)&xLightsFrame::OnOutputTimerTrigger);
-    Connect(ID_TIMER_AutoSave,wxEVT_TIMER,(wxObjectEventFunction)&xLightsFrame::OnTimer_AutoSaveTrigger);
-    Connect(ID_TIMER_EFFECT_SETTINGS,wxEVT_TIMER,(wxObjectEventFunction)&xLightsFrame::OnEffectSettingsTimerTrigger);
-    Connect(ID_TIMER_RENDERSTATUS,wxEVT_TIMER,(wxObjectEventFunction)&xLightsFrame::OnRenderStatusTimerTrigger);
-    Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&xLightsFrame::OnClose);
-    Connect(wxEVT_CHAR,(wxObjectEventFunction)&xLightsFrame::OnChar);
-    Connect(wxEVT_SIZE,(wxObjectEventFunction)&xLightsFrame::OnResize);
+    Connect(ID_AUITOOLBAR_OPENSHOW, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
+    Connect(ID_AUITOOLBAR_NEWSEQUENCE, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonNewSequenceClick);
+    Connect(ID_AUITOOLBAR_OPEN, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnBitmapButtonOpenSeqClick);
+    Connect(ID_AUITOOLBAR_SAVE, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnBitmapButtonSaveSeqClick);
+    Connect(ID_AUITOOLBAR_SAVEAS, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonClickSaveAs);
+    Connect(ID_AUITOOLBAR_RENDERALL, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemRenderAllClick);
+    Connect(ID_AUITOOLBAR_PLAY_NOW, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPlayButtonClick);
+    Connect(ID_AUITOOLBAR_PAUSE, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPauseButtonClick);
+    Connect(ID_AUITOOLBAR_STOP, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemStopClick);
+    Connect(ID_AUITOOLBAR_FIRST_FRAME, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarFirstFrameClick);
+    Connect(ID_AUITOOLBAR_LAST_FRAME, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarLastFrameClick);
+    Connect(ID_AUITOOLBAR_REPLAY_SECTION, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemReplaySectionClick);
+    Connect(ID_CHECKBOX_LIGHT_OUTPUT, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnCheckBoxLightOutputClick);
+    Connect(ID_AUITOOLBARITEM2, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideEffectSettingsWindow);
+    Connect(ID_AUITOOLBARITEM5, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideColorWindow);
+    Connect(ID_AUITOOLBARITEM7, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideBufferSettingsWindow);
+    Connect(ID_AUITOOLBARITEM3, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideLayerTimingWindow);
+    Connect(ID_TOGGLE_MODEL_PREVIEW, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideModelPreview);
+    Connect(ID_TOGGLE_HOUSE_PREVIEW, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideHousePreview);
+    Connect(ID_AUITOOLBARITEM6, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideDisplayElementsWindow);
+    Connect(ID_AUITOOLBARITEM8, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemShowHideEffects);
+    Connect(ID_AUITOOLBARITEM9, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideEffectAssistWindow);
+    Connect(ID_AUITOOLBARITEM10, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::ShowHideSelectEffectsWindow);
+    Connect(ID_PASTE_BY_TIME, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPasteByTimeClick);
+    Connect(ID_PASTE_BY_CELL, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemPasteByCellClick);
+    Connect(ID_AUITOOLBARITEM_ACDISABLED, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_DisableClick);
+    Connect(ID_AUITOOLBARITEM_ACSELECT, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_SelectClick);
+    Connect(ID_AUITOOLBARITEM_ACOFF, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_OffClick);
+    Connect(ID_AUITOOLBARITEM_ACON, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_OnClick);
+    Connect(ID_AUITOOLBARITEM_ACSHIMMER, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_ShimmerClick);
+    Connect(ID_AUITOOLBARITEM_ACTWINKLE, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_TwinkleClick);
+    Connect(ID_AUITOOLBARITEM_ACINTENSITY, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_IntensityClick);
+    Connect(ID_AUITOOLBARITEM_ACRAMPUP, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_RampUpClick);
+    Connect(ID_AUITOOLBARITEM_ACRAMPDOWN, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_RampDownClick);
+    Connect(ID_AUITOOLBARITEM_ACRAMPUPDOWN, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_RampUpDownClick);
+    Connect(ID_CHOICE_PARM1, wxEVT_COMMAND_CHOICE_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnChoiceParm1Select);
+    Connect(ID_CHOICE_PARM2, wxEVT_COMMAND_CHOICE_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnChoiceParm2Select);
+    Connect(ID_AUITOOLBARITEM_ACFILL, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_FillClick);
+    Connect(ID_AUITOOLBARITEM_ACCASCADE, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_CascadeClick);
+    Connect(ID_AUITOOLBARITEM_ACFOREGROUND, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_ForegroundClick);
+    Connect(ID_AUITOOLBARITEM_ACBACKGROUND, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAC_BackgroundClick);
+    Connect(ID_AUITOOLBAR_AC, wxEVT_COMMAND_AUITOOLBAR_TOOL_DROPDOWN, (wxObjectEventFunction)&xLightsFrame::OnACToolbarDropdown);
+    Connect(wxID_ZOOM_IN, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemZoominClick);
+    Connect(wxID_ZOOM_OUT, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItem_ZoomOutClick);
+    Connect(ID_AUITOOLBARITEM14, wxEVT_COMMAND_TOOL_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnMenu_Settings_SequenceSelected);
+    Connect(ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
+    Connect(ID_BUTTON11, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_ChangeShowFolderTemporarily);
+    Connect(ID_BUTTON13, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_ChangeTemporarilyAgainClick);
+    Connect(ID_BUTTON14, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_ChangeBaseShowDirClick);
+    Connect(ID_BUTTON17, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_OpenBaseShowDirClick);
+    Connect(ID_BUTTON15, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_ClearBaseShowDirClick);
+    Connect(ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnCheckBox_AutoUpdateBaseClick);
+    Connect(ID_BUTTON16, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_UpdateBaseClick);
+    Connect(ID_BUTTON_SAVE_SETUP, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonSaveSetupClick);
+    Connect(ID_BUTTON9, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerSerialClick);
+    Connect(ID_BUTTON6, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerEthernetClick);
+    Connect(ID_BUTTON10, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonAddControllerNullClick);
+    Connect(ID_BUTTON5, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonDiscoverClick);
+    Connect(ID_BUTTON18, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonFPPConnectClick);
+    Connect(ID_BITMAPBUTTON1, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonNetworkMoveUpClick);
+    Connect(ID_BITMAPBUTTON2, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonNetworkMoveDownClick);
+    Connect(ID_BUTTON1, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonVisualiseClick);
+    Connect(ID_BUTTON2, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonUploadInputClick);
+    Connect(ID_BUTTON7, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonOpenClick);
+    Connect(ID_BUTTON8, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonControllerDeleteClick);
+    Connect(ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButtonUploadOutputClick);
+    Connect(ID_BUTTON12, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&xLightsFrame::OnButton_OpenProxyClick);
+    m_mgr->Connect(wxEVT_AUI_PANE_CLOSE, (wxObjectEventFunction)&xLightsFrame::OnPaneClose, NULL, this);
+    PanelSequencer->Connect(wxEVT_PAINT, (wxObjectEventFunction)&xLightsFrame::OnPanelSequencerPaint, NULL, this);
+    Connect(ID_NOTEBOOK1, wxEVT_COMMAND_AUINOTEBOOK_PAGE_CHANGED, (wxObjectEventFunction)&xLightsFrame::OnNotebook1PageChanged1);
+    Connect(ID_NOTEBOOK1, wxEVT_COMMAND_AUINOTEBOOK_PAGE_CHANGING, (wxObjectEventFunction)&xLightsFrame::OnNotebook1PageChanging);
+    Connect(ID_NEW_SEQUENCE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnButtonNewSequenceClick);
+    Connect(ID_OPEN_SEQUENCE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Open_SequenceSelected);
+    Connect(IS_SAVE_SEQ, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Save_Selected);
+    Connect(ID_SAVE_AS_SEQUENCE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_SaveAs_SequenceSelected);
+    Connect(ID_CLOSE_SEQ, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Close_SequenceSelected);
+    Connect(wxID_PREFERENCES, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemPreferencesSelected);
+    Connect(ID_SEQ_SETTINGS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenu_Settings_SequenceSelected);
+    Connect(ID_MNU_KEYBINDINGS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_KeyBindingsSelected);
+    Connect(ID_EXPORT_VIDEO, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_File_Export_VideoSelected);
+    Connect(ID_MENUITEM2, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuOpenFolderSelected);
+    Connect(ID_FILE_BACKUP, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemBackupSelected);
+    Connect(ID_FILE_RESTOREBACKUP, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemRestoreBackupSelected);
+    Connect(ID_FILE_ALTBACKUP, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnmAltBackupMenuItemSelected);
+    Connect(wxID_EXIT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnQuit);
+    Connect(ID_SHIFT_EFFECTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemShiftEffectsSelected);
+    Connect(ID_MNU_SHIFT_SELECTED_EFFECTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemShiftSelectedEffectsSelected);
+    Connect(ID_MNU_COLOURREPLACE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ColorReplaceSelected);
+    Connect(ID_MENUITEM13, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnActionTestMenuItemSelected);
+    Connect(ID_MNU_CHECKSEQ, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemCheckSequenceSelected);
+    Connect(ID_MNU_CLEANUPFILE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_CleanupFileLocationsSelected);
+    Connect(ID_MNU_PACKAGESEQUENCE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_PackageSequenceSelected);
+    Connect(ID_MNU_DOWNLOADSEQUENCES, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_DownloadSequencesSelected);
+    Connect(ID_MENU_BATCH_RENDER, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemBatchRenderSelected);
+    Connect(ID_MENU_FPP_CONNECT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_FPP_ConnectSelected);
+    Connect(ID_MNU_BULKUPLOAD, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemBulkControllerUploadSelected);
+    Connect(ID_MENU_HINKSPIX_EXPORT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemHinksPixExportSelected);
+    Connect(ID_MENU_RUN_SCRIPT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemRunScriptSelected);
+    Connect(ID_EXPORT_MODELS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnmExportModelsMenuItemSelected);
+    Connect(ID_MNU_EXPORT_EFFECTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ExportEffectsSelected);
+    Connect(ID_MNU_EXPORT_CONTROLLER_CONNECTIONS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ExportControllerConnectionsSelected);
+    Connect(ID_MENU_VIEW_LOG, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ViewLogSelected);
+    Connect(ID_MENUITEM18, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemPackageDebugFiles);
+    Connect(iD_MNU_VENDORCACHEPURGE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_PurgeVendorCacheSelected);
+    Connect(ID_MNU_PURGERENDERCACHE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_PurgeRenderCacheSelected);
+    Connect(ID_MNU_CRASH, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_CrashXLightsSelected);
+    Connect(ID_MNU_DUMPRENDERSTATE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_LogRenderStateSelected);
+    Connect(ID_MENU_GENERATE2DPATH, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Generate2DPathSelected);
+    Connect(ID_MENUITEM_GenerateCustomModel, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenu_GenerateCustomModelSelected);
+    Connect(ID_MNU_REMAPCUSTOM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_RemapCustomSelected);
+    Connect(ID_MNU_GENERATELYRICS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_GenerateLyricsSelected);
+    Connect(ID_MENUITEM_CONVERT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemConvertSelected);
+    Connect(ID_MNU_PREPAREAUDIO, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_PrepareAudioSelected);
+    Connect(ID_MENU_USER_DICT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemUserDictSelected);
+    Connect(ID_MNU_XSCHEDULE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_xScheduleSelected);
+    Connect(ID_MENU_XCAPTURE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_xCaptureSelected);
+    Connect(ID_MNU_XSCANNER, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_xScannerSelected);
+    Connect(wxID_ZOOM_IN, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItemZoominClick);
+    Connect(wxID_ZOOM_OUT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnAuiToolBarItem_ZoomOutClick);
+    Connect(ID_MENUITEM5, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ResetToolbarLocations);
+    Connect(MNU_ID_ACLIGHTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ACLIghtsSelected);
+    Connect(ID_MNU_SHOWRAMPS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ShowACRampsSelected);
+    Connect(ID_MENUITEM_SAVE_PERSPECTIVE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemViewSavePerspectiveSelected);
+    Connect(ID_MENUITEM_SAVE_AS_PERSPECTIVE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemViewSaveAsPerspectiveSelected);
+    Connect(ID_MENUITEM_LOAD_PERSPECTIVE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemLoadEditPerspectiveSelected);
+    Connect(ID_MNU_PERSPECTIVES_AUTOSAVE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_PerspectiveAutosaveSelected);
+    Connect(ID_MENUITEM_DISPLAY_ELEMENTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideDisplayElementsWindow);
+    Connect(ID_MENU_TOGGLE_MODEL_PREVIEW, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideModelPreview);
+    Connect(ID_MENU_TOGGLE_HOUSE_PREVIEW, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideHousePreview);
+    Connect(ID_MENUITEM14, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideEffectSettingsWindow);
+    Connect(ID_MENUITEM15, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideColorWindow);
+    Connect(ID_MENUITEM16, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideLayerTimingWindow);
+    Connect(ID_MENUITEM9, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideBufferSettingsWindow);
+    Connect(ID_MENUITEM17, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideEffectDropper);
+    Connect(ID_MNU_VALUECURVES, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ValueCurvesSelected);
+    Connect(ID_MNU_COLOURDROPPER, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ColourDropperSelected);
+    Connect(ID_MENUITEM_EFFECT_ASSIST_WINDOW, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHideEffectAssistWindow);
+    Connect(ID_MENUITEM_SELECT_EFFECT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemSelectEffectSelected);
+    Connect(ID_MENUITEM_SEARCH_EFFECTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemSearchEffectsSelected);
+    Connect(ID_MENUITEM_VIDEOPREVIEW, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemShowHideVideoPreview);
+    Connect(ID_MNU_JUKEBOX, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_JukeboxSelected);
+    Connect(ID_MNU_FINDDATA, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemFindDataSelected);
+    Connect(ID_MNU_SUPPRESSDOCK_HP, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_SuppressDock);
+    Connect(ID_MNU_SUPPRESSDOCK_MP, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_SuppressDock);
+    Connect(ID_MENUITEM_WINDOWS_PERSPECTIVE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ShowHidePerspectivesWindow);
+    Connect(ID_MENUITEM_WINDOWS_DOCKALL, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuDockAllSelected);
+    Connect(ID_MENUITEM11, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::ResetWindowsToDefaultPositions);
+    Connect(ID_PLAY_FULL, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_MNU_1POINT5SPEED, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_MN_2SPEED, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_MNU_3SPEED, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_MNU_4SPEED, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_PLAY_3_4, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_PLAY_1_2, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_PLAY_1_4, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::SetPlaySpeed);
+    Connect(ID_MNU_LOUDVOLUME, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_LoudVolSelected);
+    Connect(ID_MNU_MEDVOLUME, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_MedVolSelected);
+    Connect(ID_MNU_QUIET, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_QuietVolSelected);
+    Connect(ID_MNU_SUPERQUIET, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_VQuietVolSelected);
+    Connect(ID_MNU_SILENT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_SilentVolSelected);
+    Connect(ID_IMPORT_EFFECTS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItemImportEffects);
+    Connect(ID_MNU_TOD, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_TODSelected);
+    Connect(ID_MNU_MANUAL, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_UserManualSelected);
+    Connect(ID_MNU_ZOOM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ZoomSelected);
+    Connect(ID_MENUITEM1, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_ShowKeyBindingsSelected);
+    Connect(idMenuHelpContent, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnBitmapButtonTabInfoClick);
+    Connect(ID_MENU_HELP_FORMUM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_ForumSelected);
+    Connect(ID_MNU_VIDEOS, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_VideoTutorialsSelected);
+    Connect(ID_MENU_HELP_DOWNLOAD, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_DownloadSelected);
+    Connect(ID_MNU_HELP_RELEASE_NOTES, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_ReleaseNotesSelected);
+    Connect(ID_MENU_HELP_ISSUE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_Isue_TrackerSelected);
+    Connect(ID_MENU_HELP_FACEBOOK, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_Help_FacebookSelected);
+    Connect(ID_MNU_DONATE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_DonateSelected);
+    Connect(ID_MNU_UPDATE, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnMenuItem_UpdateSelected);
+    Connect(wxID_ABOUT, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnAbout);
+    Connect(ID_TIMER_OutputTimer, wxEVT_TIMER, (wxObjectEventFunction)&xLightsFrame::OnOutputTimerTrigger);
+    Connect(ID_TIMER_AutoSave, wxEVT_TIMER, (wxObjectEventFunction)&xLightsFrame::OnTimer_AutoSaveTrigger);
+    Connect(ID_TIMER_EFFECT_SETTINGS, wxEVT_TIMER, (wxObjectEventFunction)&xLightsFrame::OnEffectSettingsTimerTrigger);
+    Connect(ID_TIMER_RENDERSTATUS, wxEVT_TIMER, (wxObjectEventFunction)&xLightsFrame::OnRenderStatusTimerTrigger);
+    Connect(wxID_ANY, wxEVT_CLOSE_WINDOW, (wxObjectEventFunction)&xLightsFrame::OnClose);
+    Connect(wxEVT_CHAR, (wxObjectEventFunction)&xLightsFrame::OnChar);
+    Connect(wxEVT_SIZE, (wxObjectEventFunction)&xLightsFrame::OnResize);
     //*)
 
     wxConfigBase* config = wxConfigBase::Get();
@@ -1560,6 +1559,10 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     logger_base.debug("Snap To Timing Marks: %s.", toStr(_snapToTimingMarks));
 
     config->Read("xLightsFSEQVersion", &_fseqVersion, 2);
+    logger_base.debug("FSEQ Save Version: %d.", _fseqVersion);
+
+    config->Read("xLightsDisableKeyAccelerations", &_disableKeyAcceleration, false);
+    logger_base.debug("Disable Key Accelerations: %s.", _disableKeyAcceleration ? "Y": "N");
 
     config->Read("xLightsTimelineZooming", &_timelineZooming, 0);
     config->Read("xLightsPlayVolume", &playVolume, 100);
@@ -1645,13 +1648,18 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     if (!xLightsApp::mediaDir.IsNull()) {
         md = xLightsApp::mediaDir;
         logger_base.debug("Media directory %s.", (const char*)md.c_str());
-        ObtainAccessToURL(md);
+        if (!ObtainAccessToURL(md)) {
+            std::string mds = md;
+            PromptForDirectorySelection("Reselect Media Directory", mds);
+        }
         mediaDirectories.push_back(md);
     } else if (config->Read(_("MediaDir"), &md)) {
         wxArrayString entries = wxSplit(md, '|', '\0');
         for (auto& d : entries) {
             std::string dstd = d.ToStdString();
-            ObtainAccessToURL(dstd);
+            if (!ObtainAccessToURL(dstd)) {
+                PromptForDirectorySelection("Reselect Media Directory", dstd);
+            }
             if (std::find(mediaDirectories.begin(), mediaDirectories.end(), dstd) == mediaDirectories.end()) {
                 mediaDirectories.push_back(dstd);
             }
@@ -1660,7 +1668,10 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     SetFixFileDirectories(mediaDirectories);
     wxString tbData = config->Read("ToolbarLocations");
     if (tbData.StartsWith(TOOLBAR_SAVE_VERSION)) {
+        const int size = AUIStatusBar->GetSize().GetHeight();
         MainAuiManager->LoadPerspective(tbData.Right(tbData.size() - 5));
+        MainAuiManager->GetPane("Status Bar").MinSize(wxSize(-1, size));
+        MainAuiManager->Update();
     }
     logger_base.debug("Perspectives loaded.");
 
@@ -1756,7 +1767,14 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     }
 
     if (wxDir::Exists(mAltBackupDir)) {
-        ObtainAccessToURL(mAltBackupDir);
+        if (!ObtainAccessToURL(mAltBackupDir, true)) {
+            std::string orig = mAltBackupDir;
+            PromptForDirectorySelection("Reselect Alternate Backup Directory", orig);
+            if (orig != mAltBackupDir) {
+                mAltBackupDir = orig;
+                config->Write(_("xLightsAltBackupDir"), mAltBackupDir);
+            }
+        }
         mAltBackupMenuItem->SetHelp(mAltBackupDir);
     } else {
         mAltBackupMenuItem->SetHelp("");
@@ -1839,7 +1857,7 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     if (ok && !dir.IsEmpty()) {
         if (!SetDir(dir, !showDirFromCommandLine)) {
             CurrentDir = "";
-            if (!PromptForShowDirectory(true)) {
+            if (!PromptForShowDirectory(true, dir)) {
                 CurrentDir = "";
                 splash.Hide();
                 wxMessageBox("Exiting as setting a show folder is not optional.");
@@ -2037,6 +2055,9 @@ xLightsFrame::xLightsFrame(wxWindow* parent, int ab, wxWindowID id, bool renderO
     config->Read("xLightsLinkedControllerUpload", &_linkedControllerUpload, "Inputs and Outputs");
     logger_base.debug("Linked controller upload: %s.", (const char*)_linkedControllerUpload.c_str());
 
+    config->Read("xLightsModelRename", &_aliasRenameBehavior, "Always Prompt");
+    logger_base.debug("Model Rename Behavior: %s.", (const char*)_aliasRenameBehavior.c_str());
+
     std::thread th([this]() {
         try {
             xlCrashHandler::SetupCrashHandlerForNonWxThread();
@@ -2124,11 +2145,13 @@ xLightsFrame::~xLightsFrame()
     config->Write("xLightsAutoShowHousePreview", _autoShowHousePreview);
     config->Write("xLightsZoomMethodToCursor", _zoomMethodToCursor);
     config->Write("xLightsHidePresetPreview", _hidePresetPreview);
+    config->Write("xLightsSmallWaveform", _smallWaveform);
     config->Write("xLightsModelBlendDefaultOff", _modelBlendDefaultOff);
     config->Write("xLightsLowDefinitionRender", _lowDefinitionRender);
     config->Write("xLightsTimelineZooming", _timelineZooming);
     config->Write("xLightsSnapToTimingMarks", _snapToTimingMarks);
     config->Write("xLightsFSEQVersion", _fseqVersion);
+    config->Write("xLightsDisableKeyAccelerations", _disableKeyAcceleration);
     config->Write("xLightsAutoSavePerspectives", _autoSavePerspecive);
     config->Write("xLightsBackupOnSave", mBackupOnSave);
     config->Write("xLightsBackupOnLaunch", mBackupOnLaunch);
@@ -2365,10 +2388,8 @@ void xLightsFrame::OnOutputTimerTrigger(wxTimerEvent& event)
     PushTraceContext();
     wxTimeSpan ts = wxDateTime::UNow() - starttime;
     long curtime = ts.GetMilliseconds().ToLong();
-    bool needTimer = _outputManager.IsOutputting();
+    bool needTimer = false;
     AddTraceMessage("OutputTimer");
-    _outputManager.StartFrame(curtime);
-    AddTraceMessage("Output frame started");
     if (Notebook1 != nullptr) {
         switch (Notebook1->GetSelection()) {
         case NEWSEQUENCER:
@@ -2379,17 +2400,18 @@ void xLightsFrame::OnOutputTimerTrigger(wxTimerEvent& event)
             }
             break;
         default:
+            if (_outputManager.IsOutputting()) {
+                needTimer = true;
+                _outputManager.StartFrame(curtime);
+                _outputManager.EndFrame();
+            }
             break;
         }
     }
-    AddTraceMessage("TimerRgbSeq called");
-    _outputManager.EndFrame();
-    AddTraceMessage("Output frame complete");
     if (!needTimer) {
         // printf("Stopping timer\n");
         StopOutputTimer();
     }
-
     PopTraceContext();
 }
 
@@ -3521,6 +3543,10 @@ void xLightsFrame::SetGridNodeValues(bool b)
     mainSequencer->PanelEffectGrid->Refresh();
 }
 
+float xLightsFrame::GetPlaySpeed() {
+    return playSpeed;
+}
+
 void xLightsFrame::SetPlaySpeedTo(float speed)
 {
     playAnimation = false;
@@ -4471,7 +4497,11 @@ void xLightsFrame::OnmAltBackupMenuItemSelected(wxCommandEvent& event)
     if (mAltBackupDir == "") {
         return;
     }
-    ObtainAccessToURL(mAltBackupDir);
+    if (!ObtainAccessToURL(mAltBackupDir, true)) {
+        std::string orig = mAltBackupDir;
+        PromptForDirectorySelection("Reselect alternate backup directory", orig);
+        mAltBackupDir = orig;
+    }
     SaveWorking();
 
     DoAltBackup();
@@ -4908,6 +4938,8 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
 
     size_t errcount = 0;
     size_t warncount = 0;
+    size_t toterrcount = 0;
+    size_t totwarncount = 0;
 
     wxFile f;
     wxString filename = wxFileName::CreateTempFileName("xLightsCheckSequence") + ".txt";
@@ -4937,6 +4969,10 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     } else {
         LogAndWrite(f, "Sequence: No sequence open.");
     }
+
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    LogAndWrite(f, "");
+    LogAndWrite(f, "Network Checks");
 
     prog.Update(0, "Checking network");
     wxYield();
@@ -4986,6 +5022,15 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
 
     size_t errcountsave = errcount;
     size_t warncountsave = warncount;
+    LogAndWrite(f, wxString::Format("\nSection Errors (Network): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    toterrcount += errcount;
+    totwarncount += warncount;
+    errcount = 0;
+    warncount = 0;
+
+    LogAndWrite(f, "");
+    LogAndWrite(f, "Preference Checks");
 
     prog.Update(1, "Checking preferences");
     wxYield();
@@ -5066,11 +5111,21 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     errcountsave = errcount;
     warncountsave = warncount;
 
+    LogAndWrite(f, wxString::Format("\nSection Errors (Preferences): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    toterrcount += errcount;
+    totwarncount += warncount;
+    errcount = 0;
+    warncount = 0;
+
+    LogAndWrite(f, "");
+    LogAndWrite(f, "Inactive Controller Checks");
+
     prog.Update(3, "Checking controllers");
     wxYield();
 
     LogAndWrite(f, "");
-    LogAndWrite(f, "Inactive Controllers");
+    LogAndWrite(f, "Checking for inactive controllers");
 
     // Check for inactive outputs
     for (const auto& c : _outputManager.GetControllers()) {
@@ -5129,6 +5184,13 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     errcountsave = errcount;
     warncountsave = warncount;
 
+    LogAndWrite(f, wxString::Format("\nSection Errors (Controllers): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    toterrcount += errcount;
+    totwarncount += warncount;
+    errcount = 0;
+    warncount = 0;
+
     // Controller Checks
     // do these checks for all Managed Controllers
     std::list<Controller*> uniqueControllers;
@@ -5142,6 +5204,7 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     if (uniqueControllers.size() > 0) {
         LogAndWrite(f, "");
         LogAndWrite(f, "Controller Checks");
+        LogAndWrite(f, "");
 
         // controller ip address must only be on one output ... no duplicates
         for (const auto& it : uniqueControllers) {
@@ -5245,7 +5308,7 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
 
         // Apply the vendor specific validations
         for (const auto& it : _outputManager.GetControllers()) {
-            wxString msg = wxString::Format("        Applying controller rules for %s:%s:%s", it->GetName(), it->GetIP(), it->GetDescription());
+            wxString msg = wxString::Format("Applying controller rules for %s:%s:%s", it->GetName(), it->GetIP(), it->GetDescription());
             LogAndWrite(f, msg.ToStdString());
 
             std::string check;
@@ -5474,11 +5537,18 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     errcountsave = errcount;
     warncountsave = warncount;
 
-    prog.Update(50, "Checking models");
-    wxYield();
+    LogAndWrite(f, wxString::Format("\nSection Errors (Controllers): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    toterrcount += errcount;
+    totwarncount += warncount;
+    errcount = 0;
+    warncount = 0;
 
     LogAndWrite(f, "");
-    LogAndWrite(f, "Invalid start channels");
+    LogAndWrite(f, "Model Channel Checks");
+
+    prog.Update(50, "Checking models");
+    wxYield();
 
     for (const auto& it : AllModels) {
         if (it.second->GetDisplayAs() != "ModelGroup") {
@@ -6138,8 +6208,18 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     errcountsave = errcount;
     warncountsave = warncount;
 
+    LogAndWrite(f, wxString::Format("\nSection Errors (Models): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+    toterrcount += errcount;
+    totwarncount += warncount;
+    errcount = 0;
+    warncount = 0;
+
+    LogAndWrite(f, "");
+    LogAndWrite(f, "Sequence problems");
+    LogAndWrite(f, "");
+
     if (CurrentSeqXmlFile != nullptr) {
-        LogAndWrite(f, "");
         LogAndWrite(f, "Uncommon and often undesirable settings");
 
         if (CurrentSeqXmlFile->GetRenderMode() == xLightsXmlFile::CANVAS_MODE) {
@@ -6264,11 +6344,19 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
             warncountsave = warncount;
         }
 
-        prog.Update(70, "Checking effects");
-        wxYield();
+        LogAndWrite(f, wxString::Format("\nSection Errors (Sequence): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+        LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+        toterrcount += errcount;
+        totwarncount += warncount;
+        errcount = 0;
+        warncount = 0;
 
         LogAndWrite(f, "");
-        LogAndWrite(f, "Effect problems");
+        LogAndWrite(f, "Sequence effect problems");
+        LogAndWrite(f, "");
+
+        prog.Update(70, "Checking effects");
+        wxYield();
 
         // check all effects
         bool disabledEffects = false;
@@ -6336,11 +6424,18 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
         errcountsave = errcount;
         warncountsave = warncount;
 
-        prog.Update(90, "Dumping used assets");
-        wxYield();
+        LogAndWrite(f, wxString::Format("\nSection Errors (Sequence): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+        LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+        toterrcount += errcount;
+        totwarncount += warncount;
+        errcount = 0;
+        warncount = 0;
 
         LogAndWrite(f, "");
-        LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
+        LogAndWrite(f, "General Notes");
+
+        prog.Update(90, "Dumping used assets");
+        wxYield();
 
         LogAndWrite(f, "");
         LogAndWrite(f, "If you are planning on importing this sequence be aware the sequence relies on the following items that will not be imported.");
@@ -6362,17 +6457,15 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
             wxString msg = wxString::Format("        Viewpoint: %s.", it);
             LogAndWrite(f, msg.ToStdString());
         }
-
-        LogAndWrite(f, "");
-        LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
-
     } else {
         LogAndWrite(f, "");
         LogAndWrite(f, "No sequence loaded so sequence checks skipped.");
     }
+    LogAndWrite(f, "");
+    LogAndWrite(f, "-----------------------------------------------------------------------------------------------------------------");
 
     LogAndWrite(f, "");
-    LogAndWrite(f, "Checking problems with file access times.");
+    LogAndWrite(f, "OS Checks");
 
     prog.Update(95, "Checking performance");
 
@@ -6438,9 +6531,12 @@ std::string xLightsFrame::CheckSequence(bool displayInEditor, bool writeToFile)
     errcountsave = errcount;
     warncountsave = warncount;
 
+    LogAndWrite(f, wxString::Format("\nSection Errors (OS): %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "=================================================================================================================");
     LogAndWrite(f, "");
-    LogAndWrite(f, "Check sequence done.");
-    LogAndWrite(f, wxString::Format("Errors: %u. Warnings: %u", (unsigned int)errcount, (unsigned int)warncount).ToStdString());
+    LogAndWrite(f, "Check sequence completed.");
+    LogAndWrite(f, "");
+    LogAndWrite(f, wxString::Format("Total Errors: %u. Warnings: %u", (unsigned int)toterrcount, (unsigned int)totwarncount).ToStdString());
 
     prog.Update(100, "Done");
     wxYield();
@@ -7606,7 +7702,7 @@ bool xLightsFrame::FilesMatch(const std::string& file1, const std::string& file2
     return (memcmp(buf1, buf2, sizeof(buf1)) == 0);
 }
 
-std::string xLightsFrame::MoveToShowFolder(const std::string& file, const std::string& subdirectory)
+std::string xLightsFrame::MoveToShowFolder(const std::string& file, const std::string& subdirectory, const bool reuse)
 {
     log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     wxFileName fn(file);
@@ -7633,13 +7729,15 @@ std::string xLightsFrame::MoveToShowFolder(const std::string& file, const std::s
     target += fn.GetFullName();
 
     int i = 1;
-    while (FileExists(target) && !FilesMatch(file, target)) {
+    while (FileExists(target) && !FilesMatch(file, target) && !reuse) {
         target = dir + wxFileName::GetPathSeparator() + fn.GetName() + "_" + wxString::Format("%d", i++) + "." + fn.GetExt();
     }
 
     if (!FileExists(target)) {
         logger_base.debug("Copying file %s to %s.", (const char*)file.c_str(), (const char*)target.c_str());
         wxCopyFile(file, target, false);
+    } else if (reuse) {
+        logger_base.debug("Reusing file %s for %s.", (const char*)target.c_str(), (const char*)file.c_str());
     }
 
     return target.ToStdString();
@@ -7762,7 +7860,11 @@ void xLightsFrame::ValidateWindow()
         CheckBox_AutoUpdateBase->Disable();
         Button_OpenBaseShowDir->Disable();
     } else {
-        Button_UpdateBase->Enable();
+        if (_outputManager.GetBaseShowDir() == this->GetShowDirectory()) {
+            Button_UpdateBase->Disable();
+        } else {
+            Button_UpdateBase->Enable();
+        }
         Button_ClearBaseShowDir->Enable();
         CheckBox_AutoUpdateBase->Enable();
         Button_OpenBaseShowDir->Enable();
@@ -8669,39 +8771,34 @@ bool xLightsFrame::CheckForUpdate(int maxRetries, bool canSkipUpdates, bool show
 
     bool found_update = false;
 #ifdef LINUX
-    wxString hostname = wxT("www.adebenham.com");
-    wxString path = wxT("/wp-content/uploads/xlights/latest.php");
+    //wxString hostname = wxT("www.adebenham.com");
+    //wxString path = wxT("/wp-content/uploads/xlights/latest.php");
     wxString downloadUrl = wxT("https://github.com/xLightsSequencer/xLights/releases/latest");
     MenuItem_Update->Enable(true);
 #else
 #ifdef __WXOSX__
-    wxString hostname = _T("dankulp.com");
-    wxString path = _T("/xLightsLatest.php");
+    //wxString hostname = _T("dankulp.com");
+    //wxString path = _T("/xLightsLatest.php");
     wxString downloadUrl = wxT("http://dankulp.com/xlights/");
     if (MenuItem_Update)
         MenuItem_Update->Enable(true);
 #else
-    wxString hostname = _T("xlights.org");
-
-    // wxString path = _T("/downloads/");
+    //wxString hostname = _T("xlights.org");
+    //wxString path = _T("/downloads/");
     wxString downloadUrl = wxT("https://xlights.org/downloads/");
-    wxString path = _T("/releases/");
+    //wxString path = _T("/releases/");
     // wxString downloadUrl = wxT("https://xlights.org/releases/");
-
+    //wxString downloadUrl2 = wxT("https://github.com/xLightsSequencer/xLights/releases/latest");
     logger_base.debug("Downloading %s", (const char*)downloadUrl.c_str());
     MenuItem_Update->Enable(true);
 #endif
 #endif
-
-    wxHTTP get;
-    get.SetTimeout(5); // 5 seconds of timeout instead of 10 minutes ...
-    get.SetHeader("Cache-Control", "no-cache");
-
+    std::string resp;
     bool didConnect = false;
-
     for (int retry = 0; retry < maxRetries; retry++) {
         logger_base.debug("Attempting version update check %d/%d...", retry + 1, maxRetries);
-        if (get.Connect(hostname)) {
+        resp = Curl::HTTPSGet(downloadUrl);
+        if (!resp.empty()) {
             didConnect = true;
             break;
         } else {
@@ -8721,15 +8818,13 @@ bool xLightsFrame::CheckForUpdate(int maxRetries, bool canSkipUpdates, bool show
         return true;
     }
 
-    wxInputStream* httpStream = get.GetInputStream(path);
-    if (get.GetError() == wxPROTO_NOERR) {
+    if (!resp.empty()) {
         wxString res;
         wxString configver = wxT("");
-        wxStringOutputStream out_stream(&res);
-        httpStream->Read(out_stream);
+
 
 #ifdef __WXMSW__
-        wxString page = wxString(out_stream.GetString());
+        wxString page = ToWXString(resp);
 
         // logger_base.debug("    Download page: %s",
         //     (const char *)page.c_str());
@@ -8761,7 +8856,7 @@ bool xLightsFrame::CheckForUpdate(int maxRetries, bool canSkipUpdates, bool show
         downloadUrl = downloadUrl + "xLights" + bit + "_" + dlv + ".exe";
 #else
         wxRegEx reVersion("^.*(2[0-9][0-9][0-9]\\.[0-9]*\\.?[0-9]?)[a-z]?[\\.-].*$");
-        wxString urlVersion = wxString(out_stream.GetString());
+        wxString urlVersion = ToWXString(resp);
         reVersion.Replace(&urlVersion, "\\1", 1);
 #endif
 
@@ -8793,9 +8888,6 @@ bool xLightsFrame::CheckForUpdate(int maxRetries, bool canSkipUpdates, bool show
             wxMessageBox("Unable to read available versions.", "Version update check failed");
         }
     }
-
-    wxDELETE(httpStream);
-    get.Close();
     return found_update;
 }
 
@@ -9320,7 +9412,7 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
 
     wxString filename = wxFileSelector("Choose reaper file describing the changes required to the audio.",
                                        CurrentDir, wxEmptyString, "*.rrp",
-                                       "Reaper files (*.rpp)|*.rpp|xAudio files (*.xaudio)|*.xaudio|All files (*.*)|*.*",
+                                       "Reaper or xAudio files (*.rpp;*.xaudio)|*.rpp;*.xaudio|All files (*.*)|*.*",
                                        wxFD_OPEN | wxFD_FILE_MUST_EXIST, this);
 
     if (filename != "") {
@@ -9346,19 +9438,22 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
         };
 
         std::list<musicEdit> edits;
-        wxFileName targetFile;
-        targetFile.SetPath(CurrentDir);
-
+        wxFileName targetFile(CurrentDir);
+        AudioManager *firstAudio = nullptr;
         if (filename.Lower().EndsWith(".rpp")) {
             wxFile reaper;
             if (reaper.Open(filename)) {
                 wxString reaperContent;
                 reaper.ReadAll(&reaperContent);
 
+                targetFile = wxFileName(filename);
+
                 wxRegEx regexTgt("RENDER_FILE \\\"[^\\\"]*?\\/([^\\\"\\/]*)\\\"", wxRE_ADVANCED | wxRE_NEWLINE);
                 if (regexTgt.Matches(reaperContent)) {
-                    targetFile.SetName(regexTgt.GetMatch(reaperContent, 1));
+                    targetFile.SetFullName(regexTgt.GetMatch(reaperContent, 1));
                     logger_base.debug("    Target file: %s", (const char*)targetFile.GetFullPath().c_str());
+                } else {
+                    targetFile.SetExt("m4a");
                 }
 
                 wxRegEx regexPosition("POSITION ([0-9\\.]*)", wxRE_ADVANCED | wxRE_NEWLINE);
@@ -9543,43 +9638,55 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
             outputLength = std::max(outputLength, it.start + it.length);
 
             if (sourceSongs.find(it.file) == sourceSongs.end()) {
-                wxString music = wxFileSelector("Choose your copy of " + it.file + ".",
-                                                CurrentDir, wxEmptyString, wxEmptyString,
-                                                "Audio files|*.mp3;*.ogg;*.m4p;*.mp4;*.avi;*.wma;*.wmv;*.au;*.wav;*.m4a;*.mid;*.mkv;*.mov;*.mpg;*.asf;*.flv;*.mpeg",
-                                                wxFD_OPEN | wxFD_FILE_MUST_EXIST, this);
-
-                if (music != "") {
-                    sourceSongs[it.file] = new AudioManager(music);
+                wxFileName fn = targetFile;
+                fn.SetFullName(it.file);
+                if (!fn.Exists()) {
+                    wxString music = wxFileSelector("Choose your copy of " + it.file + ".",
+                                                    fn.GetPath(), wxEmptyString, wxEmptyString,
+                                                    "Audio files|*.mp3;*.ogg;*.m4p;*.mp4;*.avi;*.wma;*.wmv;*.au;*.wav;*.m4a;*.mid;*.mkv;*.mov;*.mpg;*.asf;*.flv;*.mpeg",
+                                                    wxFD_OPEN | wxFD_FILE_MUST_EXIST, this);
+                    if (music != "") {
+                        sourceSongs[it.file] = new AudioManager(music);
+                        // wait for song to load
+                        while (!sourceSongs[it.file]->IsDataLoaded()) {
+                            wxMilliSleep(100);
+                        }
+                    } else {
+                        sourceSongs[it.file] = nullptr;
+                    }
                 } else {
-                    sourceSongs[it.file] = nullptr;
+                    sourceSongs[it.file] = new AudioManager(fn.GetFullPath());
+                }
+                if (firstAudio == nullptr) {
+                    firstAudio = sourceSongs[it.file];
                 }
             }
         }
 
         bool ok = true;
 
-        long outputRate = -1;
+        long sampleRate = -1;
         for (const auto& it : sourceSongs) {
             if (it.second != nullptr) {
-                if (outputRate == -1) {
-                    outputRate = it.second->GetRate();
+                if (sampleRate == -1) {
+                    sampleRate = it.second->GetRate();
                 } else {
-                    if (ok && outputRate != it.second->GetRate()) {
+                    if (ok && sampleRate != it.second->GetRate()) {
                         logger_base.debug("Songs do not all have the same bitrate ... unable to do the required mixing.");
-                        wxMessageBox("In order to prepare the audio all the input songs must have the same bitrate.");
+                        wxMessageBox("In order to prepare the audio all the input songs must have the same sample rate.");
                         ok = false;
                     }
                 }
             }
         }
 
-        if (outputRate == -1) {
+        if (sampleRate == -1) {
             SetStatusText("Audio file creation failed - No input audio.");
             ok = false;
         }
 
         if (ok) {
-            long totalSamples = outputRate * outputLength;
+            long totalSamples = sampleRate * outputLength;
             logger_base.debug("    New file will:");
             logger_base.debug("        have %ld samples.", totalSamples);
             logger_base.debug("        be %0.3f seconds long.", outputLength);
@@ -9600,8 +9707,8 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
                     SetStatusText("Combining audio clips.");
 
                     logger_base.debug("Processing sample from %s.", (const char*)it.file.c_str());
-                    long startOutput = outputRate * it.start;
-                    long outputSamples = outputRate * it.length;
+                    long startOutput = sampleRate * it.start;
+                    long outputSamples = sampleRate * it.length;
                     // logger_base.debug("    Sample Output Start %ld-%ld [%ld].", startOutput, startOutput + outputSamples - 1, outputSamples);
                     wxASSERT(startOutput + outputSamples - 1 <= totalSamples);
                     long startSample = audio->GetRate() * it.sourceoffset;
@@ -9697,13 +9804,26 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
                     it = 1.0;
             }
 
+#ifdef __WXOSX__
+            // Cannot generate MP3's, change to AAC/m4a (which has better quality anyway)
+            wxFileName fn = targetFile;
+            if (fn.GetExt() == "mp3") {
+                fn.SetExt("m4a");
+                targetFile = fn.GetFullPath();
+            }
+#endif
+
             if (FileExists(targetFile)) {
                 if (wxMessageBox(targetFile.GetFullPath() + " already exists. Do you want to overwrite it?", "Replace", wxYES_NO | wxCENTRE, this) == wxNO) {
                     wxFileDialog fd(this,
                                     "Choose filename to save the audio as.",
                                     targetFile.GetPath(),
                                     targetFile.GetName(),
-                                    "MP3 Files|*.mp3",
+#ifdef __WXOSX__
+                                    "Audio Files|*.m4a",
+#else
+                                    "Audio Files|*.mp3;*.m4a",
+#endif
                                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
                     if (fd.ShowModal() == wxID_OK) {
@@ -9716,7 +9836,11 @@ void xLightsFrame::OnMenuItem_PrepareAudioSelected(wxCommandEvent& event)
             }
             SetStatusText("Saving output file.");
 
-            if (!AudioManager::CreateAudioFile(left, right, targetFile.GetFullPath(), outputRate)) {
+            if (!AudioManager::EncodeAudio(left,
+                               right,
+                               sampleRate,
+                               targetFile.GetFullPath(),
+                               firstAudio)) {
                 wxMessageBox("Error creating audio file. See log for details.");
                 SetStatusText("Audio file creation failed.");
             } else {
@@ -9747,6 +9871,10 @@ void xLightsFrame::SetSuppressFadeHints(bool b)
 {
     mSuppressFadeHints = b;
     mainSequencer->PanelEffectGrid->Refresh();
+}
+
+void xLightsFrame::SetDisableKeyAcceleration(bool b) {
+    _disableKeyAcceleration = b;
 }
 
 void xLightsFrame::SetSuppressColorWarn(bool b)
@@ -9797,6 +9925,16 @@ void xLightsFrame::SetLinkedControllerUpload(const wxString& e)
     config->Write("xLightsLinkedControllerUpload", _linkedControllerUpload);
     config->Flush();
     logger_base.info("Linked controller upload set to %s", (const char*)_linkedControllerUpload.c_str());
+}
+
+void xLightsFrame::SetRenameModelAliasPromptBehavior(const wxString& e)
+{
+    static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+    _aliasRenameBehavior = e;
+    wxConfigBase* config = wxConfigBase::Get();
+    config->Write("xLightsModelRename", _aliasRenameBehavior);
+    config->Flush();
+    logger_base.info("Rename Alias Prompt Behavior set to %s", (const char*)_aliasRenameBehavior.c_str());
 }
 
 void xLightsFrame::CollectUserEmail()
@@ -9976,6 +10114,30 @@ void xLightsFrame::OnMenuItem_ExportControllerConnectionsSelected(wxCommandEvent
     lxw_format* format = workbook_add_format(workbook);
     format_set_border(format, LXW_BORDER_THIN);
 
+    lxw_format* sr1_format = workbook_add_format(workbook);
+    format_set_bg_color(sr1_format, 0x99FF99);
+    format_set_border(sr1_format, LXW_BORDER_THIN);
+
+    lxw_format* sr2_format = workbook_add_format(workbook);
+    format_set_bg_color(sr2_format, 0xB896FF);
+    format_set_border(sr2_format, LXW_BORDER_THIN);
+
+    lxw_format* sr3_format = workbook_add_format(workbook);
+    format_set_bg_color(sr3_format, 0xFFC996);
+    format_set_border(sr3_format, LXW_BORDER_THIN);
+
+    lxw_format* sr4_format = workbook_add_format(workbook);
+    format_set_bg_color(sr4_format, 0x80FFFF);
+    format_set_border(sr4_format, LXW_BORDER_THIN);
+
+    lxw_format* sr5_format = workbook_add_format(workbook);
+    format_set_bg_color(sr5_format, 0xFF85FF);
+    format_set_border(sr5_format, LXW_BORDER_THIN);
+
+    lxw_format* sr6_format = workbook_add_format(workbook);
+    format_set_bg_color(sr6_format, 0xFFFF85);
+    format_set_border(sr6_format, LXW_BORDER_THIN);
+
     int row = 0;
     std::map<int, double> _col_widths;
 
@@ -9996,6 +10158,34 @@ void xLightsFrame::OnMenuItem_ExportControllerConnectionsSelected(wxCommandEvent
             for (auto const& column : line) {
                 if (column.empty()) {
                     continue;
+                }
+                if (column.find("Remote A") != std::string::npos ||
+                    column.find("Remote G") != std::string::npos ||
+                    column.find("Remote M") != std::string::npos) {
+                    lformat = sr1_format;
+                }
+                if (column.find("Remote B") != std::string::npos ||
+                    column.find("Remote H") != std::string::npos ||
+                    column.find("Remote N") != std::string::npos) {
+                    lformat = sr2_format;
+                }
+                if (column.find("Remote C") != std::string::npos ||
+                    column.find("Remote I") != std::string::npos ||
+                    column.find("Remote O") != std::string::npos) {
+                    lformat = sr3_format;
+                }
+                if (column.find("Remote D") != std::string::npos ||
+                    column.find("Remote J") != std::string::npos ||
+                    column.find("Remote P") != std::string::npos) {
+                    lformat = sr4_format;
+                }
+                if (column.find("Remote E") != std::string::npos ||
+                    column.find("Remote K") != std::string::npos) {
+                    lformat = sr5_format;
+                }
+                if (column.find("Remote F") != std::string::npos ||
+                    column.find("Remote L") != std::string::npos) {
+                    lformat = sr6_format;
                 }
                 worksheet_write_string(worksheet, row, col, column.c_str(), lformat);
                 double width = column.size() + 1.3; // estimate column width

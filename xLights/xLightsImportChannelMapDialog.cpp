@@ -437,29 +437,29 @@ const long xLightsImportChannelMapDialog::ID_TREELISTCTRL1 = wxNewId();
 const long xLightsImportChannelMapDialog::ID_CHOICE = wxNewId();
 
 //(*IdInit(xLightsImportChannelMapDialog)
-const long xLightsImportChannelMapDialog::ID_SPINCTRL1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKBOX1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKBOX11 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKBOX4 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKBOX2 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_STATICTEXT_BLEND_TYPE = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKBOX3 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON_IMPORT_OPTIONS = wxNewId();
-const long xLightsImportChannelMapDialog::ID_CHECKLISTBOX1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_STATICTEXT2 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_TEXTCTRL2 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON3 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON4 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON6 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON5 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_BUTTON2 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_PANEL1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_STATICTEXT1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_TEXTCTRL1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_LISTCTRL1 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_PANEL2 = wxNewId();
-const long xLightsImportChannelMapDialog::ID_SPLITTERWINDOW1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_SPINCTRL1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKBOX1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKBOX11 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKBOX4 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKBOX2 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_STATICTEXT_BLEND_TYPE = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKBOX3 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON_IMPORT_OPTIONS = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_CHECKLISTBOX1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_STATICTEXT2 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_TEXTCTRL2 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON3 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON4 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON6 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON5 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_BUTTON2 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_PANEL1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_STATICTEXT1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_TEXTCTRL1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_LISTCTRL1 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_PANEL2 = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_SPLITTERWINDOW1 = wxNewId();
 //*)
 
 const long xLightsImportChannelMapDialog::ID_MNU_SELECTALL = wxNewId();
@@ -565,9 +565,9 @@ xLightsImportChannelMapDialog::xLightsImportChannelMapDialog(wxWindow* parent, c
     Button_AutoMap = new wxButton(Panel1, ID_BUTTON5, _("Auto Map"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON5"));
     FlexGridSizer2->Add(Button_AutoMap, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     FlexGridSizer2->Add(-1,-1,1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    Button01 = new wxButton(Panel1, ID_BUTTON1, _("Load Mapping"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
+    Button01 = new wxButton(Panel1, ID_BUTTON1, _("Load Map"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
     FlexGridSizer2->Add(Button01, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-    Button02 = new wxButton(Panel1, ID_BUTTON2, _("Save Mapping"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON2"));
+    Button02 = new wxButton(Panel1, ID_BUTTON2, _("Save Map"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON2"));
     FlexGridSizer2->Add(Button02, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
     Sizer1->Add(FlexGridSizer2, 1, wxALL|wxEXPAND, 0);
     Panel1->SetSizer(Sizer1);
@@ -605,6 +605,7 @@ xLightsImportChannelMapDialog::xLightsImportChannelMapDialog(wxWindow* parent, c
     Connect(ID_LISTCTRL1, wxEVT_COMMAND_LIST_ITEM_SELECTED, (wxObjectEventFunction)&xLightsImportChannelMapDialog::OnListCtrl_AvailableItemSelect);
     Connect(ID_LISTCTRL1, wxEVT_COMMAND_LIST_ITEM_ACTIVATED, (wxObjectEventFunction)&xLightsImportChannelMapDialog::OnListCtrl_AvailableItemActivated);
     Connect(ID_LISTCTRL1, wxEVT_COMMAND_LIST_COL_CLICK, (wxObjectEventFunction)&xLightsImportChannelMapDialog::OnListCtrl_AvailableColumnClick);
+    Connect(wxID_ANY, wxEVT_CLOSE_WINDOW, (wxObjectEventFunction)&xLightsImportChannelMapDialog::OnClose);
     //*)
 
     Connect(ID_CHECKLISTBOX1, wxEVT_CONTEXT_MENU, (wxObjectEventFunction)&xLightsImportChannelMapDialog::RightClickTimingTracks);
@@ -934,7 +935,7 @@ void xLightsImportChannelMapDialog::PopulateAvailable(bool ccr)
     }
 
     _sortOrder = 1;
-    
+
     ListCtrl_Available->SortItems(MyCompareFunctionAscName, (wxIntPtr)CheckBox_MapCCRStrand->GetValue());
     ListCtrl_Available->ShowSortIndicator(0, true);
 
@@ -1170,7 +1171,7 @@ xLightsImportModelNode* xLightsImportChannelMapDialog::TreeContainsModel(std::st
 void xLightsImportChannelMapDialog::LoadMapping(wxCommandEvent& event)
 {
     if (_dirty) {
-        if (wxMessageBox("Are you sure you don't want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxNO) {
+        if (wxMessageBox("Are you sure you want to leave WITHOUT saving your mapping changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxNO) {
             return;
         }
     }
@@ -1810,7 +1811,7 @@ wxDataViewItem xLightsImportChannelMapDialog::GetPriorTreeItem(const wxDataViewI
 void xLightsImportChannelMapDialog::OnButton_OkClick(wxCommandEvent& event)
 {
     if (_dirty) {
-        if (wxMessageBox("Are you sure you want to exit WITHOUT saving your mapping changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
+        if (wxMessageBox("Are you sure you want to leave WITHOUT saving your mapping changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
             EndDialog(wxID_OK);
         }
     } else {
@@ -1821,7 +1822,7 @@ void xLightsImportChannelMapDialog::OnButton_OkClick(wxCommandEvent& event)
 void xLightsImportChannelMapDialog::OnButton_CancelClick(wxCommandEvent& event)
 {
     if (_dirty) {
-        if (wxMessageBox("Are you sure you dont want to save your changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
+        if (wxMessageBox("Are you sure you want to cancel WITHOUT saving your mapping changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
             EndDialog(wxID_CANCEL);
         }
 
@@ -2364,20 +2365,20 @@ void xLightsImportChannelMapDialog::DoAutoMap(
                         //            strand->_mapping = ListCtrl_Available->GetItemText(j) + "/" + strand->_strand;
                         //            strand->_mappingExists = true;
                         //        }
-                                //for (unsigned int m = 0; m < strand->GetChildCount(); ++m) {
-                                //    auto node = strand->GetNthChild(m);
-                                //    if (node != nullptr) {
-                                //        if (node->_mapping.empty()) {
-                                //            if (lambda_node(model->_model + "/" + strand->_strand + "/" + node->_node, availName, extra1, extra2, aliases)) {
-                                //                // matched to the node level
-                                //                node->_mapping = ListCtrl_Available->GetItemText(j);
-                                //                node->_mappingExists = true;
-                                //            }
-                                //        }
-                                //    }
-                                //}
-                       //     }
-                      //  }
+                        //        for (unsigned int m = 0; m < strand->GetChildCount(); ++m) {
+                        //            auto node = strand->GetNthChild(m);
+                        //            if (node != nullptr) {
+                        //                if (node->_mapping.empty()) {
+                        //                    if (lambda_node(model->_model + "/" + strand->_strand + "/" + node->_node, availName, extra1, extra2, aliases)) {
+                        //                        // matched to the node level
+                        //                        node->_mapping = ListCtrl_Available->GetItemText(j);
+                        //                        node->_mappingExists = true;
+                        //                    }
+                        //                }
+                        //            }
+                        //        }
+                        //     }
+                        //  }
                     }
                 }
             }
@@ -2706,13 +2707,34 @@ void xLightsImportChannelMapDialog::OnButton_UpdateAliasesClick(wxCommandEvent& 
     _dataModel->GetChildren(wxDataViewItem(0), models);
     for (size_t i = 0; i < models.size(); ++i) {
         xLightsImportModelNode* m = _dataModel->GetNthChild(i);
-        if (m->HasMapping()) xlights->GetModel(m->_model)->AddAlias(m->_mapping);
+        if (m->HasMapping() && !m->_mapping.empty()) {
+            xlights->GetModel(m->_model)->AddAlias(m->_mapping);
+        }
         wxDataViewItemArray strands;
         _dataModel->GetChildren(models[i], strands);
         for (size_t j = 0; j < strands.size(); ++j) {
             xLightsImportModelNode* astrand = (xLightsImportModelNode*)strands[j].GetID();
-            if (astrand->HasMapping()) xlights->GetModel((astrand->_model + "/" + astrand->_strand))->AddAlias(astrand->_mapping);
+            if (astrand->HasMapping() && !astrand->_mapping.empty()) {
+                auto sm0 = Split(astrand->_mapping, '/');
+                if ((sm0[0] != m->_mapping) || ((sm0.size() > 1) && (sm0[1] != astrand->_strand))) {
+                    auto sm = xlights->GetModel((astrand->_model + "/" + astrand->_strand));
+                    if (sm != nullptr)
+                        sm->AddAlias(astrand->_mapping);
+                }
+            }
         }
     }
     xlights->SetStatusText(_("Update Aliases Done."));
+}
+
+void xLightsImportChannelMapDialog::OnClose(wxCloseEvent& event)
+{
+    if (_dirty) {
+        if (wxMessageBox("Are you sure you want to exit WITHOUT saving your mapping changes for future imports?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
+            EndDialog(wxID_CANCEL);
+        }
+
+    } else {
+        EndDialog(wxID_CANCEL);
+    }
 }

@@ -11,6 +11,132 @@ Issue Tracker is found here: www.github.com/xLightsSequencer/xLights/issues
 
 XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
+2024.17 October 14, 2024
+    - change(dkulp)         MacOS builds now require MacOS 11 or newer
+    - enh (dkulp)           Resolve hostnames in parallel at startup, much faster startup and FPP Connect
+    - enh (derwin12)        Add key bindings for Jukebox
+    - enh (derwin12)        Add key bindings for increase/descrease speed, prev/next tags
+    - enh (derwin12)        Optionally reverse submodels when reversing models
+    - enh (thekev)          Add support for default gamma with Experience controllers
+    - enh (dkulp)           FSEQ save - allow using more compression blocks for larger channel count sequences
+    - enh (derwin12)        Add validation of in/out fade times
+    - enh (dkulp)           More updates for small waveform time/selection display
+    - enh (scott)           Add support for Wasatch controllers
+    - bug (derwin12)        Fix display of timeline tags, fixes flood of error messages in logs
+    - bug (derwin12)        Fix crash when updating aliases on Strand mappings
+    - bug (scott)           Fix import of "old" moving head models
+    - bug (scott)           Fix HinksPix audio exporting
+    - bug (scott)           Fix DMX moving head advanced export missing parameters
+    - bug (derwin12)        Fix bug flagging versions when importing sequences from the same version
+    - bug (dkulp)           Fix crash on MacOS if monitor with a running preview is disconnected
+    - bug (derwin12)        Fix looping replay of selection not working with audio
+    - bug (dkulp)           Fix crashes on layout panel if protocol not set
+    - bug (Kyle Grymonprez) Fix "Open Base Show Directory" not working
+2024.16 September 18, 2024
+    - enh (derwin12)        Add copy model including submodels right click option
+    - enh (Kyle Grymonprez) Disable prompting for alias saving of newly generated models by default
+    - enh (Kyle Grymonprez) Node Layout: changing the background colors for dark mode
+    - enh (dkulp)           Make sure we have access to media directories, re-prompt if required
+    - enh (dkulp)           Optimize the init/cleanup of CandleEffect, particularly when applied to large groups
+    - enh (dkulp)           If submodel buffer is vertial, use left/col/right labels
+    - enh (derwin12)        Add RGB support to Image Model
+    - enh (derwin12/dkulp)  Various updates to Time Display if Small Waveform is used
+    - enh (derwin12)        Save Small Waveform preference
+    - enh (derwin12)        Make various abandon messages consistent
+    - enh (keith)           Add F-Prop as a dummy controller
+    - enh (scott)           Visualizer - change export from csv to xlsx and add coloring/formatting
+    - enh (scott)           Visualizer - add gamma
+    - enh (derwin12)        Import Dialog - verify imported sequence framerate and xLights version
+    - enh (scott)           SubModels Dialog: add import of submodels from another layout
+    - enh (scott)           Faces Dialog: add clear selected rows
+    - enh (scott)           States Dialog: add clear, fix validation on drag
+    - enh (scott)           States Dialog: add import from Vendor Dialog downloads
+    - enh (kylegrymonprez)  DDP: Controller config can mandate to not support "Keep Channel Numbers"
+    - enh (scott)           State Effect: Add fading
+    - enh (keith)           Allow setting serial port speed for Renard (Falcon controllers)
+    - enh (scott)           Remember position of State Dialog
+    - bug (MrPierreB)       Fix moving head effect to not reset effects when "None" selected
+    - bug (scott)           Fix Fan Effect: Fan Scale to Buffer giving unexpected results in some cases
+    - bug (dkulp)           Fix: blure/zoom on node level effects
+    - bug (dkulp)           FPP Connect: fix the HDMI connector index for FPP8
+    - bug (scott)           Experience Controllers: fix gamma rounding
+    - bug (keith)           Fix single channel matrix displaying in wrong location
+    - bug (scott)           WLED: Fix WRGB upload
+    - bug (derwin12)        Retain Warp settings when copying
+    - bug (derwin12)        Disable Update button for Base Showfolder
+    - bug (scott)           Hide Individual Start Channels for Cube Model
+    - bug (scott)           Experience Controllers: fix single channel models
+    - bug (Kyle Grymonprez) Fix crash on old DMX model
+2024.15 August 22, 2024
+    - enh (kylegrymonprez)  Add ability to set the alias behavior for renaming models
+    - enh (kylegrymonprez)  Add FPP Connect button to setup tab
+    - enh (scott)           Allow overriding named color pallets
+    - enh (scott)           Add face definition name to check sequence for missing pictures
+    - enh (scott)           Add Set Palette Name
+    - enh (scott)           Galaxy Effect - add scale to buffer
+    - enh (derwin12)        Warp Effect - Add Flip option
+    - enh (sidelights)      Single Strand Effect - add additional fade types
+    - enh (cybercop23)      Allow animations for the Model Viewer
+    - enh (PeteMathews)     Add support for BaldrickDMX board
+    - enh (jasonsomers)     Add support for new variant of RGB2Go-Duo2Go
+    - enh (dkulp)           Skull Model - generate node names for color channels and eye servos
+    - enh (dkulp)           Detect when Show Directory, FSEQ Directory, or Backup directory are unwritable and re-prompt
+    - enh (cybercop23)      Add pre/post silence to media
+    - enh (derwin12)        Add summary to Check Sequence
+    - bug (scott)           Fix ESPixelStickv4 DMX upload
+    - bug (derwin12)        Fix inconsitent paste behavior with timing tracks selected
+    - bug (scott)           Fix State Dialog buttons being too squished
+    - bug (keith)           Don't allow saving invalid states in State Dialog
+    - bug (derwin12)        Allow some larger buffers that were restricting some rendering
+    - bug (derwin12/dkulp)  Fix status bar height on HiDPI windows displays
+    - bug (dkulp)           Make sure temp directory is properly cleaned after loading xsqz files
+    - bug (dkulp)           More fixes for Mac xsqz icons
+    - bug (derwin12)        Copy/Paste for AC effects was clearing wrong row
+    - bug (derwin12)        Avoid single dot Ripple outlines
+    - bug (scott)           Fix problems with uploading proxies to FPP
+    - bug (keith)           Fix some issues with "rubber band" selection of effects and timings
+    - bug (scott)           Fix loading some new xmodel formats
+    - bug (dkulp)           Fix upload of virtualdisplaymap if 2d preview uses 0 for center
+    - bug (cybercop23)      Fix some crashes when  creating aliases from mappings
+    - bug (keith)           Fix labels in Matrix Dialog
+    - bug (cybercop23)      Fix Moving Head button hightlight color for light mode
+    - bug (scott)           Fix FPP upload for single channel model types
+    - bug (scott)           Fix DDP channel number for Genius Pro DMX output
+2024.14 August 5, 2024
+    - enh (scott)       Added Scale to Buffer to Fan Effect, Radius 1 and 2 become Percentage values(100=100% of buffer) when enabled
+    - enh (keith)       Add key bindings to switch between timing tracks, unselect all timing tracks
+    - enh (dkulp)       Update VirtualMatrix upload to FPP8 to use HDMI-A-# and not fb#
+    - enh (dkulp)       Add support for PWM ports to visualizer
+    - enh (dkulp)       Add upload for PWM ports to FPP8
+    - enh (cybercop23)  Add option to bulk edit groups Preview
+    - enh (derwin12)    Text Effect - Add Center function for XLFonts and No Repeat
+    - enh (keith)       Add LB1908 to the pixel type list
+    - enh (keith)       Fix "Prepare Audio" to create proper MP3 files (Windows/Linux)
+    - enh (dan)         Update "Prepare Audio" to create m4a/AAC fles. Use AudioToolbox AAC encoder on MacOS.
+    - enh (dan)         Update "Prepare Audio" to copy metadata/tags from source audio to target to no lose that information
+    - enh (keith)       Add filter text to value curve timing track events
+    - enh (derwin12)    Show colors from Color Wheel in MH Preset
+    - enh (scott)       DMX Model Presets to DMX Fixed Channels and added support Moving Head Effect
+    - enh (dkulp)       Servo models can now have "controller properties" (min/max/reverse/etc...) set on them to upload to the controller
+    - enh (derwin12)    Add validation to the preset channel values
+    - enh (keith)       Add ability to have associated models within an xmodel file
+    - enh (derwin12)    Add the generate node names ability to the New Moving Head Model
+    - enh (dkulp)       Add the generate node names ability to the Skull Model
+    - enh (keith)       New xsqz icon
+    - enh (derwin12)    Ruse existing shader files when doing a File Cleanup
+    - enh (keith)       Add falcon PiCap v2
+	- enh (keith)		Add some xlights model support to matrices and virtual matrices in xSchedule
+	- enh (keith)		Add the ability to hard code a timecode offset for each step in a playlist for ultimate control over timecode
+    - bug (derwin12)    Add all layers for the custom model dialog
+    - bug (keith)       Fix sequences packaged in subfolders not loading in xsqz
+    - bug (dkulp)       Fix issues with canvas mode effects and DMX buffers
+    - bug (derwin12)    Catch overly large buffer and limit them
+    - bug (keith)       Loop effects outputs a blank frame on loop
+    - bug (keith)       Fix export of model can crash if file create fails.
+    - bug (keith)       If model import fails then delete the model rather than leaving a half constructed model behind
+    - bug (keith)       Fix missing hinkspix data in tooltip in visualiser
+    - bug (dkulp)       Don't register to handle .zip files
+    - bug (scott)       Fix duplicate Smart Receiver pixel count on Genius Controllers
 2024.13 July 14, 2024
     - enh (scott)       Added "auto shutter" to Moving Head Effect for Color Wheels
     - enh (PeteMatthews) ILightThat controllers: Set universe size in config, add Switchy

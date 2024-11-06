@@ -473,8 +473,9 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
         }
 
         // if fseq had media update xml
-        if (!CurrentSeqXmlFile->HasAudioMedia() && FileExists(media_file) && wxFileName(media_file).IsFileReadable()) {
-            CurrentSeqXmlFile->SetMediaFile(GetShowDirectory(), media_file.GetFullPath(), true);
+        wxString mfFP = media_file.GetFullPath();
+        if (!mfFP.empty() && !CurrentSeqXmlFile->HasAudioMedia() && FileExists(mfFP) && media_file.IsFileReadable()) {
+            CurrentSeqXmlFile->SetMediaFile(GetShowDirectory(), mfFP, true);
             int length_ms = CurrentSeqXmlFile->GetMedia()->LengthMS();
             CurrentSeqXmlFile->SetSequenceDurationMS(length_ms);
             playAnimation = false;
@@ -1175,6 +1176,7 @@ void MapXLightsEffects(Element* target,
         target->AddEffectLayer();
     }
     for (size_t x = 0; x < el->GetEffectLayerCount(); ++x) {
+        target->GetEffectLayer(x)->SetLayerName(el->GetEffectLayer(x)->GetLayerName());
         MapXLightsEffects(target->GetEffectLayer(x), el->GetEffectLayer(x), mapped, eraseExisting, xsqPkg, lock, mapping);
     }
 }
@@ -1204,6 +1206,12 @@ void xLightsFrame::ImportXLights(const wxFileName& filename, std::string const& 
     se.LoadSequencerFile(xlf, GetShowDirectory(), true);
     xlf.AdjustEffectSettingsForVersion(se, this);
 
+    if (!IsVersionOlder(xlights_version_string, xlf.GetVersion())) {
+        wxMessageBox(wxString::Format("The import sequence is using a newer version than you are currently using.  %s", xlf.GetVersion().ToStdString().c_str()));
+    }
+    if (_sequenceElements.GetFrequency() < xlf.GetFrequency()) {
+        wxMessageBox(wxString::Format("The import sequence is using a higher FPS than you are currently using. %d FPS", xlf.GetFrequency()));
+    }
     bool supportsModelBlending = xlf.supportsModelBlending();
 
     std::vector<Element*> elements;

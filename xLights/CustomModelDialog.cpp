@@ -626,24 +626,25 @@ void CustomModelDialog::Setup(CustomModel* m)
             wxFont font = grid->GetDefaultCellFont();
             SetGridSizeForFont(font);
         }
-    }
-    else {
-
-        for (auto layer = 0; layer < data.size(); ++layer) {
+    } else {
+        for (auto layer = 0; layer < m->GetCustomDepth(); ++layer) {
             AddPage();
-            //ResizeCustomGrid();
-            auto grid = GetLayerGrid(layer);
 
-            for (auto row = 0; row < data[0].size(); ++row) {
-                for (auto col = 0; col < data[0][0].size(); col++) {
-                    if (data[layer][row][col] > 0) {
-                        grid->SetCellValue(row, col, std::to_string(data[layer][row][col]));
+            if (layer < data.size()) {
+
+                auto grid = GetLayerGrid(layer);
+
+                for (auto row = 0; row < data[0].size(); ++row) {
+                    for (auto col = 0; col < data[0][0].size(); col++) {
+                        if (data[layer][row][col] > 0) {
+                            grid->SetCellValue(row, col, std::to_string(data[layer][row][col]));
+                        }
                     }
                 }
-            }
 
-            wxFont font = grid->GetDefaultCellFont();
-            SetGridSizeForFont(font);
+                wxFont font = grid->GetDefaultCellFont();
+                SetGridSizeForFont(font);
+            }
         }
     }
 
@@ -676,7 +677,7 @@ void CustomModelDialog::Setup(CustomModel* m)
     //        GridCustom->SetDefaultEditor(reditor);
 
     // neither does this
-    //for (int r = 0; r < GridCustom->GetNumberRows(); ++r)
+    // for (int r = 0; r < GridCustom->GetNumberRows(); ++r)
     //{
     //    for (int c = 0; c < GridCustom->GetNumberCols(); ++c)
     //    {
@@ -1198,10 +1199,8 @@ void CustomModelDialog::OnCheckBox_RearViewClick(wxCommandEvent& event)
 
 void CustomModelDialog::OnButtonCancelClick(wxCommandEvent& event)
 {
-    if (_changed)
-    {
-        if (wxMessageBox("Abandon changes to this custom model?", "Abandon changes", wxYES_NO, this) == wxNO)
-        {
+    if (_changed) {
+        if (wxMessageBox("Are you sure you want to discard your current custom model changes?", "Are you sure?", wxYES_NO | wxCENTER, this) == wxNO) {
             return;
         }
     }
@@ -1724,10 +1723,49 @@ void CustomModelDialog::Reverse()
             }
         }
     }
+    if (wxMessageBox("Do you want to also reverse the submodels?\nThere is no way to undo it - other than to reverse again", "Are you sure?", wxYES_NO | wxCENTER, this) == wxYES) {
+        ReverseSubmodels();
+    }
 
     UpdateBackground();
     UpdatePreview();
     ValidateWindow();
+}
+
+void CustomModelDialog::ReverseSubmodels() {
+    long max = _model->GetNodeCount() + 1;
+
+    for (auto sm : _model->GetSubModels()) {
+        wxXmlNode* root = sm->GetModelXml();
+
+        if (root->GetName() == "subModel") {
+            const bool isRanges = root->GetAttribute("type", "") == "ranges";
+            if (isRanges) {
+                wxArrayString rows;
+                int line = 0;
+                while (root->HasAttribute(wxString::Format("line%d", line))) {
+                    auto l = root->GetAttribute(wxString::Format("line%d", line), "");
+                    wxString oldnodes = l;
+                    auto oldNodeArray = wxSplit(ExpandNodes(oldnodes), ',');
+                    wxArrayString newNodeArray;
+                    for (auto const& node : oldNodeArray) {
+                        long val;
+                        if (node.ToCLong(&val) == true) {
+                            long newVal = max - val;
+                            if (val == 0) {
+                                newVal = 0;
+                            }
+                            newNodeArray.Add( wxString::Format("%ld", newVal) );
+                        }
+                    }
+                    l = CompressNodes(wxJoin(newNodeArray, ','));
+                    root->DeleteAttribute(wxString::Format("line%d", line));
+                    root->AddAttribute(wxString::Format("line%d", line), l);
+                    line++;
+                }
+            }
+        }
+    }
 }
 
 bool CustomModelDialog::CheckScale(std::list<wxPoint>& points, float scale) const

@@ -45,6 +45,9 @@
 #include "effects/VideoEffect.h"
 #include "models/Model.h"
 
+#include <cmath>
+#include <limits>
+
 #include <log4cpp/Category.hh>
 
 #define EFFECT_RESIZE_NO 0
@@ -99,6 +102,7 @@ const long EffectsGrid::ID_GRID_MNU_ALIGN_CENTERPOINTS = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_MATCH_DURATION = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_START_TIMES_SHIFT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_END_TIMES_SHIFT = wxNewId();
+const long EffectsGrid::ID_GRID_MNU_ALIGN_TO_TIMING_MARK = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_SPLIT_EFFECT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_DUPLICATE_EFFECT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_CREATE_TIMING_FROM_EFFECT = wxNewId();
@@ -364,7 +368,7 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
             menu_paste->Enable(false);
         }
 
-        mDropStartTimeMS = mTimeline->GetRawTimeMSfromPosition(event.GetX());
+        mRightClickStartTimeMS = mTimeline->GetRawTimeMSfromPosition(event.GetX());
         wxMenuItem* menu_split = mnuLayer.Append(ID_GRID_MNU_SPLIT_EFFECT, "Split");
         if (mSelectedEffect == nullptr || MultipleEffectsSelected() || (mSelectedEffect->GetEndTimeMS() - mSelectedEffect->GetStartTimeMS() <= mSequenceElements->GetFrameMS())) {
             menu_split->Enable(false);
@@ -405,6 +409,7 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
         wxMenuItem* menu_align_match_duration = mnuAlignment->Append(ID_GRID_MNU_ALIGN_MATCH_DURATION, "Align Match Duration");
         wxMenuItem* menu_align_start_times_shift = mnuAlignment->Append(ID_GRID_MNU_ALIGN_START_TIMES_SHIFT, "Shift Align Start Times");
         wxMenuItem* menu_align_end_times_shift = mnuAlignment->Append(ID_GRID_MNU_ALIGN_END_TIMES_SHIFT, "Shift Align End Times");
+        wxMenuItem* menu_align_to_timing_mark = mnuAlignment->Append(ID_GRID_MNU_ALIGN_TO_TIMING_MARK, "Align To Closest Timing Mark");
         mnuAlignment->Connect(wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&EffectsGrid::OnGridPopup, nullptr, this);
         mnuLayer.AppendSubMenu(mnuAlignment, "Alignment");
         if ((mSelectedEffect == nullptr) || !MultipleEffectsSelected()) {
@@ -415,6 +420,10 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
             menu_align_match_duration->Enable(false);
             menu_align_start_times_shift->Enable(false);
             menu_align_end_times_shift->Enable(false);
+        }
+
+        if ((mSelectedEffect == nullptr && !MultipleEffectsSelected()) || GetActiveTimingElement() == nullptr) {
+            menu_align_to_timing_mark->Enable(false);
         }
 
         // Miscellaneous
@@ -764,6 +773,9 @@ void EffectsGrid::OnGridPopup(wxCommandEvent& event) {
     } else if (id == ID_GRID_MNU_ALIGN_END_TIMES_SHIFT) {
         logger_base.debug("OnGridPopup - ALIGN_END_TIMES_SHIFT");
         AlignSelectedEffects(EFF_ALIGN_MODE::ALIGN_END_TIMES_SHIFT);
+    } else if (id == ID_GRID_MNU_ALIGN_TO_TIMING_MARK) {
+        logger_base.debug("OnGridPopup - ID_GRID_MNU_ALIGN_TO_TIMING_MARK");
+        AlignSelectedEffectsToTimingMark();
     } else if (id == ID_GRID_MNU_CREATE_TIMING_FROM_EFFECT) {
         logger_base.debug("OnGridPopup - CREATE_TIMING_FROM_EFFECT");
         CreateTimingFromSelectedEffects();
@@ -772,6 +784,7 @@ void EffectsGrid::OnGridPopup(wxCommandEvent& event) {
         if (mSelectedEffect != nullptr) {
             long s = mSelectedEffect->GetStartTimeMS();
             long e = mSelectedEffect->GetEndTimeMS();
+            mDropStartTimeMS = mRightClickStartTimeMS;
             if (e - s > mSequenceElements->GetFrameMS()) {
                 auto el = mSelectedEffect->GetParentEffectLayer();
                 float splitf = mDropStartTimeMS; // (float)(e - s) / 2.0f;
@@ -1294,6 +1307,16 @@ void EffectsGrid::OnDropFiles(int x, int y, const wxArrayString& files) {
     }
 }
 
+bool EffectsGrid::IsTopModelVisible() {
+    Row_Information_Struct* topRow = mSequenceElements->GetVisibleRowInformation(mSequenceElements->GetNumberOfTimingRows());
+    return topRow->Index == mSequenceElements->GetNumberOfTimingRows();
+}
+
+bool EffectsGrid::IsMouseOverTiming(int y) {
+    int rowIndex = GetRow(y);
+    return rowIndex < mSequenceElements->GetNumberOfTimingRows();
+}
+
 void EffectsGrid::mouseMoved(wxMouseEvent& event) {
     if (!mIsInitialized || mSequenceElements == nullptr) {
         return;
@@ -1308,9 +1331,24 @@ void EffectsGrid::mouseMoved(wxMouseEvent& event) {
         Resize(event.GetX(), event.AltDown(), event.ControlDown());
         Draw();
     } else if (mDragging) {
-        mDragEndX = event.GetX();
-        mDragEndY = event.GetY();
-        UpdateSelectionRectangle();
+        // Only update Y when transferring between timing rows and model rows if the top model row is visible or the start point is in the same timing vs non timing as the new end
+        // This prevents unexpected elements being selected on rows between the top model row and the timing rows when the elasic
+        // band cross from timing to models
+        if ((IsMouseOverTiming(mDragEndY) && IsMouseOverTiming(event.GetY())) ||
+            (IsMouseOverTiming(event.GetY()) && IsMouseOverTiming(mDragStartY)) ||
+            (!IsMouseOverTiming(mDragEndY) && !IsMouseOverTiming(event.GetY())) ||
+            (!IsMouseOverTiming(event.GetY()) && !IsMouseOverTiming(mDragStartY)) ||
+            IsTopModelVisible()) {
+            mDragEndX = event.GetX();
+            mDragEndY = event.GetY();
+            UpdateSelectionRectangle();
+        }
+        else
+        {
+            // We still update X but not Y
+            mDragEndX = event.GetX();
+            UpdateSelectionRectangle();
+        }
         Draw();
     } else if (m_wheel_down) {
         if (event.Dragging()) {
@@ -4467,6 +4505,79 @@ void EffectsGrid::AlignSelectedEffects(EFF_ALIGN_MODE align_mode) {
     xlights->DoForceSequencerRefresh();
 }
 
+void EffectsGrid::AlignSelectedEffectsToTimingMark() {
+    auto* timing = GetActiveTimingElement();
+    if (nullptr == timing) {
+        return;
+    }
+    auto* tel = timing->GetEffectLayer(0);
+    if (nullptr == tel) {
+        return;
+    }
+    auto GetClosestMark = [&tel](int const timeMS) {
+        int closest = std::numeric_limits<int>::max();
+        int closest_MS = std::numeric_limits<int>::max();
+        for (int index = 0; index < tel->GetEffectCount(); index++) {
+            auto* tim_ef = tel->GetEffect(index);
+            auto const time_ms_st = std::abs(timeMS - tim_ef->GetStartTimeMS());
+            if (time_ms_st < closest) {
+                closest = time_ms_st;
+                closest_MS = tim_ef->GetStartTimeMS();
+            }
+            auto const time_ms_end = std::abs(timeMS - tim_ef->GetEndTimeMS());
+            if (time_ms_end < closest) {
+                closest = time_ms_end;
+                closest_MS = tim_ef->GetEndTimeMS();
+            }
+        }
+        return closest_MS;
+    };
+    mSequenceElements->get_undo_mgr().CreateUndoStep();
+    for (int i = 0; i < mSequenceElements->GetRowInformationSize(); i++) {
+        auto* el = mSequenceElements->GetEffectLayer(i);
+        for (int k = 0; k < 20; k++) {//crappy recursion
+            bool moved{ false };
+            for (auto* ef : el->GetEffects()) {
+                if (ef->GetSelected() != EFFECT_NOT_SELECTED) {
+                    auto const st = ef->GetStartTimeMS();
+                    auto const end = ef->GetEndTimeMS();
+                    auto const closest_st = GetClosestMark(st);
+                    auto const closest_end = GetClosestMark(end);
+                    if (closest_st == std::numeric_limits<int>::max() ||
+                        closest_end == std::numeric_limits<int>::max()) {
+                        continue;
+                    }
+                    if (closest_st == closest_end) { // skip if new start and end are the same
+                        continue;
+                    }
+                    if (closest_st == st && closest_end == end) { // skip if nothing changed
+                        continue;
+                    }
+                    auto const has_pre = el->HitTestEffectBetweenTime(closest_st, st);
+                    auto const has_post = el->HitTestEffectBetweenTime(end, closest_end);
+                    if (has_pre && has_post) { // skip if another effect in the way
+                        continue;
+                    }
+                    mSequenceElements->get_undo_mgr().CaptureEffectToBeMoved(ef->GetParentEffectLayer()->GetParentElement()->GetName(), ef->GetParentEffectLayer()->GetIndex(), ef->GetID(), st, end);
+                    if (!has_pre && closest_st != st) {
+                        ef->SetStartTimeMS(closest_st);
+                        moved = true;
+                    }
+                    if (!has_post && closest_end != end) {
+                        ef->SetEndTimeMS(closest_end);
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) {
+                break;
+            }
+        }
+    }
+
+    sendRenderDirtyEvent();
+}
+
 bool EffectsGrid::PapagayoEffectsSelected() const {
     for (int i = 0; i < mSequenceElements->GetVisibleRowInformationSize(); i++) {
         EffectLayer* el = mSequenceElements->GetVisibleEffectLayer(i);
@@ -4942,15 +5053,8 @@ Effect* EffectsGrid::Paste(const wxString& data, const wxString& pasteDataVersio
                 } else {
                     // force paste to top left of selection
                     mDropRow = std::min(mRangeStartRow, mRangeEndRow);
-                    int drop_end_row = mDropRow + rowstopaste - 1 + mSequenceElements->GetFirstVisibleModelRow();
-
-                    // This gets it to the right row ... but doesnt fix the right column so leaving it out until i can fix that
-                    // It isnt great the way it is ... but it is better than being inconsistent
-                    // if (mRangeCursorRow == mRangeEndRow)
-                    //{
-                    //    drop_row_offset -= selectedrows - 1;
-                    //}
-                    res = ACDraw(ACTYPE::OFF, ACSTYLE::NILSTYLEOVERRIDE, ACMODE::MODENIL, 0, 0, 0, mDropStartTimeMS, drop_end_time, mDropRow + mSequenceElements->GetFirstVisibleModelRow(), drop_end_row);
+                    const int drop_end_row = mDropRow + rowstopaste - 1;
+                    res = ACDraw(ACTYPE::OFF, ACSTYLE::NILSTYLEOVERRIDE, ACMODE::MODENIL, 0, 0, 0, mDropStartTimeMS, drop_end_time, mDropRow, drop_end_row);
                 }
             }
 
@@ -6755,7 +6859,7 @@ void EffectsGrid::CutModelEffects(int row_number, bool allLayers) {
     }
 }
 
-void EffectsGrid::CopyModelEffects(int row_number, bool allLayers) {
+void EffectsGrid::CopyModelEffects(int row_number, bool allLayers, bool incSubModels) {
     if (!allLayers) {
         mSequenceElements->UnSelectAllEffects();
         EffectLayer* effectLayer = mSequenceElements->GetVisibleEffectLayer(row_number);
@@ -6782,6 +6886,25 @@ void EffectsGrid::CopyModelEffects(int row_number, bool allLayers) {
         mSequenceElements->UnSelectAllEffects();
         for (int i = 0; i < e->GetEffectLayerCount(); i++) {
             e->GetEffectLayer(i)->SelectAllEffects();
+        }
+        if (incSubModels) {
+            ModelElement* me = dynamic_cast<ModelElement*>(e);
+            if (me == nullptr) {
+                SubModelElement* se = dynamic_cast<SubModelElement*>(e);
+                me = se->GetModelElement();
+            }
+            if (me != nullptr) {
+                for (size_t s = 0; s < me->GetSubModelCount(); ++s) {
+                    auto se = me->GetSubModel(s);
+                    if (se != nullptr) {
+                        for (int i = 0; i < se->GetEffectLayerCount(); ++i) {
+                            if (se->GetEffectLayer(i)->GetEffectCount() > 0) {
+                                se->GetEffectLayer(i)->SelectAllEffects();
+                            }
+                        }
+                    }
+                }
+            }
         }
         ((MainSequencer*)mParent)->CopySelectedEffects();
         mSequenceElements->UnSelectAllEffects();

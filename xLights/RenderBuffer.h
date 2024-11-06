@@ -47,6 +47,7 @@
 
 class AudioManager;
 class xLightsFrame;
+class DmxModel;
 enum class HEADER_INFO_TYPES;
 
 // eventually this will go in some header..
@@ -195,7 +196,7 @@ public:
         }
     }
 
-    void Set(xlColorVector& newcolors, xlColorCurveVector newcc)
+    void Set(const xlColorVector& newcolors, const xlColorCurveVector& newcc)
     {
         wxASSERT(newcolors.size() == newcc.size());
 
@@ -559,6 +560,7 @@ public:
     void CopyTempBufToPixels();
     void CopyPixelsToTempBuf();
     wxPoint GetMaxBuffer(const SettingsMap& SettingsMap) const;
+    void EnableFixedDMXChannels(const DmxModel* dmx);
 
     PaletteClass palette;
     bool _nodeBuffer = false;

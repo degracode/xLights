@@ -666,7 +666,8 @@
 														<object class="sizeritem">
 															<object class="wxButton" name="ID_BUTTON17" variable="Button_OpenBaseShowDir" member="yes">
 																<label>Open</label>
-																<handler function="OnButton_ChangeBaseShowDirClick" entry="EVT_BUTTON" />
+																<tooltip>Open the base show folder</tooltip>
+																<handler function="OnButton_OpenBaseShowDirClick" entry="EVT_BUTTON" />
 															</object>
 															<flag>wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL</flag>
 															<border>5</border>
@@ -758,6 +759,11 @@
 															<border>3</border>
 															<option>1</option>
 														</object>
+														<object class="spacer">
+															<flag>wxALL|wxEXPAND</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
 														<object class="sizeritem">
 															<object class="wxButton" name="ID_BUTTON9" variable="ButtonAddControllerSerial" member="yes">
 																<label>Add USB</label>
@@ -786,10 +792,24 @@
 															<border>3</border>
 															<option>1</option>
 														</object>
+														<object class="spacer">
+															<flag>wxALL|wxEXPAND</flag>
+															<border>5</border>
+															<option>1</option>
+														</object>
 														<object class="sizeritem">
 															<object class="wxButton" name="ID_BUTTON5" variable="ButtonDiscover" member="yes">
 																<label>Discover</label>
 																<handler function="OnButtonDiscoverClick" entry="EVT_BUTTON" />
+															</object>
+															<flag>wxALL|wxEXPAND</flag>
+															<border>3</border>
+															<option>1</option>
+														</object>
+														<object class="sizeritem">
+															<object class="wxButton" name="ID_BUTTON18" variable="ButtonFPPConnect" member="yes">
+																<label>FPP Connect</label>
+																<handler function="OnButtonFPPConnectClick" entry="EVT_BUTTON" />
 															</object>
 															<flag>wxALL|wxEXPAND</flag>
 															<border>3</border>

@@ -18,7 +18,11 @@
 #include "DMX/DmxColorAbilityCMY.h"
 #include "DMX/DmxColorAbilityRGB.h"
 #include "DMX/DmxColorAbilityWheel.h"
+#include "DMX/DmxPresetAbility.h"
+#include "DMX/DmxDimmerAbility.h"
+#include "DMX/DmxShutterAbility.h"
 #include "DMX/DmxMovingHeadAdv.h"
+#include "DMX/DmxMovingHead.h"
 #include "DMX/Mesh.h"
 #include "ThreePointScreenLocation.h"
 
@@ -89,6 +93,7 @@ constexpr auto DmxWhiteChannelAttribute = "DmxWhiteChannel";
 // DmxColorAbilityWheel Attributes
 constexpr auto DmxColorWheelChannelAttribute = "DmxColorWheelChannel";
 constexpr auto DmxDimmerChannelAttribute     = "DmxDimmerChannel";
+constexpr auto DmxColorWheelDelayAttribute   = "DmxColorWheelDelay";
 constexpr auto DmxColorWheelColorAttribute   = "DmxColorWheelColor";
 constexpr auto DmxColorWheelDMXAttribute     = "DmxColorWheelDMX";
 
@@ -104,6 +109,9 @@ constexpr auto DmxFixturelAttribute = "DmxFixture";
 constexpr auto DmxColorTypeAttribute = "DmxColorType";
 constexpr auto DmxBeamYOffsetAttribute = "DmxBeamYOffset";
 constexpr auto DmxBeamLengthAttribute = "DmxBeamLength";
+constexpr auto DmxBeamWidthAttribute = "DmxBeamWidth";//old MH model
+constexpr auto DmxStyleAttribute = "DmxStyle";        // old MH model
+constexpr auto HideBodyAttribute = "HideBody";        // old MH model
 
 // DmxMotor Attributes
 constexpr auto ChannelCoarseAttribute = "ChannelCoarse";
@@ -116,6 +124,19 @@ constexpr auto OrientHomeAttribute    = "OrientHome";
 constexpr auto SlewLimitAttribute     = "SlewLimit";
 constexpr auto ReverseAttribute       = "Reverse";
 constexpr auto UpsideDownAttribute    = "UpsideDown";
+
+// DmxPresetAbility Attributes
+constexpr auto DmxPresetChannelAttribute = "DmxPresetChannel";
+constexpr auto DmxPresetValueAttribute = "DmxPresetValue";
+constexpr auto DmxPresetDescAttribute = "DmxPresetDesc";
+
+// DmxShutterAbility Attributes
+constexpr auto DmxShutterChannelAttribute = "DmxShutterChannel";
+constexpr auto DmxShutterOpenAttribute = "DmxShutterOpen";
+constexpr auto DmxShutterOnValueAttribute = "DmxShutterOnValue";
+
+// DmxDimmerAbility Attributes
+constexpr auto MhDimmerChannelAttribute = "MhDimmerChannel";
 
 // Arch Attributes
 constexpr auto ZigZagAttribute = "ZigZag";
@@ -130,6 +151,7 @@ constexpr auto BrightnessAttribute = "Brightness";
 // Model Types
 constexpr auto ArchesType           = "Arches";
 constexpr auto DmxMovingHeadAdvType = "DmxMovingHeadAdv";
+constexpr auto DmxMovingHeadType = "DmxMovingHead";
 
 };
 
@@ -212,6 +234,7 @@ struct XmlSerializingVisitor : BaseObjectVisitor
     {
         node->AddAttribute(XmlNodeKeys::DmxColorWheelChannelAttribute, std::to_string(colors->GetWheelChannel()));
         node->AddAttribute(XmlNodeKeys::DmxDimmerChannelAttribute, std::to_string(colors->GetDimmerChannel()));
+        node->AddAttribute(XmlNodeKeys::DmxColorWheelDelayAttribute, std::to_string(colors->GetWheelDelay()));
         std::vector<WheelColor> settings = colors->GetWheelColorSettings();
         int index = 0;
         for (const auto& it : settings)
@@ -280,6 +303,30 @@ struct XmlSerializingVisitor : BaseObjectVisitor
         node->AddChild(mesh_node);
     }
 
+    void AddPresetAttributes(const DmxPresetAbility* preset_channels, wxXmlNode* node) {
+        if (!preset_channels) {
+            return;
+        }
+        auto const& settings = preset_channels->GetPresetSettings();
+        int index { 0 };
+        for (auto const& it : settings) {
+            node->AddAttribute(XmlNodeKeys::DmxPresetChannelAttribute + std::to_string(index), std::to_string(it.DMXChannel));
+            node->AddAttribute(XmlNodeKeys::DmxPresetValueAttribute + std::to_string(index), std::to_string(it.DMXValue));
+            node->AddAttribute(XmlNodeKeys::DmxPresetDescAttribute + std::to_string(index), it.Description);
+            ++index;
+        }
+    }
+
+    void AddShutterAbilityAttributes(const DmxShutterAbility shutter, wxXmlNode* node) {
+        node->AddAttribute(XmlNodeKeys::DmxShutterChannelAttribute, std::to_string(shutter.GetShutterChannel()));
+        node->AddAttribute(XmlNodeKeys::DmxShutterOpenAttribute, std::to_string(shutter.GetShutterThreshold()));
+        node->AddAttribute(XmlNodeKeys::DmxShutterOnValueAttribute, std::to_string(shutter.GetShutterOnValue()));
+    }
+
+    void AddDimmerAbilityAttributes(const DmxDimmerAbility dimmer, wxXmlNode* node) {
+        node->AddAttribute(XmlNodeKeys::MhDimmerChannelAttribute, std::to_string(dimmer.GetDimmerChannel()));
+    }
+
     void Visit(const ArchesModel &arch) override
     {
         wxXmlNode *archNode = new wxXmlNode(wxXML_ELEMENT_NODE, XmlNodeKeys::ModelNodeName);
@@ -308,6 +355,28 @@ struct XmlSerializingVisitor : BaseObjectVisitor
         AddMeshAttributes(reinterpret_cast<Mesh*>(moving_head.GetBaseMesh()), mhNode);
         AddMeshAttributes(reinterpret_cast<Mesh*>(moving_head.GetYokeMesh()), mhNode);
         AddMeshAttributes(reinterpret_cast<Mesh*>(moving_head.GetHeadMesh()), mhNode);
+        AddDimmerAbilityAttributes(moving_head, mhNode);
+        AddShutterAbilityAttributes(moving_head, mhNode);
+        AddPresetAttributes(moving_head.GetPresetAbility(), mhNode);
+        parentNode->AddChild(mhNode);
+    }
+
+    void Visit(const DmxMovingHead& moving_head) override {
+        wxXmlNode* mhNode = new wxXmlNode(wxXML_ELEMENT_NODE, XmlNodeKeys::ModelNodeName);
+        AddBaseObjectAttributes(moving_head, mhNode);
+        AddCommonModelAttributes(moving_head, mhNode);
+        AddModelScreenLocationAttributes(moving_head, mhNode);
+        AddColorAttributes(moving_head, mhNode);
+        mhNode->AddAttribute(XmlNodeKeys::DmxFixturelAttribute, moving_head.GetFixture());
+        mhNode->AddAttribute(XmlNodeKeys::DmxStyleAttribute, moving_head.GetDMXStyle());
+        mhNode->AddAttribute(XmlNodeKeys::DmxBeamLengthAttribute, std::to_string(moving_head.GetBeamLength()));
+        mhNode->AddAttribute(XmlNodeKeys::DmxBeamWidthAttribute, std::to_string(moving_head.GetBeamWidth()));
+        mhNode->AddAttribute(XmlNodeKeys::HideBodyAttribute, std::to_string(moving_head.GetHideBody()));
+        AddDmxMotorAttributes(reinterpret_cast<DmxMotor*>(moving_head.GetPanMotor()), mhNode);
+        AddDmxMotorAttributes(reinterpret_cast<DmxMotor*>(moving_head.GetTiltMotor()), mhNode);
+        AddDimmerAbilityAttributes(moving_head, mhNode);
+        AddShutterAbilityAttributes(moving_head, mhNode);
+        AddPresetAttributes(moving_head.GetPresetAbility(), mhNode);
         parentNode->AddChild(mhNode);
     }
 };
@@ -318,13 +387,12 @@ struct XmlDeserializingObjectFactory
     {
         auto type = node->GetAttribute(XmlNodeKeys::DisplayAsAttribute);
 
-        if (type == XmlNodeKeys::ArchesType)
-        {
+        if (type == XmlNodeKeys::ArchesType) {
             return DeserializeArches(new wxXmlNode(*node), xlights);
-        }
-        else if (type == XmlNodeKeys::DmxMovingHeadAdvType)
-        {
+        } else if (type == XmlNodeKeys::DmxMovingHeadAdvType) {
             return DeserializeDmxMovingHeadAdv(new wxXmlNode(*node), xlights);
+        } else if (type == XmlNodeKeys::DmxMovingHeadType) {
+            return DeserializeDmxMovingHead(new wxXmlNode(*node), xlights);
         }
 
         throw std::runtime_error("Unknown object type: " + type);
@@ -346,8 +414,24 @@ private:
 
     Model* DeserializeDmxMovingHeadAdv(wxXmlNode *node, xLightsFrame* xlights)
     {
-        Model *model;
-        model = new DmxMovingHeadAdv(node, xlights->AllModels, false);
+        Model *model = new DmxMovingHeadAdv(node, xlights->AllModels, false);
+
+        std::string name = node->GetAttribute("name");
+        wxString newname = xlights->AllModels.GenerateModelName(name);
+        model->SetProperty("name", newname, true);
+
+        // TODO: I'd like to get rid of this whole ImportModelChildren call but left it in the flow for now
+        float min_x = (float)(model->GetBaseObjectScreenLocation().GetLeft());
+        float max_x = (float)(model->GetBaseObjectScreenLocation().GetRight());
+        float min_y = (float)(model->GetBaseObjectScreenLocation().GetBottom());
+        float max_y = (float)(model->GetBaseObjectScreenLocation().GetTop());
+        model->ImportModelChildren(node, xlights, newname, min_x, max_x, min_y, max_y);
+
+        return model;
+    }
+
+    Model* DeserializeDmxMovingHead(wxXmlNode* node, xLightsFrame* xlights) {
+        Model* model = new DmxMovingHead(node, xlights->AllModels, false);
 
         std::string name = node->GetAttribute("name");
         wxString newname = xlights->AllModels.GenerateModelName(name);

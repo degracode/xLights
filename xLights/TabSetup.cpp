@@ -148,7 +148,7 @@ bool xLightsFrame::SetDir(const wxString& newdir, bool permanent)
         wxMessageBox("Show directory cannot be changed in read only mode.", "Read Only Mode", wxICON_INFORMATION | wxOK);
         return false;
     }
-
+    
     wxString nd = newdir;
     if (nd.EndsWith(wxFileName::GetPathSeparator()))
         nd = nd.SubString(0, nd.size() - 2);
@@ -158,6 +158,11 @@ bool xLightsFrame::SetDir(const wxString& newdir, bool permanent)
         return false;
     }
 
+    if (!ObtainAccessToURL(newdir, true)) {
+        return false;
+    }
+
+    
     layoutPanel->ClearSelectedModelGroup();
 
     // delete any views that were added to the menu
@@ -256,7 +261,7 @@ bool xLightsFrame::SetDir(const wxString& newdir, bool permanent)
         return false;
     }
 
-    ObtainAccessToURL(nd.ToStdString());
+    ObtainAccessToURL(nd.ToStdString(), true);
 
     // update UI
     CheckBoxLightOutput->SetValue(false);
@@ -379,6 +384,11 @@ bool xLightsFrame::SetDir(const wxString& newdir, bool permanent)
 
     if (_outputManager.IsAutoUpdateFromBaseShowDir() && _outputManager.GetBaseShowDir() != "") {
         logger_base.debug("Updating from base folder on show folder open.");
+        if (!ObtainAccessToURL(_outputManager.GetBaseShowDir(), true)) {
+            std::string dstr = _outputManager.GetBaseShowDir();
+            PromptForDirectorySelection("Reselect Base Show Directory", dstr);
+            _outputManager.SetBaseShowDir(dstr);
+        }
         UpdateFromBaseShowFolder(false);
     }
 
@@ -422,10 +432,10 @@ void xLightsFrame::OnButton_ChangeTemporarilyAgainClick(wxCommandEvent& event)
     PromptForShowDirectory(false);
 }
 
-bool xLightsFrame::OnButton_OpenBaseShowDirClick(wxCommandEvent& event) {
+void xLightsFrame::OnButton_OpenBaseShowDirClick(wxCommandEvent& event) {
     displayElementsPanel->SetSequenceElementsModelsViews(nullptr, nullptr, nullptr, nullptr, nullptr);
     layoutPanel->ClearUndo();
-    return SetDir(_outputManager.GetBaseShowDir(), false);
+    SetDir(_outputManager.GetBaseShowDir(), false);
 }
 
 void xLightsFrame::OnButton_ChangeShowFolderTemporarily(wxCommandEvent& event)
@@ -442,15 +452,28 @@ void xLightsFrame::OnButton_ChangeShowFolderTemporarily(wxCommandEvent& event)
     }
 }
 
-bool xLightsFrame::PromptForShowDirectory(bool permanent) {
+bool xLightsFrame::PromptForDirectorySelection(const std::string &msg, std::string &dir) {
+    wxDirDialog DirDialog1(this, msg, dir, wxDD_DEFAULT_STYLE, wxDefaultPosition, wxDefaultSize, _T("wxDirDialog"));
+    while (true) {
+        if (DirDialog1.ShowModal() == wxID_OK) {
+            dir = DirDialog1.GetPath();
+            ObtainAccessToURL(dir, true);
+            return true;
+        }
+        DirDialog1.SetPath(dir);
+    }
+}
 
-    wxDirDialog DirDialog1(this, _("Select Show Directory"), wxEmptyString, wxDD_DEFAULT_STYLE, wxDefaultPosition, wxDefaultSize, _T("wxDirDialog"));
+
+bool xLightsFrame::PromptForShowDirectory(bool permanent, const std::string &defaultDir) {
+
+    wxDirDialog DirDialog1(this, _("Select Show Directory"), defaultDir, wxDD_DEFAULT_STYLE, wxDefaultPosition, wxDefaultSize, _T("wxDirDialog"));
 
     while (DirDialog1.ShowModal() == wxID_OK) {
         bool dirOK = true;
         AbortRender(); // make sure nothing is still rendering
         wxString newdir = DirDialog1.GetPath();
-        ObtainAccessToURL(newdir);
+        ObtainAccessToURL(newdir, true);
         if (newdir == CurrentDir) return true;
 
         if (ShowFolderIsInBackup(newdir.ToStdString())) {
@@ -1312,6 +1335,7 @@ void xLightsFrame::EnableNetworkChanges() {
     BitmapButtonMoveNetworkUp->Enable(flag);
     BitmapButtonMoveNetworkDown->Enable(flag);
     ButtonDiscover->Enable(flag);
+    ButtonFPPConnect->Enable(flag);
     ButtonSaveSetup->Enable(!CurrentDir.IsEmpty());
     CheckBoxLightOutput->Enable(!CurrentDir.IsEmpty());
     BitmapButtonMoveNetworkDown->Enable(flag);
@@ -1320,6 +1344,9 @@ void xLightsFrame::EnableNetworkChanges() {
 }
 
 #pragma region Left Buttons
+void xLightsFrame::OnButtonFPPConnectClick(wxCommandEvent& event) {
+    this->OnMenuItem_FPP_ConnectSelected(event);
+}
 void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
 
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));

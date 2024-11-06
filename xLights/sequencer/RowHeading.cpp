@@ -71,6 +71,7 @@ const long RowHeading::ID_ROW_MNU_CUT_ROW = wxNewId();
 const long RowHeading::ID_ROW_MNU_CUT_MODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_COPY_ROW = wxNewId();
 const long RowHeading::ID_ROW_MNU_COPY_MODEL = wxNewId();
+const long RowHeading::ID_ROW_MNU_COPY_MODEL_INCL_SUBMODELS = wxNewId();
 const long RowHeading::ID_ROW_MNU_PASTE_ROW = wxNewId();
 const long RowHeading::ID_ROW_MNU_PASTE_MODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_RENDERENABLE_MODEL = wxNewId();
@@ -435,6 +436,7 @@ void RowHeading::rightClick( wxMouseEvent& event)
                 modelMenu->Append(ID_ROW_MNU_CUT_MODEL, "Cut Effects");
                 rowMenu->Append(ID_ROW_MNU_COPY_ROW, "Copy Effects");
                 modelMenu->Append(ID_ROW_MNU_COPY_MODEL, "Copy Effects");
+                modelMenu->Append(ID_ROW_MNU_COPY_MODEL_INCL_SUBMODELS, "Copy Effects incl SubModels");
                 wxMenuItem* menu_paste = rowMenu->Append(ID_ROW_MNU_PASTE_ROW, "Paste Effects");
                 wxMenuItem* menu_pastem = modelMenu->Append(ID_ROW_MNU_PASTE_MODEL, "Paste Effects");
                 if (!mCanPaste) {
@@ -1025,6 +1027,12 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
         copyRowEvent.SetString("All");
         wxPostEvent(GetParent(), copyRowEvent);
         mCanPaste = true;
+    } else if (id == ID_ROW_MNU_COPY_MODEL_INCL_SUBMODELS) {
+        wxCommandEvent copyRowEvent(EVT_COPY_MODEL_EFFECTS);
+        copyRowEvent.SetInt(mSelectedRow);
+        copyRowEvent.SetString("AllInclSub");
+        wxPostEvent(GetParent(), copyRowEvent);
+        mCanPaste = true;
     } else if (id == ID_ROW_MNU_DELETE_ROW_EFFECTS) {
         wxCommandEvent eventUnSelected(EVT_UNSELECTED_EFFECT);
         m_parent->ProcessWindowEvent(eventUnSelected);
@@ -1506,6 +1514,8 @@ void RowHeading::render( wxPaintEvent& event )
 #ifdef __LINUX__
     if(!IsShownOnScreen()) return;
 #endif
+    if (mSequenceElements->GetXLightsFrame()->GetMainSequencer() == nullptr) return;
+
     wxPaintDC dc(this);
 
     wxCoord w,h;

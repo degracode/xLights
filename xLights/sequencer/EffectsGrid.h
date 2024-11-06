@@ -128,7 +128,7 @@ public:
     void SetEffectsTiming();
     void ProcessDroppedEffect(Effect* effect);
     void CutModelEffects(int row_number, bool allLayers);
-    void CopyModelEffects(int row_number, bool allLayers);
+    void CopyModelEffects(int row_number, bool allLayers, bool incSubModels = false);
     void PasteModelEffects(int row_number, bool allLayers);
     Effect* GetSelectedEffect() const;
     int GetSelectedEffectCount(const std::string& effectName) const;
@@ -139,6 +139,8 @@ public:
     void ConvertSelectedEffectsTo(const std::string& effectName);
     void DuplicateSelectedEffects();
     void CreateTimingFromSelectedEffects();
+    bool IsTopModelVisible();
+    bool IsMouseOverTiming(int y);
 
     bool HandleACKey(wxChar key, bool shift = false);
     bool IsACActive();
@@ -148,6 +150,7 @@ public:
     bool DoACDraw(bool keyboard = false, ACTYPE typeOverride = ACTYPE::NILTYPEOVERRIDE, ACSTYLE styleOverride = ACSTYLE::NILSTYLEOVERRIDE, ACTOOL toolOverride = ACTOOL::NILTOOLOVERRIDE, ACMODE modeOverride = ACMODE::NILMODEOVERRIDE);
 
     void AlignSelectedEffects(EFF_ALIGN_MODE align_mode);
+    void AlignSelectedEffectsToTimingMark();
 
     int GetEffectRow(Effect* ef);
     Effect* OldPaste(const wxString &data, const wxString &pasteDataVer);
@@ -343,6 +346,7 @@ private:
     int mDropEndX;
     int mDropRow;
     int mDropStartTimeMS;
+    int mRightClickStartTimeMS;
     int mDropEndTimeMS;
 
     bool mCellRangeSelected;
@@ -382,6 +386,7 @@ private:
     static const long ID_GRID_MNU_ALIGN_MATCH_DURATION;
     static const long ID_GRID_MNU_ALIGN_START_TIMES_SHIFT;
     static const long ID_GRID_MNU_ALIGN_END_TIMES_SHIFT;
+    static const long ID_GRID_MNU_ALIGN_TO_TIMING_MARK;
     static const long ID_GRID_MNU_SPLIT_EFFECT;
     static const long ID_GRID_MNU_DUPLICATE_EFFECT;
     static const long ID_GRID_MNU_CREATE_TIMING_FROM_EFFECT;

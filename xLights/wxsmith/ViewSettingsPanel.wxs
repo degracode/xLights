@@ -6,7 +6,7 @@
 		<object class="wxGridBagSizer" variable="GridBagSizer1" member="no">
 			<object class="sizeritem">
 				<object class="wxStaticText" name="wxID_ANY" variable="StaticText1" member="no">
-					<label>Tool Icon Size</label>
+					<label>Effect Icon Size</label>
 				</object>
 				<col>0</col>
 				<row>0</row>
@@ -106,6 +106,16 @@
 				<col>0</col>
 				<row>4</row>
 				<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
+				<border>5</border>
+				<option>1</option>
+			</object>
+			<object class="sizeritem">
+				<object class="wxCheckBox" name="ID_CHECKBOX5" variable="CheckBox_DisableKeyAcceleration" member="yes">
+					<label>Disable key acceleration when held down</label>
+				</object>
+				<col>0</col>
+				<row>9</row>
+				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>
 				<option>1</option>
 			</object>

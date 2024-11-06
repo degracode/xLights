@@ -18,7 +18,6 @@ xlMetalGraphicsContext::xlMetalGraphicsContext(xlMetalCanvas *c, id<MTLTexture> 
         CAMetalLayer *layer = [d2 layer];
         drawable = [layer nextDrawable];
         if (drawable != nil) {
-            [drawable retain];
             localTarget = [drawable texture];
         }
     } else {
@@ -107,9 +106,6 @@ void xlMetalGraphicsContext::Commit(bool displayOnScreen, id<MTLBuffer> captureB
     if (encoder != nil) {
         @autoreleasepool {
             [encoder endEncoding];
-            if (!xlMetalCanvas::isInSyncPoint() && displayOnScreen) {
-                [buffer presentDrawable:drawable];
-            }
             if (!displayOnScreen) {
                 int w = [target width];
                 int h = [target height];
@@ -129,18 +125,11 @@ void xlMetalGraphicsContext::Commit(bool displayOnScreen, id<MTLBuffer> captureB
                              destinationBytesPerRow:bytesPerRow
                            destinationBytesPerImage:bufferSize];
                 [blitCommandEncoder endEncoding];
-            }
-            
-            [buffer commit];
-
-            if (!displayOnScreen) {
+                
+                [buffer commit];
                 [buffer waitUntilCompleted];
-            } else if (!xlMetalCanvas::isInSyncPoint()) {
-                [drawable release];
-                drawable = nil;
             } else {
-                [buffer retain];
-                wxMetalCanvas::addToSyncPoint(buffer, drawable);
+                canvas->addToSyncPoint(buffer, drawable);
                 drawable = nil;
                 buffer = nil;
             }

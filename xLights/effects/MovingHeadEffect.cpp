@@ -86,6 +86,9 @@ void MovingHeadEffect::SetDefaultParameters() {
     dp->CheckBox_MHIgnorePan->SetValue(false);
     dp->CheckBox_MHIgnoreTilt->SetValue(false);
     dp->CheckBoxAutoShutter->SetValue(false);
+
+    dp->CheckAllFixtures();
+    dp->UpdateStatusPanel();
 }
 
 void MovingHeadEffect::Render(Effect *effect, const SettingsMap &SettingsMap, RenderBuffer &buffer) {
@@ -134,7 +137,6 @@ void MovingHeadEffect::RenderMovingHead(std::string mh_settings, int loc, const 
     float path_scale = 0.0f;
     float delta = 0.0f;
     float cycles = 1.0f;
-    wxPoint2DDouble path_pt;
     bool path_parsed = false;
     bool pan_path_active = true;
     bool tilt_path_active = true;
@@ -282,6 +284,7 @@ void MovingHeadEffect::RenderMovingHead(std::string mh_settings, int loc, const 
                     }
                 }
             }
+            buffer.EnableFixedDMXChannels(mhead);
         }
     }
 }

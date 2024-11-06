@@ -1473,11 +1473,10 @@ static bool Compare3dPointTuple(const std::tuple<float, float, float, int> &l,
     return std::get<2>(l) < std::get<2>(r);
 }
 
-std::string FPP::CreateVirtualDisplayMap(ModelManager* allmodels) {
+std::string FPP::CreateVirtualDisplayMap(ModelManager* allmodels, int previewWi, int previewHi) {
     std::string ret;
 
     constexpr float PADDING{ 10.0F };
-    bool first { true };
     float minX{ 0.0F };
     float maxX{ 0.0F };
     float minY{ 0.0F };
@@ -1497,21 +1496,18 @@ std::string FPP::CreateVirtualDisplayMap(ModelManager* allmodels) {
         if (model->GetDisplayAs() == "ModelGroup") {
             continue;
         }
-
-        if (first) {
-            first = false;
-            maxY = model->GetModelScreenLocation().previewH;
-            maxX = model->GetModelScreenLocation().previewW;
-        }
-
+        
         minY = std::min(model->GetModelScreenLocation().GetBottom() - PADDING, minY);
         maxY = std::max(model->GetModelScreenLocation().GetTop() + PADDING, maxY);
         minX = std::min(model->GetModelScreenLocation().GetLeft() - PADDING, minX);
         maxX = std::max(model->GetModelScreenLocation().GetRight() + PADDING, maxX);
     }
 
+    int totW = std::max(previewWi, int(maxX - minX));
+    int totH = std::max(previewHi, int(maxY - minY));
+
     ret += "# Preview Size\n";
-    ret += ToUTF8(wxString::Format("%d,%d\n", int(maxX - minX), int(maxY - minY)));
+    ret += ToUTF8(wxString::Format("%d,%d\n", totW, totH));
 
     for (auto m = allmodels->begin(); m != allmodels->end(); ++m) {
         Model* model = m->second;
@@ -2290,7 +2286,7 @@ bool FPP::UploadVirtualMatrixOutputs(ModelManager* allmodels,
                     v["colorOrder"] = wxString("RGB");
                     v["invert"] = 0;
                     if (IsVersionAtLeast(8, 0)) {
-                        v["device"] = wxString::Format("HDMI-A-%d", port);
+                        v["device"] = wxString::Format("HDMI-A-%d", port + 1); //hdmi ports are 1 based, not 0 like fb
                     } else {
                         v["device"] = wxString::Format("fb%d", port);
                     }
@@ -2492,7 +2488,7 @@ bool FPP::UploadPWMOutputs(ModelManager* allmodels,
         pca9685Index = 0;
         root["channelOutputs"] = wxJSONValue(wxJSONTYPE_ARRAY);
         root["channelOutputs"][pca9685Index]["type"] = wxString("PCA9685");
-        root["channelOutputs"][pca9685Index]["subType"] = "";
+        root["channelOutputs"][pca9685Index]["subType"] = rules->GetID();
         root["channelOutputs"][pca9685Index]["enabled"] = 1;
         root["channelOutputs"][pca9685Index]["frequency"] = controller->GetExtraProperty("PWMFrequency", "50hz");
         root["channelOutputs"][pca9685Index]["startChannel"] = 0;
@@ -2585,9 +2581,6 @@ bool FPP::UploadPixelOutputs(ModelManager* allmodels,
     cud.Check(rules, check);
     cud.Dump();
 
-    wxFileName fnOrig;
-    fnOrig.AssignTempFileName("pixelOutputs");
-    std::string file = fnOrig.GetFullPath().ToStdString();
     wxJSONValue origJson;
     GetURLAsJSON("/api/channel/output/" + fppFileName, origJson, false);
     logger_base.debug("Original JSON");
@@ -2676,7 +2669,7 @@ bool FPP::UploadPixelOutputs(ModelManager* allmodels,
     for (int pp = 1; pp <= rules->GetMaxPixelPort(); pp++) {
         if (cud.HasPixelPort(pp)) {
             UDControllerPort* port = cud.GetControllerPixelPort(pp);
-            port->CreateVirtualStrings(false);
+            port->CreateVirtualStrings(false, false);
             for (const auto& pvs : port->GetVirtualStrings()) {
                 wxJSONValue vs;
                 if (pvs->_isDummy) {
@@ -2966,14 +2959,6 @@ bool FPP::UploadPixelOutputs(ModelManager* allmodels,
 
     if (!origJson.IsSameAs(root)) {
         logger_base.debug("Uploading New JSON");
-        wxFileName fn;
-        fn.AssignTempFileName("pixelOutputs");
-        file = fn.GetFullPath().ToStdString();
-        wxFileOutputStream ufile(fn.GetFullPath());
-        wxJSONWriter writer(wxJSONWRITER_STYLED, 0, 3);
-        writer.Write(root, ufile);
-        ufile.Close();
-
         PostJSONToURL("/api/channel/output/" + fppFileName, root);
         SetRestartFlag();
     } else {
@@ -3010,7 +2995,7 @@ bool FPP::UploadControllerProxies(OutputManager* outputManager)
             proxies.Append(proxy);
         }
 
-        return PostJSONToURL("/api/proxies", proxies);
+        PostJSONToURL("/api/proxies", proxies);
     } else {
         auto currentProxies = GetProxyList();
         std::vector<std::string> newProxies;
@@ -3979,7 +3964,10 @@ std::list<FPP*> FPP::GetInstances(wxWindow* frame, OutputManager* outputManager)
             if (eth->GetResolvedIP() == "") {
                 startAddresses.push_back(::Lower(eth->GetIP()));
             } else {
-                startAddresses.push_back(::Lower(eth->GetResolvedIP()));
+                // only add the instances where we were actually able to resolve an IP address
+                if (eth->IsActive() && (ip_utils::IsIPValid(eth->GetResolvedIP()) || eth->GetResolvedIP() != eth->GetIP())) {
+                    startAddresses.push_back(::Lower(eth->GetResolvedIP()));
+                }
             }
             if (eth->GetFPPProxy() != "") {
                 startAddresses.push_back(::Lower(ip_utils::ResolveIP(eth->GetFPPProxy())));
