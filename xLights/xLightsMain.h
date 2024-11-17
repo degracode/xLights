@@ -123,7 +123,7 @@ class wxTaskBarIcon;
 // max number of most recently used show directories on the File menu
 #define MRUD_LENGTH 4
 // max number of most recently used files on the File menu
-#define MRUF_LENGTH 8
+#define MRUF_LENGTH 20
 
 // notebook pages
 #define SETUPTAB 0
