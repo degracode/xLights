@@ -134,7 +134,7 @@ ControllerEthernet::ControllerEthernet(OutputManager* om, const ControllerEthern
 }
 
 ControllerEthernet::~ControllerEthernet() {
-
+    ip_utils::waitForAllToResolve();
     // wait for an active ping to finish
     if (_asyncPing.valid()) {
         _asyncPing.wait_for(std::chrono::seconds(2));
@@ -720,6 +720,16 @@ void ControllerEthernet::VMVChanged(wxPropertyGrid *grid)
 
 Output::PINGSTATE ControllerEthernet::Ping() {
 
+    if (hasAlpha(_resolvedIp)) {
+        for (auto& it : GetOutputs()) { // Get the actual IPOutput object
+            IPOutput* ipOutput = dynamic_cast<IPOutput*>(it);
+            if (ipOutput) {
+                ipOutput->SetIP(this->GetResolvedIP(), true, true); // Re-resolve IP
+                ip_utils::waitForAllToResolve();
+                _resolvedIp = it->GetResolvedIP();
+            }
+        }
+    }
     if (GetResolvedIP(false) == "MULTICAST") {
         _lastPingResult = Output::PINGSTATE::PING_UNAVAILABLE;
     } else if (_outputs.size() > 0) {
@@ -729,9 +739,7 @@ Output::PINGSTATE ControllerEthernet::Ping() {
         }
         _lastPingResult = dynamic_cast<IPOutput*>(_outputs.front())->Ping(ip, GetFPPProxy());
     } else {
-        E131Output ipo;
-        ipo.SetIP(_ip, IsActive());
-        _lastPingResult = ipo.Ping(GetResolvedIP(true), GetFPPProxy());
+        _lastPingResult = IPOutput::Ping( ip_utils::ResolveIP(_ip), GetFPPProxy());
     }
     return GetLastPingState();
 }

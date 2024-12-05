@@ -87,7 +87,6 @@ wxString xLightsFrame::LoadEffectsFileNoCheck()
     wxFileName effectsFile;
     effectsFile.AssignDir(CurrentDir);
     effectsFile.SetFullName(_(XLIGHTS_RGBEFFECTS_FILE));
-    wxString myString = "Hello";
     UnsavedRgbEffectsChanges = false;
 
     if (!FileExists(effectsFile)) {
@@ -1039,8 +1038,6 @@ void xLightsFrame::UpdateModelsList()
         modelPreview->GetVirtualCanvasWidth(),
         modelPreview->GetVirtualCanvasHeight());
 
-    wxString msg;
-
     // Add all models to default House Preview that are set to Default or All Previews
     for (const auto& it : AllModels) {
         Model* model = it.second;
@@ -1374,7 +1371,11 @@ void xLightsFrame::SaveSequence()
     SetStatusText(_("Saving ") + CurrentSeqXmlFile->GetFullPath() + _(" ... Saving xsq."));
     logger_base.info("Saving XSQ file.");
     CurrentSeqXmlFile->AddJukebox(jukeboxPanel->Save());
-    CurrentSeqXmlFile->Save(_sequenceElements);
+    if (!CurrentSeqXmlFile->Save(_sequenceElements)) {
+        wxMessageDialog msgDlg(this, "Error Saving Sequence to " + CurrentSeqXmlFile->GetFullPath(),
+                               "Error Saving Sequence", wxOK | wxCENTRE);
+        msgDlg.ShowModal();
+    }
     logger_base.info("XSQ file done.");
 
     if (mBackupOnSave) {

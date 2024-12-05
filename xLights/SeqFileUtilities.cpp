@@ -1355,7 +1355,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
         if (m->_mapping != "") {
-            mapping[m->_mapping] = m->_model.ToStdString();
+            mapping[m->_mapping] = m->_model;
         }
     }
 
@@ -1391,7 +1391,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
 
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); ++x) {
             if (_sequenceElements.GetElement(x)->GetType() == ElementType::ELEMENT_TYPE_MODEL && modelName == _sequenceElements.GetElement(x)->GetName()) {
@@ -1406,7 +1406,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
             if (model == nullptr) {
                 logger_base.error("Attempt to add model %s during xLights import failed.", (const char*)modelName.c_str());
             } else {
-                MapXLightsEffects(model, m->_mapping.ToStdString(), se, elementMap, layerMap, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
+                MapXLightsEffects(model, m->_mapping, se, elementMap, layerMap, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
             }
         }
 
@@ -1423,7 +1423,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
                 } else {
                     SubModelElement* ste = model->GetSubModel(str);
                     if (ste != nullptr) {
-                        MapXLightsEffects(ste, s->_mapping.ToStdString(), se, elementMap, layerMap, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
+                        MapXLightsEffects(ste, s->_mapping, se, elementMap, layerMap, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
                     }
                 }
             }
@@ -1441,7 +1441,7 @@ void xLightsFrame::ImportXLights(SequenceElements& se, const std::vector<Element
                         if (stre != nullptr) {
                             NodeLayer* nl = stre->GetNodeLayer(n, true);
                             if (nl != nullptr) {
-                                MapXLightsStrandEffects(nl, ns->_mapping.ToStdString(), layerMap, se, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
+                                MapXLightsStrandEffects(nl, ns->_mapping, layerMap, se, mapped, dlg.CheckBox_EraseExistingEffects->GetValue(), xsqPkg, lock, mapping);
                             }
                         }
                     }
@@ -1913,7 +1913,7 @@ void xLightsFrame::ImportVix(const wxFileName& filename)
     logger_base.debug("Doing the import of the mapped channels.");
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); i++) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         Model* mc = GetModel(modelName);
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); x++) {
@@ -1931,7 +1931,7 @@ void xLightsFrame::ImportVix(const wxFileName& filename)
             } else {
                 MapVixChannelInformation(this, model->GetEffectLayer(0),
                                          VixSeqData, frameTime, numFrames,
-                                         m->_mapping.ToStdString(),
+                                         m->_mapping,
                                          unsortedChannels,
                                          m->_color,
                                          *mc, dlg.CheckBox_EraseExistingEffects->GetValue());
@@ -1953,7 +1953,7 @@ void xLightsFrame::ImportVix(const wxFileName& filename)
                     if (ste != nullptr) {
                         MapVixChannelInformation(this, ste->GetEffectLayer(0),
                                                  VixSeqData, frameTime, numFrames,
-                                                 s->_mapping.ToStdString(),
+                                                 s->_mapping,
                                                  unsortedChannels,
                                                  s->_color, *mc, dlg.CheckBox_EraseExistingEffects->GetValue());
                     }
@@ -1975,7 +1975,7 @@ void xLightsFrame::ImportVix(const wxFileName& filename)
                             if (nl != nullptr) {
                                 MapVixChannelInformation(this, nl,
                                                          VixSeqData, frameTime, numFrames,
-                                                         ns->_mapping.ToStdString(),
+                                                         ns->_mapping,
                                                          unsortedChannels,
                                                          ns->_color, *mc, dlg.CheckBox_EraseExistingEffects->GetValue());
                             }
@@ -2872,7 +2872,7 @@ bool xLightsFrame::ImportLMS(wxXmlDocument& input_xml, const wxFileName& filenam
 
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         Model* mc = GetModel(modelName);
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); x++) {
@@ -3291,7 +3291,7 @@ std::string LPEParseEffectSettings(const wxString& effectType, const wxArrayStri
             wxString thickness = parms[3];
             wxString vcThickness;
             thickness = RescaleWithRangeI(thickness, "E_VALUECURVE_Spirals_Thickness", 0, 100, 0, 100, vcThickness, SPIRALS_THICKNESS_MIN, SPIRALS_THICKNESS_MAX);
-            wxString thicknessChange = parms[4];
+            // wxString thicknessChange = parms[4]; //unused
             wxString blend = parms[5];
             wxString show3d = parms[6];
             wxString speed = parms[7];
@@ -3461,8 +3461,8 @@ std::string LPEParseEffectSettings(const wxString& effectType, const wxArrayStri
             velocity = RescaleWithRangeI(velocity, "IGNORE", 1, 10, 1, 10, vcCrap, -1, -1);
             wxString fade = parms[3];
             fade = RescaleWithRangeI(fade, "IGNORE", 1, 100, 1, 100, vcCrap, -1, -1);
-            wxString pattern = parms[4];    // not used
-            wxString rateChange = parms[5]; // not used
+            //wxString pattern = parms[4];    // not used
+            //wxString rateChange = parms[5]; // not used
             settings += ",E_SLIDER_Fireworks_Explosions=" + explosionRate;
             settings += ",E_SLIDER_Fireworks_Count=" + particles;
             settings += ",E_SLIDER_Fireworks_Fade=" + fade;
@@ -3596,7 +3596,7 @@ std::string LPEParseEffectSettings(const wxString& effectType, const wxArrayStri
             wxString bend = parms[2];
             wxString vcBend;
             bend = RescaleWithRangeI(bend, "E_VALUECURVE_Pinwheel_Twist", -10, 10, -360, 360, vcBend, PINWHEEL_TWIST_MIN, PINWHEEL_TWIST_MAX);
-            wxString colour = parms[3]; // not used
+            //wxString colour = parms[3]; // not used
             wxString CCW = parms[4];
             wxString speed = parms[5];
             wxString vcSpeed;
@@ -3678,7 +3678,7 @@ std::string LPEParseEffectSettings(const wxString& effectType, const wxArrayStri
             wxString speed = parms[6];
             speed = RescaleWithRangeI(speed, "IGNORE", 0, 50, 0, 50, vcCrap, -1, -1);
             if (parms.size() > 7) {
-                wxString unknown1 = parms[7]; // unused
+                //wxString unknown1 = parms[7]; // unused
             }
 
             settings += ",E_TEXTCTRL_Text=" + text;
@@ -4245,7 +4245,7 @@ bool xLightsFrame::ImportS5(wxXmlDocument& input_xml, const wxFileName& filename
 
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); x++) {
             if (_sequenceElements.GetElement(x)->GetType() == ElementType::ELEMENT_TYPE_MODEL && modelName == _sequenceElements.GetElement(x)->GetName()) {
@@ -4385,7 +4385,7 @@ bool xLightsFrame::ImportLPE(wxXmlDocument& input_xml, const wxFileName& filenam
 
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); x++) {
             if (_sequenceElements.GetElement(x)->GetType() == ElementType::ELEMENT_TYPE_MODEL && modelName == _sequenceElements.GetElement(x)->GetName()) {
@@ -4581,7 +4581,7 @@ AT THIS POINT IT JUST BRINGS IN THE EFFECTS. WE MAKE NO EFFORT TO GET THE SETTIN
 
     for (size_t i = 0; i < dlg._dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = dlg._dataModel->GetNthChild(i);
-        std::string modelName = m->_model.ToStdString();
+        std::string modelName = m->_model;
         ModelElement* model = nullptr;
         for (size_t x = 0; x < _sequenceElements.GetElementCount(); x++) {
             if (_sequenceElements.GetElement(x)->GetType() == ElementType::ELEMENT_TYPE_MODEL && modelName == _sequenceElements.GetElement(x)->GetName()) {

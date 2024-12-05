@@ -1364,7 +1364,6 @@ wxJSONValue FPP::CreateModelMemoryMap(ModelManager* allmodels, int32_t startChan
             continue;
         }
 
-        wxString stch = model->GetModelXml()->GetAttribute("StartChannel", wxString::Format("%d?", model->NodeStartChannel(0) + 1)); //NOTE: value coming from model is probably not what is wanted, so show the base ch# instead
         int ch = model->GetNumberFromChannelString(model->ModelStartChannel);
         if (ch < startChan || ch > endChannel) {
             continue;
@@ -3120,7 +3119,11 @@ static void CreateController(Discovery &discovery, DiscoveredData *inst) {
     } else if (inst->typeId >= 0x80 && inst->typeId <= 0x8F) {
         //falcon range
         if (created) {
-            inst->controller->SetProtocol(OUTPUT_E131);
+            if (inst->mode == "bridge") {
+                inst->controller->SetProtocol(OUTPUT_E131);
+            } else {
+                inst->controller->SetProtocol(OUTPUT_DDP);
+            }
             inst->SetVendor("Falcon");
             inst->SetModel(AfterLast(inst->platformModel, ' '));
             inst->controller->SetAutoLayout(true);
@@ -3961,12 +3964,13 @@ std::list<FPP*> FPP::GetInstances(wxWindow* frame, OutputManager* outputManager)
     for (auto& it : outputManager->GetControllers()) {
         auto eth = dynamic_cast<ControllerEthernet*>(it);
         if (eth != nullptr && eth->GetIP() != "" && eth->GetIP() != "MULTICAST") {
-            if (eth->GetResolvedIP() == "") {
+            std::string resolvedIP = eth->GetResolvedIP(true);
+            if (resolvedIP == "") {
                 startAddresses.push_back(::Lower(eth->GetIP()));
             } else {
                 // only add the instances where we were actually able to resolve an IP address
-                if (eth->IsActive() && (ip_utils::IsIPValid(eth->GetResolvedIP()) || eth->GetResolvedIP() != eth->GetIP())) {
-                    startAddresses.push_back(::Lower(eth->GetResolvedIP()));
+                if (eth->IsActive() && (ip_utils::IsIPValid(resolvedIP) || resolvedIP != eth->GetIP())) {
+                    startAddresses.push_back(::Lower(resolvedIP));
                 }
             }
             if (eth->GetFPPProxy() != "") {

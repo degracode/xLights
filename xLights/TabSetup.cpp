@@ -75,6 +75,12 @@ const long xLightsFrame::ID_NETWORK_UNLINKFROMBASE = wxNewId();
 void xLightsFrame::OnMenuMRU(wxCommandEvent& event) {
     int id = event.GetId();
     wxString newdir = RecentShowFoldersMenu->GetLabel(id);
+    
+    if (!ObtainAccessToURL(newdir, true)) {
+        std::string dstr = newdir;
+        PromptForDirectorySelection("Reselect Show Directory", dstr);
+        newdir = dstr;
+    }
     SetDir(newdir, true);
 }
 void xLightsFrame::OnMRUSequence(wxCommandEvent& event) {
@@ -1382,9 +1388,15 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
                 if (eth != nullptr
                     && eth->GetName() == it->GetName()
                     && eth->GetProtocol() == it->GetProtocol()) {
-                    if (wxMessageBox("The discovered controller matches an existing controller name but has a different IP address. Do you want to update the IP address for that existing controller in xLights?", "Mismatch IP", wxYES_NO, this) == wxYES) {
+                    wxMessageDialog dialog(nullptr, "The discovered controller (" + eth->GetName() + "/" + eth->GetIP() + ") matches an existing controller name but has a different IP address (" + it->GetIP() + "). Do you want to update the IP address for that existing controller in xLights?", "Mismatch IP", wxYES_NO | wxCANCEL | wxICON_QUESTION);
+                    dialog.SetYesNoCancelLabels("Yes", "Add New", "Skip");
+                    int result = dialog.ShowModal();
+                    if (result == wxID_YES) {
                         updated = true;
                         eth->SetIP(it->GetIP());
+                        found = true;
+                    } else if (result == wxID_CANCEL) {
+                        updated = true;
                         found = true;
                     }
                 }
@@ -1402,7 +1414,8 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
                 && it->GetName() != c.front()->GetName()
                 && c.front()->GetProtocol() == it->GetProtocol()) {
                 // existing zcpp with same ip but different name ... maybe we should update the name
-                if (wxMessageBox("The discovered controller matches an existing controller IP address but has a different name. Do you want to update the name for the existing controller in xLights?", "Mismatch controller name", wxYES_NO, this) == wxYES) {
+                if (wxMessageBox("The discovered controller (" + c.front()->GetName() + ") matches an existing controller IP address but has a different name (" + it->GetName() + "). Do you want to update the name for the existing controller in xLights?", "Mismatch controller name", wxYES_NO, this) == wxYES)
+                    {
                     renames[c.front()->GetName()] = it->GetName();
                     c.front()->SetName(it->GetName());
                     found = true;
@@ -1817,7 +1830,6 @@ void xLightsFrame::ValidateControllerProperties() {
 
 void xLightsFrame::OnControllerPropertyGridCollapsed(wxPropertyGridEvent& event)
 {
-    wxString name = event.GetPropertyName();
     auto selections = GetSelectedControllerNames();
 
     if (selections.size() == 1) {
@@ -1831,7 +1843,6 @@ void xLightsFrame::OnControllerPropertyGridCollapsed(wxPropertyGridEvent& event)
 
 void xLightsFrame::OnControllerPropertyGridExpanded(wxPropertyGridEvent& event)
 {
-    wxString name = event.GetPropertyName();
     auto selections = GetSelectedControllerNames();
 
     if (selections.size() == 1) {
