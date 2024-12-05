@@ -115,7 +115,7 @@ FireworksPanel::FireworksPanel(wxWindow* parent) : xlEffectPanel(parent)
 	FlexGridSizer73->Add(StaticText91, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer1 = new wxFlexGridSizer(0, 2, 0, 0);
 	FlexGridSizer1->AddGrowableCol(0);
-	Slider_Fireworks_Count = new BulkEditSlider(this, ID_SLIDER_Fireworks_Count, 50, 1, 100, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_Fireworks_Count"));
+	Slider_Fireworks_Count = new BulkEditSlider(this, ID_SLIDER_Fireworks_Count, 50, 1, 1000, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_SLIDER_Fireworks_Count"));
 	FlexGridSizer1->Add(Slider_Fireworks_Count, 1, wxALL|wxEXPAND, 5);
 	BitmapButton_Fireworks_Count = new BulkEditValueCurveButton(this, ID_VALUECURVE_Fireworks_Count, GetValueCurveNotSelectedBitmap(), wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBORDER_NONE, wxDefaultValidator, _T("ID_VALUECURVE_Fireworks_Count"));
 	FlexGridSizer1->Add(BitmapButton_Fireworks_Count, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
