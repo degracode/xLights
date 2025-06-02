@@ -17,10 +17,12 @@
 #include <wx/artprov.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
+#include <wx/thread.h>
 
 #include "xLightsMain.h"
 #include "LayoutPanel.h"
 #include "xLightsXmlFile.h"
+#include "xlPropertyGrid.h"
 #include "sequencer/MainSequencer.h"
 #include "ViewsModelsPanel.h"
 #include "UtilFunctions.h"
@@ -61,6 +63,25 @@
 
 #include <log4cpp/Category.hh>
 
+// Thread class to ping a single controller
+class ControllerPingThread : public wxThread {
+public:
+    ControllerPingThread(Controller* controller) :
+        wxThread(wxTHREAD_DETACHED), _controller(controller) {
+    }
+
+protected:
+    virtual ExitCode Entry() override {
+        if (_controller && _controller->IsActive()) {
+            _controller->Ping();
+        }
+        return (ExitCode)0;
+    }
+
+private:
+    Controller* _controller;
+};
+
 const long xLightsFrame::ID_List_Controllers = wxNewId();
 const long xLightsFrame::ID_NETWORK_ADDETHERNET = wxNewId();
 const long xLightsFrame::ID_NETWORK_ADDNULL = wxNewId();
@@ -70,6 +91,7 @@ const long xLightsFrame::ID_NETWORK_ACTIVEXLIGHTS = wxNewId();
 const long xLightsFrame::ID_NETWORK_INACTIVE = wxNewId();
 const long xLightsFrame::ID_NETWORK_DELETE = wxNewId();
 const long xLightsFrame::ID_NETWORK_UNLINKFROMBASE = wxNewId();
+const long xLightsFrame::ID_NETWORK_UPLOADOUTPUT = wxNewId();
 
 #pragma region Show Directory
 void xLightsFrame::OnMenuMRU(wxCommandEvent& event) {
@@ -905,7 +927,7 @@ bool xLightsFrame::SaveNetworksFile() {
 }
 
 void xLightsFrame::UpdateControllerSave() {
-    if (UnsavedNetworkChanges || (IsControllersAndLayoutTabSaveLinked() && UnsavedRgbEffectsChanges)) {
+    if (UnsavedNetworkChanges || UnsavedRgbEffectsChanges) {
 #ifdef __WXOSX__
         SetButtonBackground(ButtonSaveSetup, wxColour(255, 0, 0), 0);
 #else
@@ -921,7 +943,7 @@ void xLightsFrame::UpdateControllerSave() {
 }
 
 void xLightsFrame::UpdateLayoutSave() {
-    if (UnsavedRgbEffectsChanges || (IsControllersAndLayoutTabSaveLinked() && UnsavedNetworkChanges)) {
+    if (UnsavedRgbEffectsChanges || UnsavedNetworkChanges) {
 #ifdef __WXOSX__
         SetButtonBackground(layoutPanel->ButtonSavePreview, wxColour(255, 0, 0), 2);
 #else
@@ -939,9 +961,7 @@ void xLightsFrame::UpdateLayoutSave() {
 void xLightsFrame::OnButtonSaveSetupClick(wxCommandEvent& event) {
 
     SaveNetworksFile();
-    if (IsControllersAndLayoutTabSaveLinked()) {
-        layoutPanel->SaveEffects();
-    }
+    layoutPanel->SaveEffects();
     UpdateControllerSave();
 }
 
@@ -1356,29 +1376,95 @@ void xLightsFrame::OnButtonFPPConnectClick(wxCommandEvent& event) {
 void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
 
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-    logger_base.debug("Running controller discovery.");
+    logger_base.debug("[Discovery] Running controller discovery.");
     SetStatusText("Running controller discovery ...");
     SetCursor(wxCURSOR_WAIT);
 
     bool hasChanges = false;
 
     Discovery discovery(this, &_outputManager);
-    ArtNetOutput::PrepareDiscovery(discovery);
-    ZCPPOutput::PrepareDiscovery(discovery);
-    DDPOutput::PrepareDiscovery(discovery);
-    TwinklyOutput::PrepareDiscovery(discovery);
     FPP::PrepareDiscovery(discovery);
+    ArtNetOutput::PrepareDiscovery(discovery);
+    TwinklyOutput::PrepareDiscovery(discovery);
     Pixlite16::PrepareDiscovery(discovery);
+    DDPOutput::PrepareDiscovery(discovery);
     discovery.Discover();
+
+    SetStatusText("Processing discovered controllers...");
+    logger_base.debug("[Discovery] Processing discovered controllers...");
+    struct FPPDiscInfo {
+        std::string hostname;
+        std::string ip;
+        std::string uuid;
+        int ipsPerUUID;
+        bool isUniqueHostname;
+        bool isPingable;
+
+        bool operator<(const FPPDiscInfo& other) const {
+            return std::tie(hostname, ip, uuid) < std::tie(other.hostname, other.ip, other.uuid);
+        }
+    };
+    std::vector<FPPDiscInfo> fppDiscInfo;
+
+    for (const auto& it : discovery.GetResults()) {
+        if (!it->ip.empty() && it->controller != nullptr) {
+            fppDiscInfo.push_back({it->hostname, it->ip, it->uuid, 0, true, true});
+        }
+    }
+
+    std::map<std::string, int> ipsPerUUID;
+    std::map<std::string, std::set<std::string>> uniqueHostnames;
+    for (const auto& info : fppDiscInfo) {
+        if (!info.uuid.empty()) {
+            ipsPerUUID[info.uuid]++;
+        }
+        if (!info.hostname.empty()) {
+            uniqueHostnames[info.hostname].insert(info.uuid);
+        }
+    }
+
+    std::string dupHostnames;
+    std::map<std::string, bool> isPingable;
+    for (auto& it : fppDiscInfo) {
+        it.ipsPerUUID = ipsPerUUID[it.uuid];
+        if (it.ipsPerUUID > 1) {
+            auto res = IPOutput::Ping(it.ip, "");
+            it.isPingable = (res == Output::PINGSTATE::PING_OK);
+        }
+        isPingable[it.ip] = it.isPingable;
+        it.isUniqueHostname = (uniqueHostnames[it.hostname].size() == 1);
+        if (uniqueHostnames[it.hostname].size() > 1) {
+            if (dupHostnames.find(it.hostname) == std::string::npos) {
+                dupHostnames += it.hostname + ",";
+            }
+        }
+    }
+
+    if (!dupHostnames.empty()) {
+        dupHostnames.pop_back();
+        wxMessageBox("Found the same hostname(s) for multiple devices (" + dupHostnames + "). This is really not good. Names should be unique across all devices. Make sure you rename your default FPP instances. Be careful to read through the prompts that may come up to ensure the proper controllers are added.", "Multiple Hostnames", wxOK);
+    }
 
     std::map<std::string, std::string> renames;
     bool found = false;
 
     for (int x = 0; x < discovery.GetResults().size(); x++) {
         auto discovered = discovery.GetResults()[x];
+        logger_base.debug("[Discovery] Processing: %s  IP: %s", discovered->hostname.c_str(), discovered->ip.c_str());
+        SetStatusText("Processing controller " + discovered->hostname + " IP:" + discovered->ip + " ...");
+
         if (!discovered->controller) {
             continue;
         }
+
+        if (discovered->typeId > 0 && discovered->typeId < 0x80) {
+            discovered->controller->SetActive("xLights Only");
+            if (discovered->controller->GetVendor().empty()) {
+                discovered->controller->SetVendor("FPP");
+                discovered->controller->SetModel(StartsWith(discovered->mode, "player") ? "FPP Player Only" : "");
+            }
+        }
+
         ControllerEthernet *it = discovered->controller;
         auto c = _outputManager.GetControllers(it->GetIP());
         if (c.size() == 0) {
@@ -1388,16 +1474,26 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
                 if (eth != nullptr
                     && eth->GetName() == it->GetName()
                     && eth->GetProtocol() == it->GetProtocol()) {
-                    wxMessageDialog dialog(nullptr, "The discovered controller (" + eth->GetName() + "/" + eth->GetIP() + ") matches an existing controller name but has a different IP address (" + it->GetIP() + "). Do you want to update the IP address for that existing controller in xLights?", "Mismatch IP", wxYES_NO | wxCANCEL | wxICON_QUESTION);
-                    dialog.SetYesNoCancelLabels("Yes", "Add New", "Skip");
-                    int result = dialog.ShowModal();
-                    if (result == wxID_YES) {
-                        updated = true;
-                        eth->SetIP(it->GetIP());
-                        found = true;
-                    } else if (result == wxID_CANCEL) {
+                    if (ip_utils::IsValidHostname(eth->GetIP())) {
                         updated = true;
                         found = true;
+                    } else {
+                        if (isPingable[it->GetIP()]) {
+                            wxMessageDialog dialog(nullptr, "The discovered controller (" + it->GetIP() + ") matches an existing controller name (" + eth->GetName() + "/" + eth->GetIP() + "). Do you want to update the IP address of controller?", "Mismatch IP", wxYES_NO | wxCANCEL | wxICON_QUESTION);
+                            dialog.SetYesNoCancelLabels("Yes", "Add New", "Skip");
+                            int result = dialog.ShowModal();
+                            if (result == wxID_YES) {
+                                updated = true;
+                                eth->SetIP(it->GetIP());
+                                found = true;
+                            } else if (result == wxID_CANCEL) {
+                                updated = true;
+                                found = true;
+                            }
+                        } else {
+                            updated = true;
+                            found = true;
+                        }
                     }
                 }
             }
@@ -1405,7 +1501,19 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
                 // we need to ensure the id is still unique
                 it->EnsureUniqueId();
                 it->EnsureUniqueName();
-                _outputManager.AddController(it);
+
+                if (isPingable[it->GetIP()]) {
+                    std::string hostName = discovered->hostname;
+                    logger_base.debug("[Discovery] Adding: %s at: %s", hostName.c_str(), it->GetIP().c_str());
+                    if (!hostName.empty()) {
+                        if (ip_utils::ResolveIP(hostName + ".local") != hostName + ".local") {
+                            it->SetIP(::Lower(hostName) + ".local");
+                        } else if (ip_utils::ResolveIP(hostName) != hostName) {
+                            it->SetIP(::Lower(hostName));
+                        }
+                    }
+                    _outputManager.AddController(it);
+                }
                 discovered->controller = nullptr;
                 found = true;
             }
@@ -1445,7 +1553,7 @@ void xLightsFrame::OnButtonDiscoverClick(wxCommandEvent& event) {
         _outputModelManager.AddLayoutTabWork(OutputModelManager::WORK_CALCULATE_START_CHANNELS, "OnButton_DiscoverClick");
     }
     SetStatusText("Discovery complete.");
-    logger_base.debug("Controller discovery complete.");
+    logger_base.debug("[Discovery] Controller discovery complete.");
 }
 
 void xLightsFrame::OnButtonDeleteAllControllersClick(wxCommandEvent& event) {
@@ -1487,6 +1595,46 @@ void xLightsFrame::OnButtonAddControllerNullClick(wxCommandEvent& event) {
 }
 #pragma endregion
 
+wxBitmap xLightsFrame::CreateLedBitmap(bool online) {
+    wxBitmap bitmap(8, 8);
+    wxMemoryDC dc(bitmap);
+    dc.SetBrush(online ? *wxGREEN_BRUSH : *wxRED_BRUSH);
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.DrawCircle(4, 4, 4);
+    dc.SelectObject(wxNullBitmap);
+    return bitmap;
+}
+
+void xLightsFrame::OnPingTimer(wxTimerEvent& event) {
+    if (Notebook1->GetSelection() != SETUPTAB || _pingInProgress) {
+        return;
+    }
+    _pingInProgress = true;
+    for (int row = 0; row < List_Controllers->GetItemCount(); ++row) {
+        auto controller = dynamic_cast<Controller*>(_outputManager.GetController(List_Controllers->GetItemText(row, 0).ToStdString()));
+        if (controller != nullptr && controller->IsActive()) {
+            ControllerPingThread* thread = new ControllerPingThread(controller);
+            thread->Run();
+        }
+    }
+    _pingInProgress = false;
+    StatusRefreshTimer(event);
+}
+
+void xLightsFrame::StatusRefreshTimer(wxTimerEvent& event) {
+    if (Notebook1->GetSelection() == SETUPTAB) {
+        List_Controllers->Freeze();
+        for (int row = 0; row < List_Controllers->GetItemCount(); ++row) {
+            auto controller = dynamic_cast<Controller*>(_outputManager.GetController(List_Controllers->GetItemText(row, 0).ToStdString()));
+            if (controller != nullptr && controller->IsActive()) {
+                int imageIndex = (controller->GetLastPingState() == Output::PINGSTATE::PING_OK || controller->GetLastPingState() == Output::PINGSTATE::PING_WEBOK) ? 0 : 1;
+                List_Controllers->SetItem(row, 12, "", imageIndex);
+            }
+        }
+        List_Controllers->Thaw();
+    }
+}
+
 void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
     inInitialize = true;
     // create the checked tree control
@@ -1503,7 +1651,13 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         Connect(ID_List_Controllers, wxEVT_LIST_BEGIN_DRAG, (wxObjectEventFunction)&xLightsFrame::OnListItemBeginDragControllers);
         Connect(ID_List_Controllers, wxEVT_LIST_ITEM_SELECTED, (wxObjectEventFunction)&xLightsFrame::OnListItemSelectedControllers);
 
-        List_Controllers->AppendColumn("Name");
+        // Create image list with actual LED bitmaps
+        wxImageList* imageList = new wxImageList(8, 8, true, 2);
+        imageList->Add(CreateLedBitmap(true));
+        imageList->Add(CreateLedBitmap(false));
+        List_Controllers->AssignImageList(imageList, wxIMAGE_LIST_SMALL);
+
+        List_Controllers->AppendColumn("   Name");
         List_Controllers->AppendColumn("Protocol");
         List_Controllers->AppendColumn("Address");
         List_Controllers->AppendColumn("Universes/Id");
@@ -1515,6 +1669,23 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         List_Controllers->AppendColumn("Auto Layout");
         List_Controllers->AppendColumn("Auto Size");
         List_Controllers->AppendColumn("Description");
+        List_Controllers->AppendColumn("Status", wxLIST_FORMAT_LEFT, _controllerPingInterval >0 ? 45 : 0);
+
+        wxConfigBase* config = wxConfigBase::Get();
+        if (config != nullptr) {
+            wxString co;
+            config->Read("ControllerTabColumnOrder", &co, "0,1,2,3,4,5,6,7,8,9,10,11,12");
+            wxArrayString tokens = wxSplit(co, ',');
+            wxArrayInt controllerTabColumns;
+            for (const auto& token : tokens) {
+                int value;
+                if (token.ToInt(&value)) {
+                    controllerTabColumns.Add(static_cast<int>(value));
+                }
+            }
+            if (controllerTabColumns.size() != 13) controllerTabColumns.Add(13);
+            List_Controllers->SetColumnsOrder(controllerTabColumns);
+        }
 
         ButtonAddControllerEthernet->SetToolTip("Use this button to add E1.31, Artnet, DDP and ZCPP controllers.");
         ButtonAddControllerNull->SetToolTip("Use this button to add channels that you never want to send to a controller.");
@@ -1523,18 +1694,20 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
     }
 
     if (Controllers_PropertyEditor == nullptr) {
-        Controllers_PropertyEditor = new wxPropertyGrid(Panel5, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+        xlPropertyGrid *grid = new xlPropertyGrid(Panel5, wxID_ANY, wxDefaultPosition, wxDefaultSize,
             // Here are just some of the supported window styles
             //wxPG_AUTO_SORT | // Automatic sorting after items added
             wxPG_SPLITTER_AUTO_CENTER | // Automatically center splitter until user manually adjusts it
             // Default style
             wxPG_DEFAULT_STYLE);
-        Controllers_PropertyEditor->SetExtraStyle(wxWS_EX_PROCESS_IDLE | wxPG_EX_HELP_AS_TOOLTIPS);
+        Controllers_PropertyEditor = grid;
+        Controllers_PropertyEditor->SetExtraStyle(wxPG_EX_HELP_AS_TOOLTIPS);
         FlexGridSizerSetupProperties->Add(Controllers_PropertyEditor, 1, wxALL | wxEXPAND, 5);
         Controllers_PropertyEditor->Connect(wxEVT_PG_CHANGED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridChange, 0, this);
         Controllers_PropertyEditor->Connect(wxEVT_PG_ITEM_COLLAPSED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridCollapsed, 0, this);
         Controllers_PropertyEditor->Connect(wxEVT_PG_ITEM_EXPANDED, (wxObjectEventFunction)&xLightsFrame::OnControllerPropertyGridExpanded, 0, this);
         Controllers_PropertyEditor->SetValidationFailureBehavior(wxPGVFBFlags::MarkCell | wxPGVFBFlags::Beep);
+        Controllers_PropertyEditor->Connect(wxEVT_KILL_FOCUS,(wxObjectEventFunction)&xlPropertyGrid::OnKillFocus, 0, grid);
 
         Controllers_PropertyEditor->AddActionTrigger(wxPGKeyboardAction::NextProperty, WXK_RETURN);
         Controllers_PropertyEditor->DedicateKey(WXK_RETURN);
@@ -1555,7 +1728,7 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
 
     // Reload the list
     for (const auto& it : _outputManager.GetControllers()) {
-        int row = List_Controllers->InsertItem(List_Controllers->GetItemCount(), it->GetName());
+        int row = List_Controllers->InsertItem(List_Controllers->GetItemCount(), it->GetName(), -1);
         if (std::find(begin(selections), end(selections), it->GetName()) != selections.end()) {
             List_Controllers->SetItemState(row, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
         }
@@ -1581,6 +1754,10 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         else if (!it->IsActive()) {
             List_Controllers->SetItemTextColour(row, *wxLIGHT_GREY);
         }
+        if (it->IsActive() && _controllerPingInterval > 0) {
+            int imageIndex = (it->GetLastPingState() == Output::PINGSTATE::PING_OK || it->GetLastPingState() == Output::PINGSTATE::PING_WEBOK) ? 0 : 1;
+            List_Controllers->SetItem(row, 12, "", imageIndex);
+        }
     }
 
     auto sz = 0;
@@ -1590,7 +1767,7 @@ void xLightsFrame::InitialiseControllersTab(bool rebuildPropGrid) {
         sz += List_Controllers->GetColumnWidth(i);
     }
 
-    int lc = List_Controllers->GetColumnCount() - 1;
+    int lc = List_Controllers->GetColumnCount() - 2;
     List_Controllers->SetColumnWidth(lc, wxLIST_AUTOSIZE_USEHEADER);
     if (List_Controllers->GetColumnWidth(lc) < 100) List_Controllers->SetColumnWidth(lc, 100);
 
@@ -2198,6 +2375,8 @@ void xLightsFrame::OnListControllersItemRClick(wxListEvent& event) {
     bool allSelectedControllersFromBase = std::all_of(selectedControllers.begin(), selectedControllers.end(), [](const Controller* controller) { return controller->IsFromBase(); });
     bool enableActivateMenuItems = selectedControllers.size() > 0 && !anySelectedControllersFromBase;
     bool enableUnlinkFromBaseMenuItem = selectedControllers.size() > 0 && allSelectedControllersFromBase;
+    bool anySelectedControllersSupportUpload = std::any_of(selectedControllers.begin(), selectedControllers.end(), [](const Controller* controller) { return controller->SupportsUpload(); });
+    bool enableUploadMenuItem = selectedControllers.size() == 1 && anySelectedControllersSupportUpload;
 
     mnu.Append(ID_NETWORK_ADDETHERNET, ethernet)->Enable(ButtonAddControllerSerial->IsEnabled());
     mnu.Append(ID_NETWORK_ADDNULL, "Insert NULL")->Enable(ButtonAddControllerSerial->IsEnabled());
@@ -2207,6 +2386,7 @@ void xLightsFrame::OnListControllersItemRClick(wxListEvent& event) {
     mnu.Append(ID_NETWORK_INACTIVE, "Inactivate")->Enable(ButtonAddControllerSerial->IsEnabled() && enableActivateMenuItems);
     mnu.Append(ID_NETWORK_DELETE, "Delete")->Enable(ButtonAddControllerSerial->IsEnabled());
     mnu.Append(ID_NETWORK_UNLINKFROMBASE, "Unlink from Base Show Folder")->Enable(ButtonAddControllerSerial->IsEnabled() && enableUnlinkFromBaseMenuItem);
+    mnu.Append(ID_NETWORK_UPLOADOUTPUT, "Upload Output")->Enable(ButtonAddControllerSerial->IsEnabled() && enableUploadMenuItem);
 
     mnu.Connect(wxEVT_MENU, (wxObjectEventFunction)&xLightsFrame::OnListControllerPopup, nullptr, this);
     PopupMenu(&mnu);
@@ -2273,6 +2453,9 @@ void xLightsFrame::OnListControllerPopup(wxCommandEvent& event) {
         _outputModelManager.AddASAPWork(OutputModelManager::WORK_NETWORK_CHANNELSCHANGE, "OnListControllerPopup:DELETE");
         _outputModelManager.AddASAPWork(OutputModelManager::WORK_UPDATE_NETWORK_LIST, "OnListControllerPopup:DELETE");
         _outputModelManager.AddLayoutTabWork(OutputModelManager::WORK_CALCULATE_START_CHANNELS, "OnListControllerPopup:DELETE");
+    }
+    else if (id == ID_NETWORK_UPLOADOUTPUT) {
+        OnButtonUploadOutputClick(event);
     }
 }
 #pragma endregion

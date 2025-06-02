@@ -785,6 +785,24 @@ void Model::DeleteAlias(const std::string& alias)
     }
 }
 
+bool Model::DeleteAllAliases() {
+    bool changed = false;
+    for (auto x = ModelXml->GetChildren(); x != nullptr; x = x->GetNext()) {
+        if (x->GetName() == "Aliases") {
+            ModelXml->RemoveChild(x);
+            changed = true;
+        } else if (x->GetName() == "subModel") {
+            for (auto sm = x->GetChildren(); sm != nullptr; sm = sm->GetNext()) {
+                if (sm->GetName() == "Aliases") {
+                    x->RemoveChild(sm);
+                    changed = true;
+                }
+			}
+        }
+    }
+    return changed;
+}
+
 const std::list<std::string> &Model::GetAliases() const
 {
     if (aliases.empty()) {
@@ -1336,6 +1354,10 @@ void Model::AddControllerProperties(wxPropertyGridInterface* grid)
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
             }
+        } else {
+            if (node->HasAttribute("brightness")) {
+                node->DeleteAttribute("brightness");
+            }
         }
 
         if (caps == nullptr || caps->SupportsPixelPortGamma()) {
@@ -1352,6 +1374,10 @@ void Model::AddControllerProperties(wxPropertyGridInterface* grid)
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
             }
+        } else {
+            if (node->HasAttribute("gamma")) {
+                node->DeleteAttribute("gamma");
+            }
         }
 
         if (caps == nullptr || caps->SupportsPixelPortColourOrder()) {
@@ -1363,7 +1389,11 @@ void Model::AddControllerProperties(wxPropertyGridInterface* grid)
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
             }
-        }
+        } else {
+            if (node->HasAttribute("colorOrder")) {
+                node->DeleteAttribute("colorOrder");
+            }
+        } 
 
         if (caps == nullptr || caps->SupportsPixelPortDirection()) {
             sp = grid->AppendIn(p, new wxBoolProperty("Set Pixel Direction", "ModelControllerConnectionPixelSetDirection", node->HasAttribute("reverse")));
@@ -1374,19 +1404,27 @@ void Model::AddControllerProperties(wxPropertyGridInterface* grid)
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
             }
-        }
+        } else {
+            if (node->HasAttribute("reverse")) {
+                node->DeleteAttribute("reverse");
+            }
+        } 
 
         if (caps == nullptr || caps->SupportsPixelPortGrouping()) {
             sp = grid->AppendIn(p, new wxBoolProperty("Set Group Count", "ModelControllerConnectionPixelSetGroupCount", node->HasAttribute("groupCount")));
             sp->SetAttribute("UseCheckbox", true);
             auto sp2 = grid->AppendIn(sp, new wxUIntProperty("Group Count", "ModelControllerConnectionPixelGroupCount",
                                                              wxAtoi(GetControllerConnection()->GetAttribute("groupCount", "1"))));
-            sp2->SetAttribute("Min", 0);
+            sp2->SetAttribute("Min", 1);
             sp2->SetAttribute("Max", 500);
             sp2->SetEditor("SpinCtrl");
             if (!node->HasAttribute("groupCount")) {
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
+            }
+        } else {
+            if (node->HasAttribute("groupCount")) {
+                node->DeleteAttribute("groupCount");
             }
         }
 
@@ -1401,6 +1439,10 @@ void Model::AddControllerProperties(wxPropertyGridInterface* grid)
             if (!node->HasAttribute("zigZag")) {
                 grid->DisableProperty(sp2);
                 grid->Collapse(sp);
+            }
+        } else {
+            if (node->HasAttribute("zigZag")) {
+                node->DeleteAttribute("zigZag");
             }
         }
 
@@ -2025,8 +2067,8 @@ int Model::OnPropertyGridChange(wxPropertyGridInterface* grid, wxPropertyGridEve
         wxPGProperty* prop = grid->GetFirstChild(event.GetProperty());
         grid->EnableProperty(prop, event.GetValue().GetBool());
         if (event.GetValue().GetBool()) {
-            GetControllerConnection()->AddAttribute("groupCount", "0");
-            prop->SetValueFromInt(0);
+            GetControllerConnection()->AddAttribute("groupCount", "1");
+            prop->SetValueFromInt(1);
             grid->Expand(event.GetProperty());
         } else {
             grid->Collapse(event.GetProperty());
@@ -2437,8 +2479,7 @@ void Model::AddModelAliases(wxXmlNode* n) {
     }
 }
 
-void Model::ImportExtraModels(wxXmlNode* n, xLightsFrame* xlights, ModelPreview* modelPreview, const std::string& layoutGroup)
-{
+void Model::ImportExtraModels(wxXmlNode* n, xLightsFrame* xlights, ModelPreview* modelPreview, const std::string& layoutGroup) {
     static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
 
     int x = GetHcenterPos();
@@ -2446,7 +2487,6 @@ void Model::ImportExtraModels(wxXmlNode* n, xLightsFrame* xlights, ModelPreview*
 
     // import the shadow models as well
     for (auto m = n->GetChildren(); m != nullptr; m = m->GetNext()) {
-
         bool cancelled = false;
         Model* model = xlights->AllModels.CreateDefaultModel("Custom", "1"); // start with a custom model
         model = model->CreateDefaultModelFromSavedModelNode(model, modelPreview, m, xlights, "1", cancelled);
@@ -2460,17 +2500,19 @@ void Model::ImportExtraModels(wxXmlNode* n, xLightsFrame* xlights, ModelPreview*
             float min_y = 0;
             float max_x = 0;
             float max_y = 0;
-            bool success = model->ImportXlightsModel(m, xlights, min_x, max_x, min_y, max_y);
+            float min_z = 0;
+            float max_z = 0;
+            bool success = model->ImportXlightsModel(m, xlights, min_x, max_x, min_y, max_y, min_z, max_z);
             if (success) {
-		model->SetHcenterPos(x);
- 		model->SetVcenterPos(y);
- 		model->SetWidth(GetWidth(), true);
- 		model->SetHeight(GetHeight(), true);
- 		model->UpdateXmlWithScale();
-		if (dynamic_cast<BoxedScreenLocation*>(&model->GetModelScreenLocation()) != nullptr) {
-		    BoxedScreenLocation* sl = dynamic_cast<BoxedScreenLocation*>(&model->GetModelScreenLocation());
-		    sl->SetScale(1, 1);
-		}
+                model->SetHcenterPos(x);
+                model->SetVcenterPos(y);
+                model->SetWidth(GetWidth(), true);
+                model->SetHeight(GetHeight(), true);
+                model->UpdateXmlWithScale();
+                if (dynamic_cast<BoxedScreenLocation*>(&model->GetModelScreenLocation()) != nullptr) {
+                    BoxedScreenLocation* sl = dynamic_cast<BoxedScreenLocation*>(&model->GetModelScreenLocation());
+                    sl->SetScale(1, 1);
+                }
                 model->SetControllerName(NO_CONTROLLER); // this will force the start channel to a non controller start channel ... then the user can associate them using visualiser
                 xlights->AllModels.AddModel(model);
                 AddASAPWork(OutputModelManager::WORK_MODELS_REWORK_STARTCHANNELS, "Model::ImportExtraModels");
@@ -2531,7 +2573,12 @@ void Model::AddSubmodel(wxXmlNode* n)
      }
  }
 
-wxString Model::SerialiseFace() const
+void Model::AddSubmodel(wxXmlNode* n, bool skipPrompt) {
+    importAliases = skipPrompt;
+    AddSubmodel(n);
+ }
+
+     wxString Model::SerialiseFace() const
 {
     wxString res = "";
 
@@ -2543,6 +2590,7 @@ wxString Model::SerialiseFace() const
             }
             res += "/>\n";
         }
+        res.Replace("&", "&amp;", true);
     }
 
     return res;
@@ -2685,6 +2733,7 @@ wxString Model::SerialiseState() const
             }
             res += "/>\n";
         }
+        res.Replace("&", "&amp;", true);
     }
 
     return res;
@@ -4079,23 +4128,15 @@ void Model::InitRenderBufferNodes(const std::string& tp, const std::string& came
 
         // For 3D render view buffers recursively process each individual model...should be able to handle nested model groups
         if (GetDisplayAs() == "ModelGroup" && camera != "2D") {
-            std::vector<Model*> models;
-            auto mn = Split(ModelXml->GetAttribute("models").ToStdString(), ',', true);
+            const ModelGroup *mg = dynamic_cast<const ModelGroup*>(this);
             int nc = 0;
-            for (int x = 0; x < mn.size(); ++x) {
-                Model* c = modelManager.GetModel(mn[x]);
-                if (c != nullptr) {
-                    models.push_back(c);
-                    nc += c->GetNodeCount();
-                } else if (mn[x].empty()) {
-                    // silently ignore blank models
-                }
+            for (auto &c : mg->ActiveModels()) {
+                nc += c->GetNodeCount();
             }
-
             if (nc) {
                 newNodes.reserve(nc);
             }
-            for (Model* c : models) {
+            for (auto &c : mg->ActiveModels()) {
                 int bw, bh;
                 c->InitRenderBufferNodes("Per Preview No Offset", camera, transform, newNodes, bw, bh, stagger);
             }
@@ -4169,6 +4210,10 @@ void Model::InitRenderBufferNodes(const std::string& tp, const std::string& came
             int maxDimension = ((ModelGroup*)this)->GetGridSize();
             if (maxDimension != 0 && (maxX - minX > maxDimension || maxY - minY > maxDimension)) {
                 // we need to resize all the points by this amount
+                logger_base.warn("Model Group (%s), Actual Grid Size of %.0f exceeded the Max Grid Size of %d.",
+                    (const char*)GetFullName().c_str(), 
+                    ((maxX - minX) > (maxY - minY) ? (maxX - minX) : (maxY - minY)), 
+                    maxDimension);
                 factor = std::max(((float)(maxX - minX)) / (float)maxDimension, ((float)(maxY - minY)) / (float)maxDimension);
                 // But if it is already smaller we dont want to make it bigger
                 if (factor < 1.0) {
@@ -5147,48 +5192,30 @@ std::string Model::ChannelLayoutHtml(OutputManager* outputManager)
     }
     html += "</table><p>Node numbers starting with 1 followed by string number:</p><table border=1>";
 
-    if (BufferHt == 1) {
-        // single line or arch or cane
+   for (size_t i = 0; i < NodeCount; ++i) {
+        size_t idx = Nodes[i]->Coords[0].bufY * BufferWi + Nodes[i]->Coords[0].bufX;
+        if (idx < chmap.size()) {
+            chmap[idx] = i + 1;
+        }
+    }
+    for (int y = BufferHt - 1; y >= 0; y--) {
         html += "<tr>";
-        for (size_t i = 1; i <= NodeCount; ++i) {
-            int n = IsLtoR ? i : NodeCount - i + 1;
-            int s = Nodes[n - 1]->StringNum + 1;
-            wxString bgcolor = s % 2 == 1 ? "#ADD8E6" : "#90EE90";
-            while (n > NodesPerString()) {
-                n -= NodesPerString();
+        for (int x = 0; x < BufferWi; ++x) {
+            int n = chmap[y * BufferWi + x];
+            if (n == 0) {
+                html += "<td></td>";
+            } else {
+                int s = Nodes[n - 1]->StringNum + 1;
+                wxString bgcolor = (s % 2 == 1) ? "#ADD8E6" : "#90EE90";
+                if (IsDarkMode())
+                    bgcolor = (s % 2 == 1) ? "#3F7C85" : "#962B09";
+                while (n > NodesPerString()) {
+                    n -= NodesPerString();
+                }
+                html += wxString::Format("<td bgcolor='" + bgcolor + "'>n%ds%d</td>", n, s);
             }
-            html += wxString::Format("<td bgcolor='" + bgcolor + "'>n%ds%d</td>", n, s);
         }
         html += "</tr>";
-    } else if (BufferHt > 1) {
-        // horizontal or vertical matrix or frame
-        for (size_t i = 0; i < NodeCount; ++i) {
-            size_t idx = Nodes[i]->Coords[0].bufY * BufferWi + Nodes[i]->Coords[0].bufX;
-            if (idx < chmap.size()) {
-                chmap[idx] = i + 1;
-            }
-        }
-        for (int y = BufferHt - 1; y >= 0; y--) {
-            html += "<tr>";
-            for (int x = 0; x < BufferWi; ++x) {
-                int n = chmap[y * BufferWi + x];
-                if (n == 0) {
-                    html += "<td></td>";
-                } else {
-                    int s = Nodes[n - 1]->StringNum + 1;
-                    wxString bgcolor = (s % 2 == 1) ? "#ADD8E6" : "#90EE90";
-                    if( IsDarkMode() )
-                        bgcolor = (s % 2 == 1) ? "#3F7C85" : "#962B09";
-                    while (n > NodesPerString()) {
-                        n -= NodesPerString();
-                    }
-                    html += wxString::Format("<td bgcolor='" + bgcolor + "'>n%ds%d</td>", n, s);
-                }
-            }
-            html += "</tr>";
-        }
-    } else {
-        html += "<tr><td>Error - invalid height</td></tr>";
     }
     html += "</table></body></html>";
     return html;
@@ -5995,8 +6022,7 @@ std::string Model::GetDimension() const
     return GetModelScreenLocation().GetDimension();
 }
 
-void Model::ImportModelChildren(wxXmlNode* root, xLightsFrame* xlights, wxString const& newname, float& min_x, float& max_x, float& min_y, float& max_y)
-{
+void Model::ImportModelChildren(wxXmlNode* root, xLightsFrame* xlights, wxString const& newname, float& min_x, float& max_x, float& min_y, float& max_y, float& min_z, float& max_z) {
     bool merge = false;
     bool showPopup = true;
     importAliases = 0;
@@ -6028,7 +6054,7 @@ void Model::ImportModelChildren(wxXmlNode* root, xLightsFrame* xlights, wxString
                 float width = wxAtof(n->GetAttribute("width", "1000"));
                 float height = wxAtof(n->GetAttribute("height", "1000"));
                 float depth = wxAtof(n->GetAttribute("depth", "0"));
-                ApplyDimensions(units, width, height, depth, min_x, max_x, min_y, max_y);
+                ApplyDimensions(units, width, height, depth, min_x, max_x, min_y, max_y, min_z, max_z);
             }
         } else if (n->GetName().Lower() == "associatedmodels") {
             ImportExtraModels(n, xlights, xlights->GetLayoutPreview(), GetLayoutGroup());
@@ -6326,6 +6352,45 @@ Model* Model::CreateDefaultModelFromSavedModelNode(Model* model, ModelPreview* m
         model->SetLayoutGroup(lg);
         model->Selected = true;
         return model;
+    } else if (node->GetName() == "iciclemodel") {
+        // grab the attributes I want to keep
+        std::string startChannel = model->GetModelXml()->GetAttribute("StartChannel", "1").ToStdString();
+        auto x = model->GetHcenterPos();
+        auto y = model->GetVcenterPos();
+        auto scale = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetScaleMatrix();
+        auto lg = model->GetLayoutGroup();
+
+        // not a custom model so delete the default model that was created
+        if (model != nullptr) {
+            xlights->AddTraceMessage("GetXlightsModel converted model to Icicle");
+            delete model;
+        }
+        model = xlights->AllModels.CreateDefaultModel("Icicles", startChannel);
+        model->SetHcenterPos(x);
+        model->SetVcenterPos(y);
+        ((BoxedScreenLocation&)model->GetModelScreenLocation()).SetScaleMatrix(scale);
+        model->SetLayoutGroup(lg);
+        model->Selected = true;
+        return model;
+    } else if (node->GetName() == "Cubemodel") {
+        std::string startChannel = model->GetModelXml()->GetAttribute("StartChannel", "1").ToStdString();
+        auto x = model->GetHcenterPos();
+        auto y = model->GetVcenterPos();
+        auto scale = ((BoxedScreenLocation&)model->GetModelScreenLocation()).GetScaleMatrix();
+        auto lg = model->GetLayoutGroup();
+
+        // not a custom model so delete the default model that was created
+        if (model != nullptr) {
+            xlights->AddTraceMessage("GetXlightsModel converted model to Cube");
+            delete model;
+        }
+        model = xlights->AllModels.CreateDefaultModel("Cube", startChannel);
+        model->SetHcenterPos(x);
+        model->SetVcenterPos(y);
+        ((BoxedScreenLocation&)model->GetModelScreenLocation()).SetScaleMatrix(scale);
+        model->SetLayoutGroup(lg);
+        model->Selected = true;
+        return model;
     } else {
         logger_base.error("GetXlightsModel no code to convert to " + node->GetName());
         xlights->AddTraceMessage("GetXlightsModel no code to convert to " + node->GetName());
@@ -6334,7 +6399,7 @@ Model* Model::CreateDefaultModelFromSavedModelNode(Model* model, ModelPreview* m
     return model;
 }
 
-Model* Model::GetXlightsModel(Model* model, std::string& last_model, xLightsFrame* xlights, bool& cancelled, bool download, wxProgressDialog* prog, int low, int high, ModelPreview* modelPreview)
+Model* Model::GetXlightsModel(Model* model, std::string& last_model, xLightsFrame* xlights, bool& cancelled, bool download, wxProgressDialog* prog, int low, int high, ModelPreview* modelPreview, int& widthmm, int& heightmm, int&depthmm)
 {
     wxXmlDocument doc;
     bool docLoaded = false;
@@ -6351,6 +6416,9 @@ Model* Model::GetXlightsModel(Model* model, std::string& last_model, xLightsFram
                 if (dlg.ShowModal() == wxID_OK) {
                     xlights->SuspendAutoSave(false);
                     last_model = dlg.GetModelFile();
+                    widthmm = dlg.GetModelWidthMM();
+                    heightmm = dlg.GetModelHeightMM();
+                    depthmm = dlg.GetModelDepthMM();
 
                     if (last_model.empty()) {
                         DisplayError("Failed to download model file.");
@@ -6384,6 +6452,16 @@ Model* Model::GetXlightsModel(Model* model, std::string& last_model, xLightsFram
                 if (doc.IsOk() && doc.GetRoot()->GetAttribute("name", "") != "") {
                     docLoaded = true;
                     wxString modelName = doc.GetRoot()->GetAttribute("name", "");
+
+                    if (doc.GetRoot()->GetAttribute("widthmm", "") != "") {
+						widthmm = wxAtoi(doc.GetRoot()->GetAttribute("widthmm", ""));
+					}
+                    if (doc.GetRoot()->GetAttribute("heightmm", "") != "") {
+						heightmm = wxAtoi(doc.GetRoot()->GetAttribute("heightmm", ""));
+					}
+                    if (doc.GetRoot()->GetAttribute("depthmm", "") != "") {
+						depthmm = wxAtoi(doc.GetRoot()->GetAttribute("depthmm", ""));
+					}
 #ifdef __WXMSW__
                     // If a windows user does not want vendor recommendations then dont go looking for them at all
                     // I have allowed this to be off (ie it does the vendor recommendation check) by default but once
@@ -6437,7 +6515,7 @@ Model* Model::GetXlightsModel(Model* model, std::string& last_model, xLightsFram
                                         wxString vendor = v["vendor"].AsString();
                                         if (dlg == nullptr) {
                                             dlg = new VendorModelDialog(xlights, xlights->CurrentDir);
-                                            dlg->DlgInit(prog, low, high);
+                                            UNUSED(dlg->DlgInit(prog, low, high));
                                         }
                                         if (localBlock) {
                                             vendorBlock = vendor;
@@ -7665,8 +7743,7 @@ void Model::GetMinScreenXY(float& minx, float& miny) const
     }
 }
 
-void Model::ApplyDimensions(const std::string& units, float width, float height, float depth, float& min_x, float& max_x, float& min_y, float& max_y)
-{
+void Model::ApplyDimensions(const std::string& units, float width, float height, float depth, float& min_x, float& max_x, float& min_y, float& max_y, float& min_z, float& max_z) {
     auto ruler = RulerObject::GetRuler();
 
     if (ruler != nullptr && width != 0 && height != 0) {
@@ -7708,7 +7785,10 @@ void Model::ExportDimensions(wxFile& f) const
             u = "m";
             break;
         }
-        f.Write(wxString::Format("<dimensions units=\"%s\" width=\"%f\" height=\"%f\" depth=\"%f\"/>", u, GetModelScreenLocation().GetRealWidth(), GetModelScreenLocation().GetRealHeight(), GetModelScreenLocation().GetRealDepth()));
+        f.Write(wxString::Format("<dimensions units=\"%s\" width=\"%f\" height=\"%f\" depth=\"%f\"/>",
+                                 u,
+                                 GetModelScreenLocation().GetRealWidth(),
+                                 (DisplayAs == "Icicles") ? GetModelScreenLocation().GetRestorableMHeight() : GetModelScreenLocation().GetRealHeight(), GetModelScreenLocation().GetRealDepth()));
     }
 }
 
@@ -7878,8 +7958,7 @@ bool wxDropPatternProperty::ValidateValue(wxVariant& value, wxPGValidationInfo& 
     return true;
 }
 
-bool Model::ImportXlightsModel(std::string const& filename, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y)
-{
+bool Model::ImportXlightsModel(std::string const& filename, xLightsFrame* xlights, float& min_x, float& max_x, float& min_y, float& max_y, float& min_z, float& max_z) {
     // these have already been dealt with
     if (EndsWith(filename, "gdtf"))
         return false;
@@ -7897,7 +7976,7 @@ bool Model::ImportXlightsModel(std::string const& filename, xLightsFrame* xlight
     wxXmlDocument doc(filename);
     if (doc.IsOk()) {
         wxXmlNode* root = doc.GetRoot();
-        return ImportXlightsModel(root, xlights, min_x, max_x, min_y, max_y);
+        return ImportXlightsModel(root, xlights, min_x, max_x, min_y, max_y, min_z, max_z);
     }
 
     DisplayError("Failure loading model file: " + filename);
@@ -7933,4 +8012,58 @@ std::string Model::GetAttributesAsJSON() const
     }
     json += "}}";
     return json;
+}
+
+// Determines a simplified class for a model to be used by LLMs for better model understanding
+std::string Model::DetermineClass(const std::string& displayAs, bool isSingingFace, bool isSpiralTree, bool isSticks, const std::string& dropPattern) {
+    // drop pattern dir is 1 if dropping down and -1 if going up .. 0 if no drop pattern
+    int dropPatternDir = 0;
+    if (dropPattern != "") {
+        auto drops = wxSplit(dropPattern, ',');
+        for (const auto& it : drops) {
+            int i = wxAtoi(it);
+            if (i != 0) {
+                dropPatternDir = i < 0 ? -1 : 1;
+                break;
+            }
+        }
+    }
+
+    if (displayAs == "Custom" && isSingingFace) {
+        return "SingingFace";
+    }
+
+    if ((displayAs == "Candy Canes" && isSticks) || (displayAs == "Poly Line" && dropPatternDir == -1)) {
+        return "Sticks";
+    }
+
+    if (displayAs == "Icicles" || (displayAs == "Poly Line" && dropPatternDir == 1)) {
+        return "Icicles";
+    }
+
+    if (displayAs == "Single Line" || displayAs == "Poly Line" || displayAs == "Arches" || displayAs == "Candy Canes" || displayAs == "Circle" || isSpiralTree || displayAs == "Window Frame") {
+        return "Line";
+    }
+
+    if (displayAs == "Horiz Matrix" || displayAs == "Vert Matrix" || StartsWith(displayAs, "Tree ")) {
+        return "Matrix";
+    }
+
+    if (displayAs == "Channel Block" || displayAs == "Image") {
+        return "Pixel";
+    }
+
+    if (displayAs == "DmxMovingHeadAdv") {
+        return "Moving Head";
+    }
+
+    if (displayAs == "DmxFloodlight" || displayAs == "DmxFloodArea") {
+        return "Floodlight";
+    }
+
+    if (displayAs == "DmxGeneral" || displayAs == "DmxServo" || displayAs == "DmxSkull") {
+        return "DMX Special Purpose";
+    }
+
+    return "";
 }

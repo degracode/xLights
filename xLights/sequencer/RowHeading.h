@@ -41,6 +41,8 @@ public:
     void SetCanPaste(bool value) { mCanPaste = value; }
     void ToggleExpand(Element * element);
     void SelectTiming(int timing);
+    
+    void SetShowGroupEffectIndicator(bool b) { groupEffectIndicator = b; }
 
     static int rowHeadingSize;
     
@@ -57,6 +59,7 @@ private:
     void rightClick(wxMouseEvent& event);
     void leftDoubleClick(wxMouseEvent &event);
     void OnLayerPopup(wxCommandEvent& event);
+    std::vector<std::string> ParseTags(const wxString& tagString);
     void DrawHeading(wxPaintDC* dc, wxXmlNode* model, int width, int row);
     bool HitTestCollapseExpand(int row, int x, bool* IsCollapsed);
     bool HitTestTimingActive(int row, int x, bool* IsActive);
@@ -78,6 +81,8 @@ private:
     bool mCanPaste = false;
     const int _minRowHeadingWidth = 158;
     bool _dragging = false;
+    bool groupEffectIndicator = true;
+
     
     static const long ID_ROW_MNU_INSERT_LAYER_ABOVE;
     static const long ID_ROW_MNU_INSERT_LAYER_BELOW;
@@ -118,6 +123,7 @@ private:
     static const long ID_ROW_MNU_SELECT_ROW_EFFECTS;
     static const long ID_ROW_MNU_SELECT_MODEL_EFFECTS;
     static const long ID_ROW_MNU_SELECT_TIMING_EFFECTS;
+    static const long ID_ROW_MNU_ADD_TIMING_TRACK_ALL_VIEWS;
     static const long ID_ROW_MNU_MODEL_CONVERTTOPERMODEL;
     static const long ID_ROW_MNU_ROW_CONVERTTOPERMODEL;
     

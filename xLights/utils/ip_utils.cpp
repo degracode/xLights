@@ -73,6 +73,19 @@ namespace ip_utils
         return false;
     }
 
+    bool IsValidHostname(const std::string& ip) {
+        static wxRegEx hostAddr(R"(^([a-zA-Z0-9\-]+)(\.?)([a-zA-Z0-9\-]{2,})$)");
+
+        wxString ips = wxString(ip).Trim(false).Trim(true);
+        
+        return hostAddr.Matches(ips);
+    }
+
+    bool IsIPv6(const std::string& ip) {
+        wxIPV6address ipv6Addr;
+        return ipv6Addr.Hostname(ip)  && ip.find(':') != std::string::npos;
+    }
+
     std::string CleanupIP(const std::string& ip)
     {
         bool hasChar = false;
@@ -142,7 +155,7 @@ namespace ip_utils
             return "RESOLVE_POOL - " + ip;
         }
         virtual void Process() {
-            struct addrinfo hints, *res, *result;
+            struct addrinfo hints, *res, *result = nullptr;
             int errcode;
             void *ptr;
 
@@ -200,22 +213,24 @@ namespace ip_utils
         }
         std::unique_lock<std::mutex> lock(__resolvedIPMapLock);
         std::string resolvedIp = __resolvedIPMap[ip];
-        lock.unlock();
         if (resolvedIp.empty() || hasAlpha(ip)) {
-        std::string resolvedIp = __resolvedIPMap[ip];
             if (hasAlpha(ip))
                 __resolvedIPMap.erase(ip);
+
+            lock.unlock();
             ResolveJob *job = new ResolveJob(ip, func);
             RESOLVE_POOL.PushJob(job);
         } else {
+            lock.unlock();
             func(resolvedIp);
         }
     }
 
     void waitForAllToResolve() {
-        while (!RESOLVE_POOL.isEmpty()) {
+        int count = 0;
+        while (!RESOLVE_POOL.isEmpty() && count < 10000) {
             wxMilliSleep(2);
-            wxYieldIfNeeded();
+            //wxYieldIfNeeded();
         }
     }
 };

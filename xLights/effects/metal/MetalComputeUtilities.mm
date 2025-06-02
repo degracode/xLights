@@ -43,7 +43,7 @@ MetalPixelBufferComputeData::~MetalPixelBufferComputeData() {
 }
 
 bool MetalPixelBufferComputeData::doBlendLayers(PixelBufferClass *pixelBuffer, int effectPeriod, const std::vector<bool>& validLayers, int saveLayer, bool saveToPixels) {
-    if (pixelBuffer->layers[saveLayer]->buffer.GetNodeCount() < 1024) {
+    if (pixelBuffer->layers[saveLayer]->buffer.GetNodeCount() < 2048) {
         return false;
     }
     for (int l = validLayers.size() - 1; l >= 0; --l) {
@@ -73,6 +73,9 @@ bool MetalPixelBufferComputeData::doBlendLayers(PixelBufferClass *pixelBuffer, i
         setLabel(tmpBufferBlend, pixelBuffer->GetModelName() + "-BlendBuffer");
     }
     MetalRenderBufferComputeData *slRMRB = MetalRenderBufferComputeData::getMetalRenderBufferComputeData(&pixelBuffer->layers[saveLayer]->buffer);
+    if (!slRMRB) {
+        return false;
+    }
     if (slRMRB->isCommitted()) {
         slRMRB->waitForCompletion();
     }
@@ -200,7 +203,7 @@ bool MetalPixelBufferComputeData::doBlendLayers(PixelBufferClass *pixelBuffer, i
         }
     }
     
-    // not all the pixels are loaded and adjusted, now start the blending
+    // now all the pixels are loaded and adjusted, now start the blending
     bool first = true;
     for (int l = validLayers.size() - 1; l >= 0; --l) {
         if (validLayers[l]) {

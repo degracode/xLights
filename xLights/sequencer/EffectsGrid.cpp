@@ -103,6 +103,7 @@ const long EffectsGrid::ID_GRID_MNU_ALIGN_MATCH_DURATION = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_START_TIMES_SHIFT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_END_TIMES_SHIFT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_ALIGN_TO_TIMING_MARK = wxNewId();
+const long EffectsGrid::ID_GRID_MNU_CLOSE_GAP = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_SPLIT_EFFECT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_DUPLICATE_EFFECT = wxNewId();
 const long EffectsGrid::ID_GRID_MNU_CREATE_TIMING_FROM_EFFECT = wxNewId();
@@ -410,6 +411,7 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
         wxMenuItem* menu_align_start_times_shift = mnuAlignment->Append(ID_GRID_MNU_ALIGN_START_TIMES_SHIFT, "Shift Align Start Times");
         wxMenuItem* menu_align_end_times_shift = mnuAlignment->Append(ID_GRID_MNU_ALIGN_END_TIMES_SHIFT, "Shift Align End Times");
         wxMenuItem* menu_align_to_timing_mark = mnuAlignment->Append(ID_GRID_MNU_ALIGN_TO_TIMING_MARK, "Align To Closest Timing Mark");
+        wxMenuItem* menu_close_gap = mnuAlignment->Append(ID_GRID_MNU_CLOSE_GAP, "Close Gap");
         mnuAlignment->Connect(wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&EffectsGrid::OnGridPopup, nullptr, this);
         mnuLayer.AppendSubMenu(mnuAlignment, "Alignment");
         if ((mSelectedEffect == nullptr) || !MultipleEffectsSelected()) {
@@ -420,6 +422,7 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
             menu_align_match_duration->Enable(false);
             menu_align_start_times_shift->Enable(false);
             menu_align_end_times_shift->Enable(false);
+            menu_close_gap->Enable(false);
         }
 
         if ((mSelectedEffect == nullptr && !MultipleEffectsSelected()) || GetActiveTimingElement() == nullptr) {
@@ -446,6 +449,15 @@ void EffectsGrid::rightClick(wxMouseEvent& event) {
             menu_effect_lock->Enable(false);
             menu_effect_renderdisable->Enable(false);
             menu_effect_renderenable->Enable(false);
+        }
+        if (mSelectedEffect != nullptr && !MultipleEffectsSelected()) {
+            if (mSelectedEffect->IsEffectRenderDisabled()) {
+                menu_effect_renderenable->Enable(true);
+                menu_effect_renderdisable->Enable(false);
+            } else {
+                menu_effect_renderenable->Enable(false);
+                menu_effect_renderdisable->Enable(true);
+            }
         }
         if (mSelectedEffect == nullptr) {
             // This only works on the currently selected effect
@@ -776,6 +788,9 @@ void EffectsGrid::OnGridPopup(wxCommandEvent& event) {
     } else if (id == ID_GRID_MNU_ALIGN_TO_TIMING_MARK) {
         logger_base.debug("OnGridPopup - ID_GRID_MNU_ALIGN_TO_TIMING_MARK");
         AlignSelectedEffectsToTimingMark();
+    } else if (id == ID_GRID_MNU_CLOSE_GAP) {
+        logger_base.debug("OnGridPopup - ID_GRID_MNU_CLOSE_GAP");
+        CloseGap();
     } else if (id == ID_GRID_MNU_CREATE_TIMING_FROM_EFFECT) {
         logger_base.debug("OnGridPopup - CREATE_TIMING_FROM_EFFECT");
         CreateTimingFromSelectedEffects();
@@ -1815,7 +1830,7 @@ void EffectsGrid::ApplyButtonPressToSelected(const std::string& effectName, cons
     }
 }
 
-void EffectsGrid::RemapSelectedDMXEffectValues(const std::vector<std::tuple<int, int, float, int>>& dmxmappings) {
+void EffectsGrid::RemapSelectedDMXEffectValues(const std::vector<std::tuple<int, int, float, int, wxString>>& dmxmappings) {
     Element* lastModel = nullptr;
     RangeAccumulator rangeAccumulator;
 
@@ -3553,6 +3568,7 @@ void EffectsGrid::MoveSelectedEffectUp(bool shift) {
     } else if (!MultipleEffectsSelected() && mSelectedEffect != nullptr && !mSelectedEffect->IsLocked() && mSelectedRow > 0) {
         logger_base.debug("EffectsGrid::MoveSelectedEffectUp moving single effect.");
         int row = mSelectedRow - 1;
+        xlights->AbortRender();
         EffectLayer* el = mSelectedEffect->GetParentEffectLayer();
         while (row + mSequenceElements->GetFirstVisibleModelRow() >= mSequenceElements->GetNumberOfTimingRows()) {
             EffectLayer* new_el = mSequenceElements->GetEffectLayer(mSequenceElements->GetFirstVisibleModelRow() + row);
@@ -3614,6 +3630,7 @@ void EffectsGrid::MoveSelectedEffectUp(bool shift) {
             // Tag all selected effects so we don't move them twice
             ((MainSequencer*)mParent)->TagAllSelectedEffects();
 
+            xlights->AbortRender();
             mSequenceElements->get_undo_mgr().CreateUndoStep();
             for (int row = first_model_row + 1; row < mSequenceElements->GetRowInformationSize(); row++) {
                 EffectLayer* el1 = mSequenceElements->GetEffectLayer(row - 1);
@@ -3680,8 +3697,8 @@ void EffectsGrid::MoveSelectedEffectDown(bool shift) {
         Draw();
     } else if (!MultipleEffectsSelected() && mSelectedEffect != nullptr && !mSelectedEffect->IsLocked() && mSelectedRow >= 0) {
         logger_base.debug("EffectsGrid::MoveSelectedEffectDown moving single effect.");
-
         int row = mSelectedRow + 1;
+        xlights->AbortRender();
         EffectLayer* el = mSelectedEffect->GetParentEffectLayer();
         while (row < mSequenceElements->GetRowInformationSize()) {
             EffectLayer* new_el = mSequenceElements->GetEffectLayer(mSequenceElements->GetFirstVisibleModelRow() + row);
@@ -3743,6 +3760,7 @@ void EffectsGrid::MoveSelectedEffectDown(bool shift) {
             // Tag all selected effects so we don't move them twice
             ((MainSequencer*)mParent)->TagAllSelectedEffects();
 
+            xlights->AbortRender();
             mSequenceElements->get_undo_mgr().CreateUndoStep();
             for (int row = mSequenceElements->GetRowInformationSize() - 1; row > first_model_row; row--) {
                 EffectLayer* el1 = mSequenceElements->GetEffectLayer(row - 1);
@@ -4501,6 +4519,86 @@ void EffectsGrid::AlignSelectedEffects(EFF_ALIGN_MODE align_mode) {
             }
         }
     }
+    sendRenderDirtyEvent();
+    xlights->DoForceSequencerRefresh();
+}
+
+void EffectsGrid::CloseGap() {
+    int sel_eff_start = mSelectedEffect->GetStartTimeMS();
+    int sel_eff_end = mSelectedEffect->GetEndTimeMS();
+    bool isSelectedEffectLocked = mSelectedEffect->IsLocked();
+
+    std::vector<std::tuple<Effect*, int, int>> selectedEffects;
+
+    for (int i = 0; i < mSequenceElements->GetRowInformationSize(); i++) {
+        auto* el = mSequenceElements->GetEffectLayer(i);
+        for (auto* ef : el->GetEffects()) {
+            if (ef->GetSelected() != EFFECT_NOT_SELECTED) {
+                auto const st = ef->GetStartTimeMS();
+                auto const end = ef->GetEndTimeMS();
+                selectedEffects.emplace_back(ef, st, end);
+            }
+        }
+    }
+
+    std::sort(selectedEffects.begin(), selectedEffects.end(),
+              [](const std::tuple<Effect*, int, int>& a, const std::tuple<Effect*, int, int>& b) {
+                  return std::get<1>(a) < std::get<1>(b);
+              });
+
+    size_t selectedIndex = 0;
+    for (size_t i = 0; i < selectedEffects.size(); i++) {
+        if (std::get<0>(selectedEffects[i]) == mSelectedEffect) {
+            selectedIndex = i;
+            break;
+        }
+    }
+
+    mSequenceElements->get_undo_mgr().CreateUndoStep();
+    for (int i = selectedIndex - 1; i >= 0; i--) {
+        Effect* ef = std::get<0>(selectedEffects[i]);
+        int originalStart = std::get<1>(selectedEffects[i]);
+        int originalEnd = std::get<2>(selectedEffects[i]);
+
+        if (ef->IsLocked()) {
+            continue;
+        }
+
+        int nextEffectStart = (i == selectedIndex - 1) ? sel_eff_start : std::get<0>(selectedEffects[i + 1])->GetStartTimeMS();
+        int gap = nextEffectStart - originalEnd;
+
+        if (gap > 0) {
+            mSequenceElements->get_undo_mgr().CaptureEffectToBeMoved(ef->GetParentEffectLayer()->GetParentElement()->GetModelName(), ef->GetParentEffectLayer()->GetIndex(),
+                                                                     ef->GetID(), ef->GetStartTimeMS(), ef->GetEndTimeMS());
+            ef->SetStartTimeMS(originalStart + gap);
+            ef->SetEndTimeMS(originalEnd + gap);
+        }
+    }
+
+    int lastUnlockedEndTime = sel_eff_end;
+
+    for (size_t i = selectedIndex + 1; i < selectedEffects.size(); i++) {
+        Effect* ef = std::get<0>(selectedEffects[i]);
+        int originalStart = std::get<1>(selectedEffects[i]);
+        int originalEnd = std::get<2>(selectedEffects[i]);
+
+        if (ef->IsLocked()) {
+            lastUnlockedEndTime = originalEnd;
+            continue;
+        }
+
+        int gap = originalStart - lastUnlockedEndTime;
+
+        if (gap > 0) {
+            mSequenceElements->get_undo_mgr().CaptureEffectToBeMoved(ef->GetParentEffectLayer()->GetParentElement()->GetModelName(), ef->GetParentEffectLayer()->GetIndex(),
+                                                                     ef->GetID(), ef->GetStartTimeMS(), ef->GetEndTimeMS());
+            ef->SetStartTimeMS(originalStart - gap);
+            ef->SetEndTimeMS(originalEnd - gap);
+        }
+
+        lastUnlockedEndTime = ef->GetEndTimeMS();
+    }
+
     sendRenderDirtyEvent();
     xlights->DoForceSequencerRefresh();
 }
@@ -5605,7 +5703,60 @@ void EffectsGrid::RunMouseOverHitTests(int rowIndex, int x, int y) {
 
 void EffectsGrid::SetEffectStatusText(Effect* eff) const {
     if (eff != nullptr) {
-        wxString e = wxString::Format("start: %s end: %s duration: %s %s %s %s", FORMATTIME(eff->GetStartTimeMS()), FORMATTIME(eff->GetEndTimeMS()), FORMATTIME(eff->GetEndTimeMS() - eff->GetStartTimeMS()), eff->GetEffectName(), eff->GetDescription(), eff->IsEffectRenderDisabled() ? _("DISABLED") : _(""));
+        wxString columnInfo = "";
+        int selectedTimingRow = mSequenceElements->GetSelectedTimingRow();
+        if (selectedTimingRow >= 0) {
+            EffectLayer* tel = mSequenceElements->GetVisibleEffectLayer(selectedTimingRow);
+            if (tel != nullptr) {
+                int startColumn = -1, endColumn = -1;
+                int effectCount = tel->GetEffectCount();
+
+                for (int i = 0; i < effectCount; i++) {
+                    Effect* timingEffect = tel->GetEffect(i);
+
+                    if (timingEffect->GetStartTimeMS() <= eff->GetStartTimeMS() &&
+                        timingEffect->GetEndTimeMS() > eff->GetStartTimeMS()) {
+                        startColumn = i;
+                    }
+
+                    if (timingEffect->GetStartTimeMS() < eff->GetEndTimeMS() &&
+                        timingEffect->GetEndTimeMS() >= eff->GetEndTimeMS()) {
+                        endColumn = i;
+
+                        if (startColumn != -1)
+                            break;
+                    }
+                }
+
+                if (startColumn != -1 && endColumn != -1) {
+                    int columnCount = endColumn - startColumn + 1;
+                    bool isExactMatch = false;
+                    if (startColumn >= 0 && startColumn < effectCount &&
+                        endColumn >= 0 && endColumn < effectCount) {
+                        isExactMatch =
+                            (eff->GetStartTimeMS() == tel->GetEffect(startColumn)->GetStartTimeMS()) &&
+                            (eff->GetEndTimeMS() == tel->GetEffect(endColumn)->GetEndTimeMS());
+                    }
+
+                    if (isExactMatch) {
+                        columnInfo = wxString::Format(" spans: %d timing marks (exact)", columnCount);
+                    } else {
+                        columnInfo = wxString::Format(" spans: %d timing marks (partial)", columnCount);
+                    }
+                }
+            }
+        }
+
+        wxString disabledStr = eff->IsEffectRenderDisabled() ? "DISABLED" : "";
+
+        wxString e = wxString::Format("start: %s end: %s duration: %s%s %s %s %s",
+                                      FORMATTIME(eff->GetStartTimeMS()),
+                                      FORMATTIME(eff->GetEndTimeMS()),
+                                      FORMATTIME(eff->GetEndTimeMS() - eff->GetStartTimeMS()),
+                                      columnInfo,
+                                      eff->GetEffectName(),
+                                      eff->GetDescription(),
+                                      disabledStr);
         xlights->SetStatusText(e, true);
     } else {
         if (xlights->GetFilename() != "") {

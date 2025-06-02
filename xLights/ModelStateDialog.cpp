@@ -79,6 +79,7 @@ const long ModelStateDialog::STATE_DIALOG_SHIFT = wxNewId();
 const long ModelStateDialog::STATE_DIALOG_REVERSE = wxNewId();
 const long ModelStateDialog::STATE_DIALOG_CLEAR_SELECTED_ROWS = wxNewId();
 const long ModelStateDialog::STATE_DIALOG_CLEAR_STATES = wxNewId();
+const long ModelStateDialog::STATE_DIALOG_EXPORT_TOOTHERS = wxNewId();
 
 BEGIN_EVENT_TABLE(ModelStateDialog,wxDialog)
 	//(*EventTable(ModelStateDialog)
@@ -379,7 +380,7 @@ void ModelStateDialog::SetStateInfo(Model* cls, std::map<std::string, std::map<s
 
     for (int x = 0; x < SingleNodeGrid->GetNumberRows(); x++) {
         wxGridCellTextEditor* neditor = new wxGridCellTextEditor();
-        wxString nfilter("abcdefghijklmnopqrstuvwxyz0123456789-_/\\|#");
+        wxString nfilter("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/\\|#");
         wxTextValidator nvalidator(wxFILTER_INCLUDE_CHAR_LIST);
         nvalidator.SetCharIncludes(nfilter);
         neditor->SetValidator(nvalidator);
@@ -400,7 +401,7 @@ void ModelStateDialog::SetStateInfo(Model* cls, std::map<std::string, std::map<s
         reditor->SetValidator(validator);
 
         wxGridCellTextEditor* neditor2 = new wxGridCellTextEditor();
-        wxString nfilter2("abcdefghijklmnopqrstuvwxyz0123456789-_/\\|#");
+        wxString nfilter2("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/\\|#");
         wxTextValidator nvalidator2(wxFILTER_INCLUDE_CHAR_LIST);
         nvalidator2.SetCharIncludes(nfilter2);
         neditor2->SetValidator(nvalidator2);
@@ -905,6 +906,7 @@ void ModelStateDialog::OnButton_ImportClick(wxCommandEvent& event)
     mnu.Append(STATE_DIALOG_IMPORT_FILE, "Import From File");
     mnu.Append(STATE_DIALOG_IMPORT_ALL_SUB, "Import From SubModels");
     mnu.Append(STATE_DIALOG_IMPORT_DOWNLOAD, "Import From Downloads");
+    mnu.Append(STATE_DIALOG_EXPORT_TOOTHERS, "Export State(s) To Other Model(s)");
     mnu.AppendSeparator();
     mnu.Append(STATE_DIALOG_SHIFT, "Shift Nodes");
     mnu.Append(STATE_DIALOG_REVERSE, "Reverse Nodes");
@@ -1164,8 +1166,7 @@ wxString ModelStateDialog::getSubmodelNodes(Model* sm)
     return row;
 }
 
-void ModelStateDialog::OnAddBtnPopup(wxCommandEvent& event)
-{
+void ModelStateDialog::OnAddBtnPopup(wxCommandEvent& event) {
     if (event.GetId() == STATE_DIALOG_IMPORT_MODEL) {
         ImportStatesFromModel();
     } else if (event.GetId() == STATE_DIALOG_IMPORT_FILE) {
@@ -1178,9 +1179,9 @@ void ModelStateDialog::OnAddBtnPopup(wxCommandEvent& event)
         CopyStateData();
     } else if (event.GetId() == STATE_DIALOG_RENAME) {
         RenameState();
-    } else if(event.GetId() == STATE_DIALOG_SHIFT) {
+    } else if (event.GetId() == STATE_DIALOG_SHIFT) {
         ShiftStateNodes();
-    } else if(event.GetId() == STATE_DIALOG_REVERSE) {
+    } else if (event.GetId() == STATE_DIALOG_REVERSE) {
         ReverseStateNodes();
     } else if (event.GetId() == STATE_DIALOG_IMPORT_ALL_SUB) {
         ImportStatesFromSubModels();
@@ -1190,6 +1191,8 @@ void ModelStateDialog::OnAddBtnPopup(wxCommandEvent& event)
             return;
         }
         ImportStates(filename);
+    } else if (event.GetId() == STATE_DIALOG_EXPORT_TOOTHERS) {
+        ExportStatesToOtherModels();
     }
 }
 
@@ -1211,6 +1214,8 @@ void ModelStateDialog::ImportStatesFromModel()
         }
 
         AddStates(m->GetStateInfo());
+        overRide = false;
+        showDialog = true;
 
         NameChoice->Enable();
         StateTypeChoice->Enable();
@@ -1247,6 +1252,8 @@ void ModelStateDialog::ImportStates(const wxString & filename)
                 AddStates(stateInfo);
             }
         }
+        overRide = false;
+        showDialog = true;
 
         if (stateFound)
         {
@@ -1324,9 +1331,6 @@ std::string ModelStateDialog::cleanSubName(std::string name)
 
 void ModelStateDialog::AddStates(std::map<std::string, std::map<std::string, std::string> > const& states)
 {
-    bool overRide = false;
-    bool showDialog = true;
-
     for (const auto& state : states)
     {
         auto fname = state.first;
@@ -1883,4 +1887,25 @@ void ModelStateDialog::OnChoiceColorDrawSelect(wxCommandEvent& event) {
         return;
     }
     SelectRow(grid, row);
+}
+
+void ModelStateDialog::ExportStatesToOtherModels() {
+    if (wxMessageBox("Are you sure you want to Export this model's States to other models?\nThis will override all the other model's existing states and there is no way to undo it.","Are you sure?", wxYES_NO | wxCENTER, this) == wxNO) {
+        return;
+    }
+
+    xLightsFrame* xlights = xLightsApp::GetFrame();
+    wxArrayString choices = getModelList(&xlights->AllModels);
+
+    wxMultiChoiceDialog dlg(this, "Export States to Other Models", "Choose Model(s)", choices);
+    OptimiseDialogPosition(&dlg);
+
+    if (dlg.ShowModal() == wxID_OK) {
+        std::map<std::string, std::map<std::string, std::string>> sourceStates = GetStateInfo();
+        for (auto const& idx : dlg.GetSelections()) {
+            Model* targetModel = xlights->GetModel(choices.at(idx));
+            targetModel->SetStateInfo(sourceStates);
+            targetModel->IncrementChangeCount();
+        }
+    }
 }

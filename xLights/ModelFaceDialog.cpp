@@ -89,6 +89,7 @@ const long ModelFaceDialog::ID_TIMER1 = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_IMPORT_SUB = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_IMPORT_MODEL = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_IMPORT_FILE = wxNewId();
+const long ModelFaceDialog::FACES_DIALOG_EXPORT_TOOTHERS = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_COPY = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_RENAME = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_SHIFT = wxNewId();
@@ -359,6 +360,7 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent, OutputManager* outputManager,
 	//*)
 
     model = nullptr;
+    MatrixImagePlacementChoice->SetStringSelection("Scaled");
 
     modelPreview = new ModelPreview(ModelPreviewPanelLocation);
     modelPreview->SetMinSize(wxSize(150, 150));
@@ -647,12 +649,15 @@ void ModelFaceDialog::OnMatrixModelsGridCellChange(wxGridEvent& event)
         value = value.Truncate(value.size()-1);
     }
 
-    TryToFindPath(value);
+    if (!value.IsEmpty()) {
+        TryToFindPath(value);
+    }
 
     faceData[name][key.ToStdString()] = value;
     MatrixModelsGrid->SetCellValue(r, c, value);
-
-    TryToSetAllMatrixModels(name, key.ToStdString(), value, r, c);
+    if (!value.IsEmpty()) {
+        TryToSetAllMatrixModels(name, key.ToStdString(), value, r, c);
+    }
     ValidateMatrixGrid(r, c);
 }
 
@@ -815,6 +820,9 @@ void ModelFaceDialog::DoSetMatrixModels(wxFileName fn, std::string actualkey, st
 
 void ModelFaceDialog::TryToFindPath(wxString& filename) const
 {
+    if (filename.IsEmpty()) {
+        return;
+    }
     if (FileExists(filename)) {
         return;
     }
@@ -844,6 +852,9 @@ void ModelFaceDialog::TryToFindPath(wxString& filename) const
 
 void ModelFaceDialog::TryToSetAllMatrixModels(std::string name, std::string key, std::string new_filename, int row, int col)
 {
+    if (new_filename.empty()) {
+        return;
+    }
     wxFileName fn = wxFileName(new_filename);
 
     std::string k = ExtractKey(key);
@@ -1516,6 +1527,8 @@ void ModelFaceDialog::OnAddBtnPopup(wxCommandEvent& event)
     else if(event.GetId() == FACES_DIALOG_REVERSE)
     {
         ReverseFaceNodes();
+    } else if (event.GetId() == FACES_DIALOG_EXPORT_TOOTHERS) {
+        ExportFacesToOtherModels();
     }
 }
 
@@ -1644,6 +1657,7 @@ void ModelFaceDialog::OnButtonImportClick(wxCommandEvent& event)
     }
     mnu.Append(FACES_DIALOG_IMPORT_MODEL, "Import From Model");
     mnu.Append(FACES_DIALOG_IMPORT_FILE, "Import From File");
+    mnu.Append(FACES_DIALOG_EXPORT_TOOTHERS, "Export Faces To Other Model(s)");
     mnu.AppendSeparator();
     mnu.Append(FACES_DIALOG_SHIFT, "Shift Nodes");
     mnu.Append(FACES_DIALOG_REVERSE, "Reverse Nodes");
@@ -2039,4 +2053,25 @@ void ModelFaceDialog::OnSingleNodeGridResize(wxSizeEvent& event)
 void ModelFaceDialog::OnNodeRangeGridResize(wxSizeEvent& event)
 {
     NodeRangeGrid->SetColSize(0, event.GetSize().x - NodeRangeGrid->GetColSize(1) - NodeRangeGrid->GetRowLabelSize());
+}
+
+void ModelFaceDialog::ExportFacesToOtherModels() {
+    if (wxMessageBox("Are you sure you want to Export this model's Face definitions to other models?\nThis will override all the other model's existing faces and there is no way to undo it.","Are you sure?", wxYES_NO | wxCENTER, this) == wxNO) {
+        return;
+    }
+
+    xLightsFrame* xlights = xLightsApp::GetFrame();
+    wxArrayString choices = getModelList(&xlights->AllModels);
+
+    wxMultiChoiceDialog dlg(this, "Export Face Definitions to Other Models", "Choose Model(s)", choices);
+    OptimiseDialogPosition(&dlg);
+
+    if (dlg.ShowModal() == wxID_OK) {
+        std::map<std::string, std::map<std::string, std::string>> sourceFaces = GetFaceInfo();
+        for (auto const& idx : dlg.GetSelections()) {
+            Model* targetModel = xlights->GetModel(choices.at(idx));
+            targetModel->SetFaceInfo(sourceFaces);
+            targetModel->IncrementChangeCount();
+        }
+    }
 }

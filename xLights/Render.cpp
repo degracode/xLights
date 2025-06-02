@@ -685,12 +685,20 @@ public:
                             vl[numLayers] = true;
                             blend = false;
                         }
+                    } else {
+                        // default if not specified is all valid layers below it except the blend layer
+                        // mark them as being part of the
+                        for (int i = layer + 1; i < vl.size(); i++) {
+                            if (vl[i]) {
+                                partOfCanvas[i] = true;
+                            }
+                        }
                     }
 
                     // preload the buffer with the output from the lower layers
                     RenderBuffer& rb = buffer->BufferForLayer(layer, -1);
 
-                    // I have to calc the output here to apply blend, rotozoom and transitions
+                    // We have to calc the output here to apply blend, rotozoom and transitions
                     buffer->CalcOutput(frame, vl, layer, true);
                     std::vector<uint8_t> done(rb.GetPixelCount());
                     parallel_for(0, rb.GetNodes().size(), [&](int n) {
@@ -1282,6 +1290,9 @@ void xLightsFrame::UpdateRenderStatus() {
         }
 
         if (done) {
+            if (IsRenderBell() && !_renderMode && mRendering) {
+                wxBell();
+            }
             for (size_t row = 0; row < rpi->numRows; ++row) {
                 if (rpi->jobs[row]) {
                     delete rpi->jobs[row];
@@ -1307,8 +1318,7 @@ void xLightsFrame::UpdateRenderStatus() {
     }
 }
 
-void xLightsFrame::RenderDone()
-{
+void xLightsFrame::RenderDone() {
     mainSequencer->PanelEffectGrid->Refresh();
 }
 
@@ -1513,7 +1523,7 @@ void xLightsFrame::Render(SequenceElements& seqElements,
                         job->SetModelBlending();
                     }
                     PixelBufferClass *buffer = job->getBuffer();
-                    if (buffer == nullptr) {
+                    if (buffer == nullptr || buffer->GetNodeCount() == 0) {
                         delete job;
                         continue;
                     }
@@ -1594,7 +1604,6 @@ void xLightsFrame::Render(SequenceElements& seqElements,
 
     if (count) {
         if (progressDialog) {
-            renderProgressDialog->SetSize(450, 400);
             renderProgressDialog->scrolledWindow->SetSizer(renderProgressDialog->scrolledWindowSizer);
             renderProgressDialog->scrolledWindow->FitInside();
             renderProgressDialog->scrolledWindow->SetScrollRate(5, 5);

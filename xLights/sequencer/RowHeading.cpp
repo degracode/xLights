@@ -84,6 +84,7 @@ const long RowHeading::ID_ROW_MNU_DELETE_MODEL_NODE_EFFECTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_SELECT_ROW_EFFECTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_SELECT_MODEL_EFFECTS = wxNewId();
 const long RowHeading::ID_ROW_MNU_SELECT_TIMING_EFFECTS = wxNewId();
+const long RowHeading::ID_ROW_MNU_ADD_TIMING_TRACK_ALL_VIEWS = wxNewId();
 const long RowHeading::ID_ROW_MNU_MODEL_CONVERTTOPERMODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_ROW_CONVERTTOPERMODEL = wxNewId();
 const long RowHeading::ID_ROW_MNU_RENDERENABLE_ALL = wxNewId();
@@ -470,6 +471,7 @@ void RowHeading::rightClick( wxMouseEvent& event)
                     if (mSequenceElements->GetCurrentView() == MASTER_VIEW) {
                         mnuLayer.Append(ID_ROW_MNU_HIDEALLTIMING, "Hide All Timing Tracks");
                     }
+                    mnuLayer.Append(ID_ROW_MNU_ADD_TIMING_TRACK_ALL_VIEWS, "Add Timing Tracks to All Views");
                     mnuLayer.Append(ID_ROW_MNU_SELECT_TIMING_EFFECTS, "Select Timing Marks");
                     mnuLayer.Append(ID_ROW_MNU_IMPORT_NOTES, "Import Notes");
                     mnuLayer.AppendSeparator();
@@ -509,6 +511,20 @@ void RowHeading::rightClick( wxMouseEvent& event)
         Update();
         PopupMenu(&mnuLayer);
     }
+}
+
+std::vector<std::string> RowHeading::ParseTags(const wxString& tagString) {
+    std::vector<std::string> tags;
+    if (!tagString.empty()) {
+        wxArrayString splitTags = wxSplit(tagString, ',');
+        for (auto& tag : splitTags) {
+            wxString trimmedTag = tag.Trim().Trim(false); // Remove leading/trailing whitespace
+            if (!trimmedTag.empty()) {
+                tags.push_back(trimmedTag.ToStdString());
+            }
+        }
+    }
+    return tags;
 }
 
 void RowHeading::OnLayerPopup(wxCommandEvent& event)
@@ -775,33 +791,44 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
                                 timing_added = true;
                             }
                         }
-                    }else if (selected_timing == "Metronome w/ Tags") {
+                    } else if (selected_timing == "Metronome w/ Tags") {
                         int base_timing = xml_file->GetFrameMS();
                         MetronomeLabelDialog dlg(base_timing, this);
-                        if (dlg.ShowModal() == wxID_OK)
-                        {
+                        if (dlg.ShowModal() == wxID_OK) {
                             int ms = (dlg.GetTiming() + base_timing / 2) / base_timing * base_timing;
-                            
-                            if (ms != dlg.GetTiming())
-                            {
+
+                            if (ms != dlg.GetTiming()) {
                                 DisplayWarning(wxString::Format("Timing adjusted to match sequence timing %dms -> %dms", dlg.GetTiming(), ms).ToStdString());
                             }
                             wxString ttn = wxString::Format("%s%dms Metronome %d Tag", dlg.IsRandomTiming() || dlg.IsRandomTags() ? "Random " : "", ms, dlg.GetTagCount());
-                            //Handle new random tag names
-                            if( (dlg.IsRandomTiming() || dlg.IsRandomTags()) && xml_file->TimingAlreadyExists(ttn.ToStdString(), mSequenceElements->GetXLightsFrame()) ) {
+
+                            // Handle new random tag names
+                            if ((dlg.IsRandomTiming() || dlg.IsRandomTags()) && xml_file->TimingAlreadyExists(ttn.ToStdString(), mSequenceElements->GetXLightsFrame())) {
                                 int copyNum = 1;
                                 wxString new_ttn = ttn;
                                 do {
-                                    wxString copyString =  wxString::Format(" (%d)", copyNum);
+                                    wxString copyString = wxString::Format("_%d", copyNum);
                                     new_ttn = ttn + copyString;
                                     copyNum++;
                                 } while (xml_file->TimingAlreadyExists(new_ttn.ToStdString(), mSequenceElements->GetXLightsFrame()));
                                 ttn = new_ttn;
                             }
-                                
-                            if (!xml_file->TimingAlreadyExists(ttn.ToStdString(), mSequenceElements->GetXLightsFrame()))
-                            {
-                                xml_file->AddMetronomeLabelTimingSection(ttn.ToStdString(), ms, dlg.GetTagCount(), mSequenceElements->GetXLightsFrame(), dlg.GetMinRandomTiming(), dlg.IsRandomTags());
+
+                            if (!xml_file->TimingAlreadyExists(ttn.ToStdString(), mSequenceElements->GetXLightsFrame())) {
+                                // Get and parse custom tags
+                                std::vector<std::string> customTags = ParseTags(dlg.GetTextLabels());
+                                // If no valid custom tags, use default numbered tags (1, 2, 3, ...)
+                                if (customTags.empty()) {
+                                    for (int i = 1; i <= dlg.GetTagCount(); ++i) {
+                                        customTags.push_back(std::to_string(i));
+                                    }
+                                }
+
+                                // Add the timing track with custom or default tags
+                                xml_file->AddMetronomeLabelTimingSection(ttn.ToStdString(), ms, customTags, 
+                                    mSequenceElements->GetXLightsFrame(), 
+                                    dlg.GetMinRandomTiming(), 
+                                    dlg.IsRandomTags());
                                 timing_added = true;
                             }
                         }
@@ -1106,6 +1133,17 @@ void RowHeading::OnLayerPopup(wxCommandEvent& event)
     } else if (id == ID_ROW_MNU_SELECT_TIMING_EFFECTS) {
         for (int i = 0; i < element->GetEffectLayerCount(); i++) {
             element->GetEffectLayer(i)->SelectAllEffects();
+        }
+    } else if (id == ID_ROW_MNU_ADD_TIMING_TRACK_ALL_VIEWS) {
+        mSequenceElements->get_undo_mgr().CreateUndoStep();
+        mSequenceElements->GetXLightsFrame()->AbortRender();
+        for (int i = 0; i < mSequenceElements->GetElementCount(); i++) {
+            Element* e = mSequenceElements->GetElement(i);
+            if (e->GetType() == ElementType::ELEMENT_TYPE_TIMING) {
+                if (e->GetVisible()) {
+                    mSequenceElements->AddTimingToAllViews(e->GetName());
+                }
+            }
         }
     } else if (id == ID_ROW_MNU_DELETE_MODEL_EFFECTS) {
         wxCommandEvent eventUnSelected(EVT_UNSELECTED_EFFECT);
@@ -1738,11 +1776,8 @@ void RowHeading::render( wxPaintEvent& event )
                 }
 
                 bool hasEffects = rowInfo->element->HasEffects();
-                if (!hasEffects && m->GetDisplayAs() == "ModelGroup")
-                {
+                if (!hasEffects && groupEffectIndicator && m->GetDisplayAs() == "ModelGroup") {
                     // model groups are only marked if model group has direct effects or the model with effects is otherwise hidden in the view
-                    hasEffects = rowInfo->element->HasEffects();
-
                     int view = mSequenceElements->GetCurrentView();
                     ModelGroup* mg = dynamic_cast<ModelGroup*>(m);
                     auto models = mg->ModelNames();
