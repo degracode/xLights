@@ -244,7 +244,12 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
     wxString filename;
     wxString wildcards = "xLights Sequence files (*.xsq;*.xml)|*.xsq;*.xml|Old xLights Sequence files (*.xml)|*.xml|FSEQ files (*.fseq)|*.fseq|Sequence Backups (*.xbkp)|*.xbkp";
     if (passed_filename.IsEmpty()) {
-        filename = wxFileSelector("Choose sequence file to open", CurrentDir, wxEmptyString, "*.xsq", wildcards, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        // Try to use the current file as the dialog's start folder
+        wxString startFolder = wxPathOnly(xlightsFilename);
+        if (startFolder.IsEmpty()) {
+            startFolder = CurrentDir;
+        }
+        filename = wxFileSelector("Choose sequence file to open", startFolder, wxEmptyString, "*.xsq", wildcards, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     } else {
         filename = passed_filename;
     }
