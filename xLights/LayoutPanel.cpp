@@ -346,7 +346,7 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
 	LeftPanelSizer->AddGrowableCol(0);
 	LeftPanelSizer->AddGrowableRow(0);
 	ModelSplitter = new wxSplitterWindow(LeftPanel, ID_SPLITTERWINDOW1, wxDefaultPosition, wxDefaultSize, wxSP_3D|wxSP_LIVE_UPDATE, _T("ID_SPLITTERWINDOW1"));
-	ModelSplitter->SetMinimumPaneSize(100);
+	ModelSplitter->SetMinimumPaneSize(0);
 	ModelSplitter->SetSashGravity(0.5);
 	FirstPanel = new wxPanel(ModelSplitter, ID_PANEL3, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL3"));
 	FlexGridSizer4 = new wxFlexGridSizer(0, 1, 0, 0);
@@ -407,7 +407,6 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
 	SetSizer(FlexGridSizerPreview);
 
 	Connect(ID_NOTEBOOK_OBJECTS, wxEVT_COMMAND_NOTEBOOK_PAGE_CHANGED, (wxObjectEventFunction)&LayoutPanel::OnNotebook_ObjectsPageChanged);
-	Connect(ID_SPLITTERWINDOW1, wxEVT_COMMAND_SPLITTER_SASH_POS_CHANGED, (wxObjectEventFunction)&LayoutPanel::OnModelSplitterSashPosChanged);
 	Connect(ID_CHECKBOX_3D, wxEVT_COMMAND_CHECKBOX_CLICKED, (wxObjectEventFunction)&LayoutPanel::OnCheckBox_3DClick);
 	Connect(ID_CHECKBOXOVERLAP, wxEVT_COMMAND_CHECKBOX_CLICKED, (wxObjectEventFunction)&LayoutPanel::OnCheckBoxOverlapClick);
 	Connect(ID_BUTTON_SAVE_PREVIEW, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&LayoutPanel::OnButtonSavePreviewClick);
@@ -454,8 +453,7 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
                                         wxPG_SPLITTER_AUTO_CENTER | // Automatically center splitter until user manually adjusts it
                                         // Default style
                                         wxPG_DEFAULT_STYLE);
-    propertyEditor->SetExtraStyle(wxPG_EX_HELP_AS_TOOLTIPS);
-    propertyEditor->Connect(wxEVT_KILL_FOCUS,(wxObjectEventFunction)&xlPropertyGrid::OnKillFocus, 0, propertyEditor);
+    propertyEditor->SetExtraStyle(wxWS_EX_PROCESS_IDLE | wxPG_EX_HELP_AS_TOOLTIPS);
     LayoutUtils::CreateImageList(m_imageList);
 
     wxFlexGridSizer* FlexGridSizerModels = new wxFlexGridSizer(0, 1, 0, 0);
@@ -479,21 +477,11 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
     int msp = config->Read("LayoutModelSplitterSash", -1);
     int sp = config->Read("LayoutMainSplitterSash", -1);
     is_3d = config->ReadBool("LayoutMode3D", false);
-    bool allow_3d_previews = true; //false; //set to false for previous behavior
 
     CheckBox_3D->SetValue(is_3d);
     xlights->GetHousePreview()->Set3D(is_3d);
 
-    if (!allow_3d_previews && is_3d)
-    {
-        ChoiceLayoutGroups->Disable();
-        ChoiceLayoutGroups->SetToolTip("3D is only supported in the Default preview.");
-    }
-    else
-    {
-        ChoiceLayoutGroups->Enable();
-        ChoiceLayoutGroups->UnsetToolTip();
-    }
+    ChoiceLayoutGroups->Enable();
     modelPreview->Set3D(is_3d);
 
     propertyEditor->Connect(wxEVT_PG_CHANGING, (wxObjectEventFunction)&LayoutPanel::OnPropertyGridChanging,0,this);
@@ -585,6 +573,8 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
     if (msp != -1) {
         ModelSplitter->SetSashGravity(0.0);
         ModelSplitter->SetSashPosition(msp);
+    } else {
+        ModelSplitter->SetSashPosition(200);
     }
 
     TreeListViewModels->SetColumnWidth(0, wxCOL_WIDTH_AUTOSIZE);
@@ -592,10 +582,6 @@ LayoutPanel::LayoutPanel(wxWindow* parent, xLightsFrame *xl, wxPanel* sequencer)
     TreeListViewModels->SetColumnWidth(2, TreeListViewModels->WidthFor(CHNUMWIDTH));
     TreeListViewModels->SetColumnWidth(3, wxCOL_WIDTH_AUTOSIZE);
 
-    if (ModelSplitter->GetSashPosition() < 200)
-    {
-        ModelSplitter->SetSashPosition(200, true);
-    }
 }
 
 wxTreeListCtrl* LayoutPanel::CreateTreeListCtrl(long style, wxPanel* panel)
@@ -690,6 +676,7 @@ void LayoutPanel::Reset()
     ChoiceLayoutGroups->Append("Default");
     ChoiceLayoutGroups->Append("All Models");
     ChoiceLayoutGroups->Append("Unassigned");
+    ChoiceLayoutGroups->SetToolTip("Select a preview or model group to display in the Layout Preview window. Choose 'Default' for models assigned to the default preview, 'All Models' to show all models, or a specific group to filter displayed models.");
     for (const auto& it : xlights->LayoutGroups) {
         LayoutGroup* grp = (LayoutGroup*)(it);
         ChoiceLayoutGroups->Append(grp->GetName());
@@ -792,6 +779,11 @@ void LayoutPanel::SaveModelsListColumns()
 
 LayoutPanel::~LayoutPanel()
 {
+    if (ModelGroupWindow != nullptr) {
+        wxConfigBase* config = wxConfigBase::Get();
+        config->Write("LayoutModelSplitterSash", ModelSplitter->GetSashPosition());
+    }
+
     SaveModelsListColumns();
     if (background != nullptr) {
         delete background;
@@ -1131,11 +1123,12 @@ void LayoutPanel::resetPropertyGrid() {
 }
 
 void LayoutPanel::clearPropGrid() {
-
     // remember last selected item
     if (propertyEditor->GetSelection() != nullptr) {
         _lastSelProp = propertyEditor->GetSelection()->GetName();
     }
+    propertyEditor->UnfocusEditor();
+    propertyEditor->ClearSelection();
 
     wxPGProperty *p = propertyEditor->GetPropertyByName("ModelAppearance");
     if (p != nullptr) {
@@ -1161,7 +1154,6 @@ void LayoutPanel::clearPropGrid() {
     if (p != nullptr) {
         layersVisible = propertyEditor->IsPropertyExpanded(p);
     }
-
     propertyEditor->Clear();
 }
 
@@ -2486,6 +2478,12 @@ void LayoutPanel::showBackgroundProperties()
         backgroundFile = previewBackgroundFile;
         if (backgroundFile != "" && FileExists(backgroundFile) && wxIsReadable(backgroundFile)) {
             background = new wxImage(backgroundFile);
+            if (background->IsOk()) {
+                int orientation = GetExifOrientation(backgroundFile);
+                if (orientation != 1) { // 1 means no rotation needed
+                    *background = ApplyOrientation(*background, orientation);
+                }
+            }
         }
     }
     wxPGProperty* prop = propertyEditor->Append(new xlImageProperty("Background Image",
@@ -2589,7 +2587,7 @@ void LayoutPanel::SetupPropGrid(BaseObject *base_object) {
     if( editing_models ) {
         auto p = propertyEditor->Append(new wxStringProperty("Name", "ModelName", base_object->name));
         if (dynamic_cast<SubModel*>(base_object) != nullptr) {
-            p->ChangeFlag(wxPGPropertyFlags::ReadOnly, true);
+            p->ChangeFlag(wxPGFlags::ReadOnly, true);
             p->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
             p->SetHelpString("SubModel names cannot be changed here.");
         }
@@ -2598,11 +2596,6 @@ void LayoutPanel::SetupPropGrid(BaseObject *base_object) {
     }
 
     base_object->AddProperties(propertyEditor, xlights->GetOutputManager());
-    if (is_3d)
-    {
-        base_object->EnableLayoutGroupProperty(propertyEditor, false);
-    }
-
     if (dynamic_cast<SubModel*>(base_object) == nullptr) {
 
         wxPGProperty* p2;
@@ -5341,7 +5334,7 @@ void LayoutPanel::ExportFacesStatesSubModels() {
     wxArrayString choices;
     
     for (const auto& model : modelPreview->GetModels()) {
-        if (model->Name() == selectedBaseObject->Name())
+        if (model->Name() == selectedBaseObject->Name() || model->GetDisplayAs() == "Image")
             continue;
         choices.Add(model->Name());
     }
@@ -5369,8 +5362,7 @@ void LayoutPanel::ExportFacesStatesSubModels() {
             }
             for (wxXmlNode* node = selectedModel->GetModelXml()->GetChildren(); node != nullptr; node = node->GetNext()) {
                 if (node->GetName() == "subModel") {
-                    wxXmlNode* subModelCopy = new wxXmlNode(*node);
-                    targetModel->AddSubmodel(node,true);
+                    targetModel->AddSubmodel(node, true);
                 }
             }
             targetModel->IncrementChangeCount();
@@ -5502,8 +5494,9 @@ void LayoutPanel::PreviewModelResize(bool sameWidth, bool sameHeight)
 
     Model* selectedModel = modelPreview->GetModels()[selectedindex];
     std::string selectedType = selectedModel->GetDisplayAs();
-    float width = selectedModel->GetWidth();
-    float height = selectedModel->GetHeight();
+    float width = selectedModel->GetRestorableMWidth();
+    float height = selectedModel->GetRestorableMHeight();
+    float depth = selectedModel->GetRestorableMDepth();
 
     bool isBoxed = false;
     if ((dynamic_cast<ModelWithScreenLocation<BoxedScreenLocation>*>(selectedModel) != nullptr)) {
@@ -5559,7 +5552,7 @@ void LayoutPanel::PreviewModelResize(bool sameWidth, bool sameHeight)
                 if (sameWidth) {
                     modelPreview->GetModels()[i]->SetWidth(width);
                     if (z_scale) {
-                        modelPreview->GetModels()[i]->GetBaseObjectScreenLocation().SetMDepth(width);
+                        modelPreview->GetModels()[i]->GetBaseObjectScreenLocation().SetMDepth(depth);
                     }
                 }
 
@@ -6232,15 +6225,6 @@ int LayoutPanel::ViewObjectsSelectedCount() const
     return selectedObjectCount;
 }
 
-void LayoutPanel::OnModelSplitterSashPosChanged(wxSplitterEvent& event)
-{
-    if (ModelGroupWindow == nullptr) {
-        //event during creation
-        return;
-    }
-    wxConfigBase* config = wxConfigBase::Get();
-    config->Write("LayoutModelSplitterSash", event.GetSashPosition());
-}
 
 void LayoutPanel::OnSplitterWindowSashPosChanged(wxSplitterEvent& event)
 {
@@ -7899,8 +7883,10 @@ void LayoutPanel::OnModelsPopup(wxCommandEvent& event) {
                         xlights->UnselectEffect(); // we do this just in case the effect is on the model we are deleting
                         xlights->AbortRender();
 
-                        xlights->AllModels.Delete(mg->GetName());
-                        deleted = true;
+                        bool response = xlights->AllModels.Delete(mg->GetName());
+                        if (response) {
+                            deleted = true;
+                        }
                     }
                 } else {
                     ++it;
@@ -8007,9 +7993,6 @@ void LayoutPanel::OnModelsPopup(wxCommandEvent& event) {
 
             xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RGBEFFECTS_CHANGE, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP");
             xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RELOAD_ALLMODELS, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP", nullptr, nullptr, name.ToStdString());
-
-            //Model* model = xlights->GetModel(name.ToStdString());
-            //SelectModelInTree(model);
 
             xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RELOAD_PROPERTYGRID, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP", nullptr, nullptr, name.ToStdString());
             xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_REDRAW_LAYOUTPREVIEW, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP", nullptr, nullptr, name.ToStdString());
@@ -9094,20 +9077,6 @@ std::string CopyPasteBaseObject::Serialise() const
 void LayoutPanel::OnCheckBox_3DClick(wxCommandEvent& event)
 {
     is_3d = CheckBox_3D->GetValue();
-    bool allow_3d_previews = true; //false; //set to false for previous behavior
-
-    if (!allow_3d_previews && is_3d) {
-        if (ChoiceLayoutGroups->GetStringSelection() != "Default") {
-            ChoiceLayoutGroups->SetStringSelection("Default");
-            wxCommandEvent e;
-            OnChoiceLayoutGroupsSelect(e);
-        }
-        ChoiceLayoutGroups->Disable();
-        ChoiceLayoutGroups->SetToolTip("3D is only supported in the Default preview.");
-    } else {
-        ChoiceLayoutGroups->Enable();
-        ChoiceLayoutGroups->UnsetToolTip();
-    }
 
     modelPreview->Set3D(is_3d);
     if (is_3d) {
@@ -9115,7 +9084,6 @@ void LayoutPanel::OnCheckBox_3DClick(wxCommandEvent& event)
             selectionLatched = true;
             highlightedBaseObject = selectedBaseObject;
             selectedBaseObject->GetBaseObjectScreenLocation().SetActiveHandle(CENTER_HANDLE);
-            selectedBaseObject->EnableLayoutGroupProperty(propertyEditor, false);
         } else {
             UnSelectAllModels();
         }
@@ -9123,9 +9091,7 @@ void LayoutPanel::OnCheckBox_3DClick(wxCommandEvent& event)
     } else {
         editing_models = true;
         Model *m = dynamic_cast<Model*>(selectedBaseObject);
-        if (m != nullptr) {
-            m->EnableLayoutGroupProperty(propertyEditor, true);
-        } else {
+        if (m == nullptr) {
             UnSelectAllModels();
         }
         Notebook_Objects->RemovePage(1);

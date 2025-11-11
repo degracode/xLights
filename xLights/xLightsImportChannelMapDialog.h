@@ -487,7 +487,7 @@ class xLightsImportChannelMapDialog: public wxDialog
 
 	public:
 
-		xLightsImportChannelMapDialog(wxWindow* parent, const wxFileName &filename, bool allowTimingOffset, bool allowTimingTrack, bool allowColorChoice, bool allowCCRStrand, bool allowImportBlend, wxWindowID id=wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size=wxDefaultSize);
+		xLightsImportChannelMapDialog(xLightsFrame* parent, const wxFileName &filename, bool allowTimingOffset, bool allowTimingTrack, bool allowColorChoice, bool allowCCRStrand, bool allowImportBlend, wxWindowID id=wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size=wxDefaultSize);
 		virtual ~xLightsImportChannelMapDialog();
         wxDataViewItem GetNextTreeItem(const wxDataViewItem item) const;
         wxDataViewItem GetPriorTreeItem(const wxDataViewItem item) const;
@@ -542,9 +542,9 @@ class xLightsImportChannelMapDialog: public wxDialog
 		wxTextCtrl* TextCtrl_FindTo;
 		//*)
 
-        SequenceElements *mSequenceElements;
-        xLightsFrame * xlights;
-        wxDataViewCtrl* TreeListCtrl_Mapping;
+        SequenceElements *mSequenceElements = nullptr;
+        xLightsFrame * xlights = nullptr;
+        wxDataViewCtrl* TreeListCtrl_Mapping = nullptr;
 
         std::vector<std::string> ccrNames;
         std::map<std::string, xlColor> channelColors;
@@ -588,7 +588,10 @@ protected:
         static const long ID_MNU_EXPANDALL;
         static const long ID_MNU_SHOWALLMAPPED;
         static const long ID_MNU_AUTOMAPSELECTED;
+        static const wxWindowID ID_MNU_CLEARSELECTED;
+        static const wxWindowID ID_MNU_CLEARALL;
         static const long ID_MNU_AUTOMAPSELECTED_AVAIL;
+        static const wxWindowID ID_MNU_ADD_EMPTY_GROUP;
 
 	private:
         wxString FindTab(wxString &line);
@@ -623,6 +626,9 @@ protected:
         void RightClickModelsAvail(wxDataViewEvent& event);
         void CollapseAll();
         void ExpandAll();
+        void ClearAll();
+        void ClearSelected();
+        void AddEmptyGroup();
         void ShowAllMapped();
         void OnPopupTimingTracks(wxCommandEvent& event);
         void OnPopupModels(wxCommandEvent& event);

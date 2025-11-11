@@ -269,7 +269,7 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
             wxMessageBox("NOTE: When you save this .xbkp file it will save as a .xsq file overwriting any existing sequence .xsq file", "Warning");
         }
 
-        if (!rp.IsEmpty()) {
+        if (rp.IsEmpty()) {
             // check if there is a autosave backup file which is newer than the file we have been asked to open
             if (((!_renderMode && !_checkSequenceMode) || _promptBatchRenderIssues) && wxFileName(filename).GetExt().Lower() != "xbkp" && wxFileName(filename).GetExt().Lower() != "fseq") {
                 wxFileName fn(filename);
@@ -285,7 +285,7 @@ void xLightsFrame::OpenSequence(const wxString& passed_filename, ConvertLogDialo
                     
                     if (xbkptime.IsValid() && xmltime.IsValid() && (xbkptime > xmltime)) {
                         // autosave file is newer
-                        if (wxMessageBox("Autosaved file found which seems to be newer than your sequence file ... would you like to open that instead and replace your xml file?", "Newer file found", wxYES_NO) == wxYES) {
+                        if (wxMessageBox("Autosaved file found which seems to be newer than your sequence file ... would you like to open that instead and replace your xsq file?", "Newer file found", wxYES_NO) == wxYES) {
                             // run a backup ... equivalent of a F10
                             DoBackup(false, false, true);
                             
@@ -1003,13 +1003,15 @@ void xLightsFrame::OnMenuItemImportEffects(wxCommandEvent& event)
         filter += *it;
     }
 
-    wxFileDialog file(this, "Choose file to import", "", "", filter);
-
     wxString lit = "";
+    wxString ldir = "";
     wxConfigBase* config = wxConfigBase::Get();
     if (config != nullptr) {
         config->Read("xLightsLastImportType", &lit, "");
+        config->Read("xLightsLastImportDir", &ldir, "");
     }
+
+    wxFileDialog file(this, "Choose file to import", ldir.ToStdString(), "", filter);
     if (lit != "") {
         int index = 0;
 
@@ -1027,6 +1029,10 @@ void xLightsFrame::OnMenuItemImportEffects(wxCommandEvent& event)
             config->Write("xLightsLastImportType", filters[file.GetFilterIndex()]);
         } else {
             logger_base.warn("XLightsLastImportType not saved due to invalid filter index %d.", file.GetFilterIndex());
+        }
+        if (config != nullptr) {
+            ldir = file.GetDirectory();
+            config->Write("xLightsLastImportDir", ldir);
         }
 
         wxFileName fn = file.GetPath();
@@ -1272,7 +1278,7 @@ void xLightsFrame::ImportXLights(const wxFileName& filename, std::string const& 
 ModelElement* AddModel(Model* m, SequenceElements& se)
 {
     if (m != nullptr) {
-        se.AddMissingModelsToSequence(m->GetName(), false);
+        se.AddMissingModelsToSequence(m->GetName(), true);
         ModelElement* model = dynamic_cast<ModelElement*>(se.GetElement(m->GetName()));
         model->Init(*m);
         return model;

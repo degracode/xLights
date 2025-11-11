@@ -31,8 +31,6 @@
 #include "ExternalHooks.h"
 #include "MediaImportOptionsDialog.h"
 #include "LayoutUtils.h"
-#include "../../xSchedule/wxJSON/jsonreader.h"
-#include "../../xSchedule/wxJSON/jsonwriter.h"
 #include "xlColourData.h"
 #include "utils/string_utils.h"
 #include "ai/aiBase.h"
@@ -40,6 +38,8 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <iostream>
+#include <nlohmann/json.hpp>
 
 #include <log4cpp/Category.hh>
 
@@ -488,7 +488,10 @@ const long xLightsImportChannelMapDialog::ID_MNU_SELECTNONE = wxNewId();
 const long xLightsImportChannelMapDialog::ID_MNU_COLLAPSEALL = wxNewId();
 const long xLightsImportChannelMapDialog::ID_MNU_EXPANDALL = wxNewId();
 const long xLightsImportChannelMapDialog::ID_MNU_SHOWALLMAPPED = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_MNU_CLEARSELECTED = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_MNU_CLEARALL = wxNewId();
 const long xLightsImportChannelMapDialog::ID_MNU_AUTOMAPSELECTED = wxNewId();
+const wxWindowID xLightsImportChannelMapDialog::ID_MNU_ADD_EMPTY_GROUP = wxNewId();
 
 
 BEGIN_EVENT_TABLE(xLightsImportChannelMapDialog,wxDialog)
@@ -496,7 +499,7 @@ BEGIN_EVENT_TABLE(xLightsImportChannelMapDialog,wxDialog)
 //*)
 END_EVENT_TABLE()
 
-xLightsImportChannelMapDialog::xLightsImportChannelMapDialog(wxWindow* parent, const wxFileName& filename, bool allowTimingOffset, bool allowTimingTrack, bool allowColorChoice, bool allowCCRStrand, bool allowImportBlend, wxWindowID id, const wxPoint& pos, const wxSize& size)
+xLightsImportChannelMapDialog::xLightsImportChannelMapDialog(xLightsFrame* parent, const wxFileName& filename, bool allowTimingOffset, bool allowTimingTrack, bool allowColorChoice, bool allowCCRStrand, bool allowImportBlend, wxWindowID id, const wxPoint& pos, const wxSize& size) : xlights(parent)
 {
     TreeListCtrl_Mapping = nullptr;
     _dataModel = nullptr;
@@ -691,7 +694,7 @@ xLightsImportChannelMapDialog::xLightsImportChannelMapDialog(wxWindow* parent, c
     CheckBox_LockEffects->SetValue(config->ReadBool("ImportEffectsLocked", false));
     CheckBox_ConvertRenderStyle->SetValue(config->ReadBool("ImportEffectsRenderStyle", false));
 
-    auto ai = xlights->GetLLM();
+    auto ai = xlights->GetAIService();
     Button_AIMap->Enable(ai != nullptr);
 
     EnsureWindowHeaderIsOnScreen(this);
@@ -715,6 +718,11 @@ void xLightsImportChannelMapDialog::RightClickModels(wxDataViewEvent& event)
         mnuLayer.Append(ID_MNU_EXPANDALL, "Expand All");
         mnuLayer.Append(ID_MNU_SHOWALLMAPPED, "Show All Mapped Models");
         mnuLayer.Append(ID_MNU_AUTOMAPSELECTED, "Auto Map Selected");
+        mnuLayer.AppendSeparator();
+        mnuLayer.Append(ID_MNU_CLEARALL, "Clear All");
+        mnuLayer.Append(ID_MNU_CLEARSELECTED, "Clear Selected");
+        mnuLayer.AppendSeparator();
+        mnuLayer.Append(ID_MNU_ADD_EMPTY_GROUP, "Add Empty Group");
         mnuLayer.Connect(wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&xLightsImportChannelMapDialog::OnPopupModels, nullptr, this);
         TreeListCtrl_Mapping->PopupMenu(&mnuLayer, event.GetPosition());
     }
@@ -738,7 +746,60 @@ void xLightsImportChannelMapDialog::OnPopupModels(wxCommandEvent& event)
         ShowAllMapped();
     } else if (id == ID_MNU_AUTOMAPSELECTED) {
         OnButton_AutoMapSelClick(event);
+    } else if (id == ID_MNU_CLEARSELECTED) {
+        ClearSelected();
+    } else if (id == ID_MNU_CLEARALL) {
+        ClearAll();
+    } else if (id == ID_MNU_ADD_EMPTY_GROUP) {
+        AddEmptyGroup();
     }
+}
+
+void xLightsImportChannelMapDialog::AddEmptyGroup()
+{
+    wxTextEntryDialog dialog(this, "Enter the name for the new group:", "Add New Group", "");
+    if (dialog.ShowModal() != wxID_OK) {
+        return;
+    }
+
+    wxString groupName = dialog.GetValue().Trim();
+    if (groupName.IsEmpty()) {
+        wxMessageBox("Group name cannot be empty.", "Error", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    for (size_t i = 0; i < _dataModel->GetChildCount(); ++i) {
+        xLightsImportModelNode* existingNode = _dataModel->GetNthChild(i);
+        if (existingNode->_model == groupName) {
+            wxMessageBox("A group or model with the name '" + groupName + "' already exists.", "Error", wxOK | wxICON_ERROR, this);
+            return;
+        }
+    }
+
+    wxXmlNode* node = new wxXmlNode(wxXML_ELEMENT_NODE, "modelGroup");
+    xlights->ModelGroupsNode->AddChild(node);
+    node->AddAttribute("selected", "0");
+    node->AddAttribute("name", groupName);
+    node->AddAttribute("models", "");
+    node->AddAttribute("layout", "minimalGrid");
+    node->AddAttribute("GridSize", "400");
+    node->AddAttribute("LayoutGroup", "Default");
+
+    xLightsImportModelNode* newGroup = new xLightsImportModelNode(
+        nullptr, groupName, "", true, std::list<std::string>{}, "ModelGroup", "", false, "ModelGroup", 1000,
+        *wxWHITE, true, "", 0);
+
+    _dataModel->BulkInsert(newGroup, _dataModel->GetChildCount());
+
+    wxDataViewItem parentItem;
+    wxDataViewItem newItem(newGroup);
+    _dataModel->ItemAdded(parentItem, newItem);
+
+    xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RGBEFFECTS_CHANGE, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP");
+    xlights->GetOutputModelManager()->AddASAPWork(OutputModelManager::WORK_RELOAD_ALLMODELS, "LayoutPanel::OnModelsPopup::ID_MNU_ADD_MODEL_GROUP", nullptr, nullptr, groupName.ToStdString());
+
+    TreeListCtrl_Mapping->Refresh();
+    DisplayInfo("Group '" + groupName + "' added successfully.", this);
 }
 
 void xLightsImportChannelMapDialog::CollapseAll()
@@ -766,8 +827,100 @@ void xLightsImportChannelMapDialog::ExpandAll()
     }
 }
 
+void xLightsImportChannelMapDialog::ClearAll() {
+    if (_dataModel == nullptr)
+        return;
+
+    _dirty = true;
+    TreeListCtrl_Mapping->Freeze();
+
+    for (unsigned int i = 0; i < _dataModel->GetChildCount(); ++i) {
+        xLightsImportModelNode* model = _dataModel->GetNthChild(i);
+        if (model != nullptr) {
+            model->ClearMapping();
+            for (unsigned int j = 0; j < model->GetChildCount(); ++j) {
+                xLightsImportModelNode* strand = model->GetNthChild(j);
+                if (strand != nullptr) {
+                    strand->ClearMapping();
+                    for (unsigned int k = 0; k < strand->GetChildCount(); ++k) {
+                        xLightsImportModelNode* node = strand->GetNthChild(k);
+                        if (node != nullptr) {
+                            node->ClearMapping();
+                        }
+                    }
+                }
+            }
+            wxDataViewItem item(model);
+            _dataModel->ValueChanged(item, 2);
+            _dataModel->SetMappingExists(item, true);
+        }
+    }
+
+    TreeListCtrl_Mapping->Thaw();
+    TreeListCtrl_Mapping->Refresh();
+    MarkUsed();
+}
+
+void xLightsImportChannelMapDialog::ClearSelected() {
+    if (_dataModel == nullptr)
+        return;
+
+    _dirty = true;
+    TreeListCtrl_Mapping->Freeze();
+
+    wxDataViewItemArray selectedItems;
+    TreeListCtrl_Mapping->GetSelections(selectedItems);
+
+    if (selectedItems.empty()) {
+        TreeListCtrl_Mapping->Thaw();
+        return;
+    }
+
+    for (const auto& item : selectedItems) {
+        xLightsImportModelNode* node = (xLightsImportModelNode*)item.GetID();
+        if (node != nullptr) {
+            if (node->GetParent() == nullptr && node->GetChildCount() > 0) {
+                if (!TreeListCtrl_Mapping->IsExpanded(item)) {
+                    node->ClearMapping();
+                    for (unsigned int j = 0; j < node->GetChildCount(); ++j) {
+                        xLightsImportModelNode* strand = node->GetNthChild(j);
+                        if (strand != nullptr) {
+                            strand->ClearMapping();
+                            for (unsigned int k = 0; k < strand->GetChildCount(); ++k) {
+                                xLightsImportModelNode* subNode = strand->GetNthChild(k);
+                                if (subNode != nullptr) {
+                                    subNode->ClearMapping();
+                                }
+                            }
+                            wxDataViewItem strandItem(strand);
+                            _dataModel->ValueChanged(strandItem, 2);
+                            _dataModel->SetMappingExists(strandItem, true);
+                        }
+                    }
+                    _dataModel->ValueChanged(item, 2);
+                    _dataModel->SetMappingExists(item, true);
+                } else {
+                    Unmap(item);
+                    _dataModel->ValueChanged(item, 2);
+                }
+            } else {
+                node->ClearMapping();
+                _dataModel->ValueChanged(item, 2);
+                _dataModel->SetMappingExists(item, true);
+            }
+        }
+    }
+
+    TreeListCtrl_Mapping->Thaw();
+    TreeListCtrl_Mapping->Refresh();
+    MarkUsed();
+}
+
 void xLightsImportChannelMapDialog::ShowAllMapped()
 {
+    if (_dataModel == nullptr) 
+        return;
+
     // expand all models that have strands that have a value
     wxDataViewItemArray models;
     _dataModel->GetChildren(wxDataViewItem(0), models);
@@ -1374,135 +1527,140 @@ void xLightsImportChannelMapDialog::LoadJSONMapping(wxString const& filename, bo
     bool strandwarning{hideWarnings};
     bool modelwarning{hideWarnings};
 
-    wxJSONValue data;
-    wxJSONReader reader;
-    wxFileInputStream f(filename);
-    int errors = reader.Parse(f, &data);
-    if (!errors) {
+    nlohmann::json data;
 
-        //zip package settings
-        if (_xsqPkg != nullptr && _xsqPkg->IsPkg()) {
-            if (data.HasMember("facesdir") && !data["facesdir"].AsString().empty()) {
-                _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::FACES_DIR,data["facesdir"].AsString());
-            }
-            if (data.HasMember("gladiatordir") && !data["gladiatordir"].AsString().empty()) {
-                _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::GLEDIATORS_DIR,data["gladiatordir"].AsString());
-            }
-            if (data.HasMember("imagedir") && !data["imagedir"].AsString().empty()) {
-                _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::IMAGES_DIR,data["imagedir"].AsString());
-            }
-            if (data.HasMember("shaderdir") && !data["shaderdir"].AsString().empty()) {
-                _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::SHADERS_DIR,data["shaderdir"].AsString());
-            }
-            if (data.HasMember("videodir") && !data["videodir"].AsString().empty()) {
-                _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::VIDEOS_DIR,data["videodir"].AsString());
-            }
-            if (data.HasMember("importmedia")) {
-                CheckBoxImportMedia->SetValue(data.Get("importmedia", true).AsBool());
-            }
+    try {
+        std::ifstream inputFile(filename.ToStdString());
+        inputFile >> data;
+
+    } catch (std::exception& ex) {
+        return DisplayError("Error reading JSON mapping file: " + filename + "\n" + ex.what());
+    } 
+
+
+    //zip package settings
+    if (_xsqPkg != nullptr && _xsqPkg->IsPkg()) {
+        if (data.contains("facesdir") && !data["facesdir"].get<std::string>().empty()) {
+            _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::FACES_DIR, data["facesdir"].get<std::string>());
         }
-
-        //settings
-        if (data.HasMember("eraseexisting")) {
-            CheckBox_EraseExistingEffects->SetValue(data.Get("eraseexisting", false).AsBool());
+        if (data.contains("gladiatordir") && !data["gladiatordir"].get<std::string>().empty()) {
+            _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::GLEDIATORS_DIR, data["gladiatordir"].get<std::string>());
         }
-        if (_allowCCRStrand && data.HasMember("mapccrstrand")) {
-            CheckBox_MapCCRStrand->SetValue(data.Get("mapccrstrand", false).AsBool());
+        if (data.contains("imagedir") && !data["imagedir"].get<std::string>().empty()) {
+            _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::IMAGES_DIR, data["imagedir"].get<std::string>());
         }
-        if (_allowImportBlend && data.HasMember("importblendmode")) {
-            CheckBox_Import_Blend_Mode->SetValue(data.Get("importblendmode", true).AsBool());
+        if (data.contains("shaderdir") && !data["shaderdir"].get<std::string>().empty()) {
+            _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::SHADERS_DIR, data["shaderdir"].get<std::string>());
         }
-
-        //selected timmings
-        auto timingtracks = data["timingtracks"].AsArray();
-        if (timingtracks != nullptr) {
-            for (int i = 0; i < timingtracks->Count(); ++i) {
-                wxString const ttname = timingtracks->Item(i).Get("name", wxString()).AsString();
-                bool const ttenabled = timingtracks->Item(i).Get("enabled", true).AsBool();
-                if (auto const& idx{ std::find(timingTracks.begin(), timingTracks.end(), ttname) }; idx != timingTracks.end()) {
-                    auto index = std::distance(timingTracks.begin(), idx);
-                    TimingTrackListBox->Check(index, ttenabled);
-                }
-            }
+        if (data.contains("videodir") && !data["videodir"].get<std::string>().empty()) {
+            _xsqPkg->GetImportOptions()->SetDir(MediaTargetDir::VIDEOS_DIR, data["videodir"].get<std::string>());
         }
+        if (data.contains("importmedia")) {
+            CheckBoxImportMedia->SetValue(data.at("importmedia").get<bool>());
+        }
+    }
 
-        auto SetMapping = [&](wxString const& mapping, wxDataViewItem item, wxColor const& color) {
-            TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(mapping), item, 2);
-            ((xLightsImportTreeModel*)TreeListCtrl_Mapping->GetModel())->SetMappingExists(item, ListCtrl_Available->FindItem(0, mapping) >= 0);
-            TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(color.GetAsString()), item, 4);
-            TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(findModelType(mapping)), item, 3);
-        };
+    //settings
+    if (data.contains("eraseexisting")) {
+        CheckBox_EraseExistingEffects->SetValue(data.at("eraseexisting").get<bool>());
+    }
+    if (_allowCCRStrand && data.contains("mapccrstrand")) {
+        CheckBox_MapCCRStrand->SetValue(data.at("mapccrstrand").get<bool>());
+    }
+    if (_allowImportBlend && data.contains("importblendmode")) {
+        CheckBox_Import_Blend_Mode->SetValue(data.at("importblendmode").get<bool>());
+    }
 
-        //mappings
-        auto mappings = data["mappings"].AsArray();
-        for (int i = 0; i < mappings->Count(); ++i) {
-            wxString const model = mappings->Item(i).Get("model", wxString()).AsString();
-            wxString const strand = mappings->Item(i).Get("strand", wxString()).AsString();
-            wxString const node = mappings->Item(i).Get("node", wxString()).AsString();
-            wxString const mapping = mappings->Item(i).Get("mapping", wxString()).AsString();
-            wxColor color = wxColor(mappings->Item(i).Get("color", wxString("white")).AsString());
-            bool stashed = mappings->Item(i).Get("stashed", false).AsBool();
-
-            Element *modelEl = mSequenceElements->GetElement(model.ToStdString());
-
-            if (!stashed && TreeContainsModel(model) == nullptr && !modelwarning) {
-                if (wxMessageBox("Model \"" + model + "\" not part of sequence.  Not mapping channels to this model. Do you want to see future occurrences of this error during this import?", "", wxICON_WARNING | wxYES_NO, this) == wxNO)
-                {
-                    modelwarning = true;
-                }
-            }
-
-            // This code adds the model into the sequence ... it is useful if the model was previously only
-            // in a model group that was in the sequence.
-            if (modelEl == nullptr && xlights->GetModel(model.ToStdString()) != nullptr) {
-                mSequenceElements->AddMissingModelsToSequence(model.ToStdString(), false);
-                ModelElement *mel = dynamic_cast<ModelElement*>(mSequenceElements->GetElement(model.ToStdString()));
-                if (mel != nullptr) {
-                    mel->Init(*xlights->GetModel(model.ToStdString()));
-                } else {
-                    logger_base.warn("Strange ... load mapping returned null model for " + model);
-                }
-                modelEl = mel;
-            }
-
-            if (modelEl != nullptr) {
-                xLightsImportModelNode* mi = TreeContainsModel(model.ToStdString());
-                xLightsImportModelNode* msi = TreeContainsModel(model.ToStdString(), strand.ToStdString());
-                xLightsImportModelNode* mni = TreeContainsModel(model.ToStdString(), strand.ToStdString(), node.ToStdString());
-
-                if (mni == msi) mni = nullptr;
-                if (msi == mi) msi = nullptr;
-
-                if (mi == nullptr || (msi == nullptr && !strand.empty()) || (mni == nullptr && !node.empty())) {
-                    if (mi != nullptr && !strandwarning) {
-                        if (wxMessageBox(model + "/" + strand + "/" + node + " not found.  Has the models changed? Do you want to see future occurrences of this error during this import?", "", wxICON_WARNING | wxYES_NO, this) == wxNO)
-                        {
-                            strandwarning = true;
-                        }
-                    }
-
-                    // save the unused mappings
-                    _stashedMappings.emplace_back(new StashedMapping(model, strand, node, mapping, color));
-                } else {
-                    if (!mapping.empty()) {
-                        if (mni != nullptr) {
-                            wxDataViewItem item = FindItem(model.ToStdString(), strand.ToStdString(), node.ToStdString());
-                            SetMapping(mapping, item, color);
-                        } else if (msi != nullptr) {
-                            wxDataViewItem item = FindItem(model.ToStdString(), strand.ToStdString());
-                            SetMapping(mapping, item, color);
-                        } else {
-                            wxDataViewItem item = FindItem(model.ToStdString());
-                            SetMapping(mapping, item, color);
-                        }
-                    }
-                }
-            } else {
-                // save this unused mapping
-                _stashedMappings.emplace_back(new StashedMapping(model, strand, node, mapping, color));
+    //selected timmings
+    auto timingtracks = data["timingtracks"].array();
+    if (timingtracks != nullptr) {
+        for (int i = 0; i < timingtracks.size(); ++i) {
+            wxString const ttname = timingtracks.at(i).at("name").get<std::string>();
+            bool const ttenabled = timingtracks.at(i).at("enabled").get<bool>();
+            if (auto const& idx{ std::find(timingTracks.begin(), timingTracks.end(), ttname) }; idx != timingTracks.end()) {
+                auto index = std::distance(timingTracks.begin(), idx);
+                TimingTrackListBox->Check(index, ttenabled);
             }
         }
     }
+
+    auto SetMapping = [&](wxString const& mapping, wxDataViewItem item, wxColor const& color) {
+        TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(mapping), item, 2);
+        ((xLightsImportTreeModel*)TreeListCtrl_Mapping->GetModel())->SetMappingExists(item, ListCtrl_Available->FindItem(0, mapping) >= 0);
+        TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(color.GetAsString()), item, 4);
+        TreeListCtrl_Mapping->GetModel()->SetValue(wxVariant(findModelType(mapping)), item, 3);
+    };
+
+    //mappings
+    auto mappings = data["mappings"].array();
+    for (int i = 0; i < mappings.size(); ++i) {
+        wxString const model = mappings.at(i).at("model").get<std::string>();
+        wxString const strand = mappings.at(i).at("strand").get<std::string>();
+        wxString const node = mappings.at(i).at("node").get<std::string>();
+        wxString const mapping = mappings.at(i).at("mapping").get<std::string>();
+        wxColor color = wxColor(mappings.at(i).at("color").get<std::string>());
+        bool stashed = mappings.at(i).at("stashed").get<bool>();
+
+        Element *modelEl = mSequenceElements->GetElement(model.ToStdString());
+
+        if (!stashed && TreeContainsModel(model) == nullptr && !modelwarning) {
+            if (wxMessageBox("Model \"" + model + "\" not part of sequence.  Not mapping channels to this model. Do you want to see future occurrences of this error during this import?", "", wxICON_WARNING | wxYES_NO, this) == wxNO)
+            {
+                modelwarning = true;
+            }
+        }
+
+        // This code adds the model into the sequence ... it is useful if the model was previously only
+        // in a model group that was in the sequence.
+        if (modelEl == nullptr && xlights->GetModel(model.ToStdString()) != nullptr) {
+            mSequenceElements->AddMissingModelsToSequence(model.ToStdString(), false);
+            ModelElement *mel = dynamic_cast<ModelElement*>(mSequenceElements->GetElement(model.ToStdString()));
+            if (mel != nullptr) {
+                mel->Init(*xlights->GetModel(model.ToStdString()));
+            } else {
+                logger_base.warn("Strange ... load mapping returned null model for " + model);
+            }
+            modelEl = mel;
+        }
+
+        if (modelEl != nullptr) {
+            xLightsImportModelNode* mi = TreeContainsModel(model.ToStdString());
+            xLightsImportModelNode* msi = TreeContainsModel(model.ToStdString(), strand.ToStdString());
+            xLightsImportModelNode* mni = TreeContainsModel(model.ToStdString(), strand.ToStdString(), node.ToStdString());
+
+            if (mni == msi) mni = nullptr;
+            if (msi == mi) msi = nullptr;
+
+            if (mi == nullptr || (msi == nullptr && !strand.empty()) || (mni == nullptr && !node.empty())) {
+                if (mi != nullptr && !strandwarning) {
+                    if (wxMessageBox(model + "/" + strand + "/" + node + " not found.  Has the models changed? Do you want to see future occurrences of this error during this import?", "", wxICON_WARNING | wxYES_NO, this) == wxNO)
+                    {
+                        strandwarning = true;
+                    }
+                }
+
+                // save the unused mappings
+                _stashedMappings.emplace_back(new StashedMapping(model, strand, node, mapping, color));
+            } else {
+                if (!mapping.empty()) {
+                    if (mni != nullptr) {
+                        wxDataViewItem item = FindItem(model.ToStdString(), strand.ToStdString(), node.ToStdString());
+                        SetMapping(mapping, item, color);
+                    } else if (msi != nullptr) {
+                        wxDataViewItem item = FindItem(model.ToStdString(), strand.ToStdString());
+                        SetMapping(mapping, item, color);
+                    } else {
+                        wxDataViewItem item = FindItem(model.ToStdString());
+                        SetMapping(mapping, item, color);
+                    }
+                }
+            }
+        } else {
+            // save this unused mapping
+            _stashedMappings.emplace_back(new StashedMapping(model, strand, node, mapping, color));
+        }
+    }
+
 }
 
 void xLightsImportChannelMapDialog::LoadXMapMapping(wxString const& filename, bool hideWarnings)
@@ -1725,67 +1883,66 @@ void xLightsImportChannelMapDialog::SaveXMapMapping(wxString const& filename)
 
 void xLightsImportChannelMapDialog::SaveJSONMapping(wxString const& filename)
 {
-    wxJSONValue data;
+    nlohmann::json data;
 
     //mappings
-    wxJSONValue allMappings;
+    nlohmann::json allMappings;
     for (size_t i = 0; i < _dataModel->GetChildCount(); ++i) {
         xLightsImportModelNode* m = _dataModel->GetNthChild(i);
         if (m->HasMapping()) {
-            wxJSONValue mapping;
+            nlohmann::json mapping;
 
-            wxString mn = m->_model;
-            mapping["model"] = mn;
-            StashedMapping* sm = GetStashedMapping(mn, "", "");
+            mapping["model"] = m->_model;
+            StashedMapping* sm = GetStashedMapping(m->_model, "", "");
             if (m->_mapping.empty() && sm != nullptr) {
-                mapping["mapping"] = sm->_mapping;
-                mapping["color"] = sm->_color.GetAsString();
+                mapping["mapping"] = sm->_mapping.ToStdString();
+                mapping["color"] = sm->_color.GetAsString().ToStdString();
                 mapping["stashed"] = true;
             } else {
                 mapping["mapping"] = m->_mapping;
-                mapping["color"] = m->_color.GetAsString();
+                mapping["color"] = m->_color.GetAsString().ToStdString();
             }
-            allMappings.Append(mapping);
+            allMappings.push_back(mapping);
             for (size_t j = 0; j < m->GetChildCount(); ++j) {
                 xLightsImportModelNode* s = m->GetNthChild(j);
-                if (s->HasMapping() || AnyStashedMappingExists(mn, s->_strand)) {
-                    sm = GetStashedMapping(mn, s->_strand, "");
+                if (s->HasMapping() || AnyStashedMappingExists(m->_model, s->_strand)) {
+                    sm = GetStashedMapping(m->_model, s->_strand, "");
 
-                    wxJSONValue smapping;
-                    smapping["model"] = mn;
+                    nlohmann::json smapping;
+                    smapping["model"] = m->_model;
                     if (s->_mapping.empty() && sm != nullptr) {
-                        smapping["strand"] = sm->_strand;
-                        smapping["mapping"] = sm->_mapping;
-                        smapping["color"] = sm->_color.GetAsString();
+                        smapping["strand"] = sm->_strand.ToStdString();
+                        smapping["mapping"] = sm->_mapping.ToStdString();
+                        smapping["color"] = sm->_color.GetAsString().ToStdString();
                         smapping["stashed"] = true;
                     } else {
                         smapping["strand"] = s->_strand;
                         smapping["mapping"] = s->_mapping;
-                        smapping["color"] = s->_color.GetAsString();
+                        smapping["color"] = s->_color.GetAsString().ToStdString();
                     }
-                    allMappings.Append(smapping);
+                    allMappings.push_back(smapping);
 
                     for (size_t k = 0; k < s->GetChildCount(); ++k) {
                         xLightsImportModelNode* n = s->GetNthChild(k);
-                        sm = GetStashedMapping(mn, n->_strand, n->_node);
+                        sm = GetStashedMapping(m->_model, n->_strand, n->_node);
                         if (n->_mapping.empty() && sm != nullptr) {
-                            wxJSONValue nmapping;
-                            nmapping["model"] = mn;
-                            nmapping["strand"] = sm->_strand;
-                            nmapping["node"] = sm->_node;
-                            nmapping["mapping"] = sm->_mapping;
-                            nmapping["color"] = sm->_color.GetAsString();
+                            nlohmann::json nmapping;
+                            nmapping["model"] = m->_model;
+                            nmapping["strand"] = sm->_strand.ToStdString();
+                            nmapping["node"] = sm->_node.ToStdString();
+                            nmapping["mapping"] = sm->_mapping.ToStdString();
+                            nmapping["color"] = sm->_color.GetAsString().ToStdString();
                             nmapping["stashed"] = true;
-                            allMappings.Append(nmapping);
+                            allMappings.push_back(nmapping);
                         } else {
                             if (n->HasMapping()) {
-                                wxJSONValue nmapping;
-                                nmapping["model"] = mn;
+                                nlohmann::json nmapping;
+                                nmapping["model"] = m->_model;
                                 nmapping["strand"] = n->_strand;
                                 nmapping["node"] = n->_node;
                                 nmapping["mapping"] = n->_mapping;
-                                nmapping["color"] = n->_color.GetAsString();
-                                allMappings.Append(nmapping);
+                                nmapping["color"] = n->_color.GetAsString().ToStdString();
+                                allMappings.push_back(nmapping);
                             }
                         }
                     }
@@ -1798,14 +1955,14 @@ void xLightsImportChannelMapDialog::SaveJSONMapping(wxString const& filename)
     for (auto it = _stashedMappings.begin(); it != _stashedMappings.end(); ++it) {
         Element *modelEl = mSequenceElements->GetElement((*it)->_model.ToStdString());
         if (modelEl == nullptr) {
-            wxJSONValue mapping;
-            mapping["model"] = (*it)->_model;
-            mapping["strand"] = (*it)->_strand;
-            mapping["node"] = (*it)->_node;
-            mapping["mapping"] = (*it)->_mapping;
-            mapping["color"] = (*it)->_color.GetAsString();
+            nlohmann::json mapping;
+            mapping["model"] = (*it)->_model.ToStdString();
+            mapping["strand"] = (*it)->_strand.ToStdString();
+            mapping["node"] = (*it)->_node.ToStdString();
+            mapping["mapping"] = (*it)->_mapping.ToStdString();
+            mapping["color"] = (*it)->_color.GetAsString().ToStdString();
             mapping["stashed"] = true;
-            allMappings.Append(mapping);
+            allMappings.push_back(mapping);
         }
     }
 
@@ -1814,10 +1971,10 @@ void xLightsImportChannelMapDialog::SaveJSONMapping(wxString const& filename)
     //selected timmings
     for (size_t tt = 0; tt < TimingTrackListBox->GetCount(); ++tt)
     {
-        wxJSONValue timtrack;
+        nlohmann::json timtrack;
         timtrack["name"] = timingTracks[tt];
         timtrack["enabled"] = TimingTrackListBox->IsChecked(tt);
-        data["timingtracks"].Append(timtrack);
+        data["timingtracks"].push_back(timtrack);
     }
     //other settings
     data["mapccrstrand"] = CheckBox_MapCCRStrand->IsChecked();
@@ -1835,10 +1992,13 @@ void xLightsImportChannelMapDialog::SaveJSONMapping(wxString const& filename)
         data["importmedia"] =  CheckBoxImportMedia->IsChecked();
     }
 
-    wxFileOutputStream mapfile(filename);
-    wxJSONWriter writer(wxJSONWRITER_STYLED, 0, 3);
-    writer.Write(data, mapfile);
-    mapfile.Close();
+    try {
+        std::ofstream o(filename.ToStdString());
+        if (o.is_open()) {
+            o << std::setw(4) << data << std::endl;
+        }
+    } catch (const std::exception&) {
+    }
     _dirty = false;
 }
 
@@ -2059,7 +2219,7 @@ void xLightsImportChannelMapDialog::OnBeginDrag(wxDataViewEvent& event)
     if (event.GetItem().IsOk()) {
         _dragItem = event.GetItem();
         wxVariant vvalue;
-        event.GetModel()->GetValue(vvalue, event.GetItem(), 1);
+        event.GetModel()->GetValue(vvalue, event.GetItem(), 2);
         std::string mapped = vvalue.GetString().ToStdString();
 
         if (mapped != "") {
@@ -2195,7 +2355,6 @@ void xLightsImportChannelMapDialog::OnDrop(wxCommandEvent& event)
     }
 
     TreeListCtrl_Mapping->Refresh();
-
     MarkUsed();
 }
 
@@ -2610,11 +2769,14 @@ bool xLightsImportChannelMapDialog::RunAIPrompt(wxProgressDialog* dlg, const std
 
     logger_base.debug("Prompt: %s", prompt.c_str());
 
-    auto ai = xlights->GetLLM();
+    auto ai = xlights->GetAIService();
     if (ai == nullptr)
         return false;
 
-    std::string response = ai->CallLLM(prompt, "");
+   auto const[ response, worked] = ai->CallLLM(prompt);
+    if (!worked) {
+        return false;
+    }
 
     std::string possibleSources = "";
     for (const auto& it : sourceModels) {
@@ -2626,15 +2788,12 @@ bool xLightsImportChannelMapDialog::RunAIPrompt(wxProgressDialog* dlg, const std
     bool mapped = false;
 
     try {
-        wxJSONValue root;
-        wxJSONReader reader;
-
-        reader.Parse(response, &root);
+        nlohmann::json root = nlohmann::json::parse(response);
 
         logger_base.debug("Parsed response");
 
-        wxJSONValue mappings = root["mappings"];
-        if (mappings.IsNull()) {
+        nlohmann::json mappings = root["mappings"];
+        if (mappings.is_null()) {
             logger_base.error("No mappings found in response");
         } else {
             // now go through all the targets
@@ -2642,9 +2801,9 @@ bool xLightsImportChannelMapDialog::RunAIPrompt(wxProgressDialog* dlg, const std
                 if (!it->HasMapping()) {
                     auto mn = it->GetModelName();
                     // find the model in the mappings sourceModel
-                    for (size_t i = 0; i < mappings.Size(); ++i) {
-                        wxString targetModel = mappings[i]["targetModel"].AsString();
-                        std::string mappingSource = mappings[i]["sourceModel"].AsString();
+                    for (size_t i = 0; i < mappings.size(); ++i) {
+                        std::string targetModel = mappings[i]["targetModel"].get<std::string>();
+                        std::string mappingSource = mappings[i]["sourceModel"].get<std::string>();
                         if (targetModel == mn && possibleSources.find(mappingSource) != std::string::npos) {
                             it->Map(mappingSource,"Unknown");
                             mapped = true;
@@ -2666,7 +2825,7 @@ bool xLightsImportChannelMapDialog::AIModelMap(wxProgressDialog* dlg, const std:
     if (targetModels.size() == 0)
         return false;
 
-    auto llm = xlights->GetLLM();
+    auto llm = xlights->GetAIService();
     if (llm == nullptr)
         return false;
     std::string prompt = GetAIPrompt(llm->GetLLMName() + "_AI_Model_AutoMap.txt");
@@ -2703,7 +2862,7 @@ bool xLightsImportChannelMapDialog::AISubModelMap(wxProgressDialog* dlg, const s
     if (submodelCount == 0)
         return false;
 
-    auto llm = xlights->GetLLM();
+    auto llm = xlights->GetAIService();
     if (llm == nullptr)
         return false;
     std::string prompt = GetAIPrompt(llm->GetLLMName() + "_AI_SubModel_AutoMap.txt");
@@ -2740,7 +2899,7 @@ bool xLightsImportChannelMapDialog::AIStrandMap(wxProgressDialog* dlg, const std
     if (strandCount == 0)
         return false;
 
-    auto llm = xlights->GetLLM();
+    auto llm = xlights->GetAIService();
     if (llm == nullptr)
 		return false;
     std::string prompt = GetAIPrompt(llm->GetLLMName() + "_AI_Strand_AutoMap.txt");
@@ -2787,7 +2946,7 @@ bool xLightsImportChannelMapDialog::AINodeMap(wxProgressDialog* dlg, const std::
     if (nodeModelCount == 0)
         return false;
 
-    auto llm = xlights->GetLLM();
+    auto llm = xlights->GetAIService();
     if (llm == nullptr)
         return false;
     std::string prompt = GetAIPrompt(llm->GetLLMName() + "_AI_Node_AutoMap.txt");
@@ -2823,7 +2982,6 @@ void xLightsImportChannelMapDialog::DoAIAutoMap(bool select) {
 
     // I welcome other developers experimenting with the prompt and trying to improve it.
 
-    static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
     bool selectMapAvail = (ListCtrl_Available->GetSelectedItemCount() != 0) && select;
     bool selectMapTarget = (TreeListCtrl_Mapping->GetSelectedItemsCount() != 0) && select;
 
@@ -2934,7 +3092,7 @@ void xLightsImportChannelMapDialog::DoAutoMap(
                 if (isTargetSelected) break;
             }
 
-            if ((selectMapTarget && isTargetSelected) || !selectMapTarget) {
+            if ((selectMapTarget && isTargetSelected) || !selectMapTarget) { // If LS has selection or no selections required
                 auto aliases = model->GetAliases();
                 if ((model->IsGroup() && (mg == "B" || mg == "G")) || (!model->IsGroup() && (mg == "B" || mg == "M"))) {
                     for (int j = 0; j < ListCtrl_Available->GetItemCount(); ++j) {
@@ -3008,9 +3166,58 @@ void xLightsImportChannelMapDialog::DoAutoMap(
                         }
                     }
                 }
-            } else {
-                static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
-                logger_base.warn("xLightsImportTreeModel::OnButton_AutoMapClick: Weird ... model %d was nullptr", i);
+            }
+        } else {
+            static log4cpp::Category& logger_base = log4cpp::Category::getInstance(std::string("log_base"));
+            logger_base.warn("xLightsImportTreeModel::OnButton_AutoMapClick: Weird ... model %d was nullptr", i);
+        }
+    }
+    // Process selected submodels independently
+    if (selectMapTarget) {
+        for (unsigned int i = 0; i < _dataModel->GetChildCount(); ++i) {
+            auto model = _dataModel->GetNthChild(i);
+            if (model != nullptr) {
+                for (unsigned int k = 0; k < model->GetChildCount(); ++k) {
+                    auto submodel = model->GetNthChild(k);
+                    if (submodel != nullptr) {
+                        bool isSubmodelSelected = false;
+                        auto index = (wxDataViewItem)submodel;
+                        for (const wxDataViewItem& selectedItem : targetSelectedItems) {
+                            isSubmodelSelected = (index.GetID() == selectedItem.GetID() ? true : false);
+                            if (isSubmodelSelected)
+                                break;
+                        }
+
+                        if ((selectMapTarget && isSubmodelSelected) || !selectMapTarget) {
+                            for (int j = 0; j < ListCtrl_Available->GetItemCount(); ++j) {
+                                bool isSourceSelected = ListCtrl_Available->GetItemState(j, wxLIST_STATE_SELECTED) == wxLIST_STATE_SELECTED;
+                                if ((selectMapAvail && isSourceSelected) || !selectMapAvail) {
+                                    std::string const availName = ListCtrl_Available->GetItemText(j).Trim(true).Trim(false).Lower().ToStdString();
+                                    auto m = xlights->GetModel(model->_model);
+                                    auto& mAliases = m->GetAliases();
+                                    if (m != nullptr) {
+                                        auto sm = m->GetSubModel(submodel->_strand);
+                                        if (sm != nullptr) {
+                                            auto& smAliases = sm->GetAliases();
+                                            if (submodel->_mapping.empty()) {
+                                                if (lambda_strand(submodel->GetModelName(), availName, extra1, extra2, smAliases)) {
+                                                    submodel->Map(ListCtrl_Available->GetItemText(j), "SubModel");
+                                                } else {
+                                                    for (const auto& modelAlias : mAliases) { // check for any aliases on model itself
+                                                        if (lambda_strand(modelAlias + "/" + submodel->_strand, availName, extra1, extra2, smAliases)) {
+                                                            submodel->Map(ListCtrl_Available->GetItemText(j), "SubModel");
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

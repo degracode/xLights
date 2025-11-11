@@ -88,6 +88,9 @@
 #include "TipOfTheDayDialog.h"
 #include <CheckSequenceReport.h>
 
+#include "ai/aiType.h"
+#include "ai/ServiceManager.h"
+
 class wxDebugReport;
 
 class aiBase;
@@ -504,7 +507,6 @@ public:
     void OnMenuItemViewSavePerspectiveSelected(wxCommandEvent& event);
     void OnMenu_Settings_SequenceSelected(wxCommandEvent& event);
     void OnMenuItem_File_Open_SequenceSelected(wxCommandEvent& event);
-    void OnResize(wxSizeEvent& event);
     void OnAuiToolBarItemRenderAllClick(wxCommandEvent& event);
     void OnMenuItem_File_Close_SequenceSelected(wxCommandEvent& event);
     void OnMenuItem_File_Export_VideoSelected(wxCommandEvent& event);
@@ -1006,6 +1008,7 @@ public:
     wxMenuItem* MenuItem_PurgeRenderCache;
     wxMenuItem* MenuItem_PurgeVendorCache;
     wxMenuItem* MenuItem_QuietVol;
+    wxMenuItem* MenuItem_REDO;
     wxMenuItem* MenuItem_RemapCustom;
     wxMenuItem* MenuItem_SD_HP;
     wxMenuItem* MenuItem_SD_MP;
@@ -1172,7 +1175,7 @@ public:
     }
     void DoAltBackup(bool prompt = true);
 
-    [[nodiscard]] const std::list<std::string>& GetMediaFolders() {
+    [[nodiscard]] const std::list<std::string>& GetMediaFolders() const {
         return mediaDirectories;
     }
     void SetMediaFolders(const std::list<std::string> &folders);
@@ -1334,9 +1337,7 @@ public:
     bool HidePresetPreview() const { return _hidePresetPreview;}
     void SetHidePresetPreview(bool b);
 
-    void SetServiceSetting(const std::string& setting, const std::string& value);
-    std::string GetServiceSetting(const std::string& setting, const std::string& defaultValue = "");
-    std::unique_ptr<aiBase> GetLLM();
+    aiBase* GetAIService(aiType::TYPE serviceType = aiType::TYPE::PROMPT);
 
     bool IsShowBaseShowFolder() const
     {
@@ -1406,6 +1407,7 @@ public:
     void UnselectAllControllers();
     void InitialiseControllersTab(bool rebuildPropGrid = true);
     void OnPingTimer(wxTimerEvent& event);
+    void waitForPingsToComplete();
     void StatusRefreshTimer(wxTimerEvent& event);
     wxBitmap CreateLedBitmap(bool online);
     void SetControllersProperties(bool rebuildPropGrid = true);
@@ -1587,6 +1589,7 @@ public:
 
     void UpdateSequenceVideoPanel( const wxString& path );
 
+    const wxXmlDocument& GetEffectsXml() const { return EffectsXml; };
 protected:
     bool SeqLoadXlightsFile(const wxString& filename, bool ChooseModels);
     bool SeqLoadXlightsFile(xLightsXmlFile& xml_file, bool ChooseModels);
@@ -1743,6 +1746,7 @@ public:
     ModelPreview* GetLayoutPreview() const {return modelPreview;}
     void SetStoredLayoutGroup(const std::string &group);
     const std::string& GetStoredLayoutGroup() const {return mStoredLayoutGroup;}
+    bool IsSequencerInitialize() {return mSequencerInitialize;}
     bool IsACActive();
     void GetACSettings(ACTYPE& type, ACSTYLE& style, ACTOOL& tool, ACMODE& mode);
     int GetACIntensity();
@@ -1801,7 +1805,8 @@ private:
     SelectPanel *_selectPanel = nullptr;
     SequenceVideoPanel* sequenceVideoPanel = nullptr;
     SearchPanel* _searchPanel = nullptr;
-    std::unique_ptr<ScriptsDialog> _scriptsDialog;
+    std::unique_ptr<ScriptsDialog> _scriptsDialog{ nullptr };
+    std::unique_ptr<ServiceManager> _serviceManager{ nullptr };
     int mMediaLengthMS;
 
     bool mSequencerInitialize = false;
@@ -1921,6 +1926,12 @@ private:
     static const long ID_NETWORK_INACTIVE;
     static const long ID_NETWORK_DELETE;
     static const long ID_NETWORK_UPLOADOUTPUT;
+    static const long ID_NETWORK_SORT_NAME;
+    static const long ID_NETWORK_SORT_ID;
+    static const long ID_NETWORK_SORT_IP;
+    static const long ID_NETWORK_SORT_FPP_PROXY;
+    static const long ID_NETWORK_SORT_CONTROLLER_VENDOR;
+    static const long ID_NETWORK_SORT_CONTROLLER_PROTOCOL;
 
     #define isRandom(ctl)  isRandom_(ctl, #ctl) //(buttonState[std::string(ctl->GetName())] == Random)
 

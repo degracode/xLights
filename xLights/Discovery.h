@@ -18,7 +18,7 @@
 #include <curl/curl.h>
 
 #include "outputs/ControllerEthernet.h"
-#include "../xSchedule/wxJSON/jsonval.h"
+#include <nlohmann/json.hpp>
 #include <wx/secretstore.h>
 #include <set>
 
@@ -103,7 +103,7 @@ public:
     std::string password;
     bool canZipUpload = false;
 
-    wxJSONValue extraData;
+    nlohmann::json extraData;
 };
 
 class Discovery
@@ -111,6 +111,7 @@ class Discovery
 public:
     Discovery(wxWindow* frame, OutputManager* outputManager);
     virtual ~Discovery();
+    void Close(bool wait);
 
     // parallel HTTP requests
     void AddCurl(const std::string &host, const std::string &url, std::function<bool(int rc, const std::string &buffer, const std::string &errorBuffer)>&& callback);

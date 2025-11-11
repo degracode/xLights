@@ -62,9 +62,8 @@
 //(*IdInit(ModelFaceDialog)
 const wxWindowID ModelFaceDialog::ID_STATICTEXT2 = wxNewId();
 const wxWindowID ModelFaceDialog::ID_CHOICE3 = wxNewId();
-const wxWindowID ModelFaceDialog::ID_BUTTON3 = wxNewId();
-const wxWindowID ModelFaceDialog::ID_BUTTON_IMPORT = wxNewId();
-const wxWindowID ModelFaceDialog::ID_BUTTON4 = wxNewId();
+const wxWindowID ModelFaceDialog::ID_BUTTON_ADD = wxNewId();
+const wxWindowID ModelFaceDialog::ID_BUTTON_MORE = wxNewId();
 const wxWindowID ModelFaceDialog::ID_PANEL4 = wxNewId();
 const wxWindowID ModelFaceDialog::ID_CHECKBOX1 = wxNewId();
 const wxWindowID ModelFaceDialog::ID_GRID_COROFACES = wxNewId();
@@ -92,6 +91,7 @@ const long ModelFaceDialog::FACES_DIALOG_IMPORT_FILE = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_EXPORT_TOOTHERS = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_COPY = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_RENAME = wxNewId();
+const long ModelFaceDialog::FACES_DIALOG_DELETE = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_SHIFT = wxNewId();
 const long ModelFaceDialog::FACES_DIALOG_REVERSE = wxNewId();
 
@@ -99,6 +99,8 @@ BEGIN_EVENT_TABLE(ModelFaceDialog,wxDialog)
 	//(*EventTable(ModelFaceDialog)
 	//*)
 END_EVENT_TABLE()
+
+#define MIN_COL_SIZE 10
 
 enum {
     SINGLE_NODE_FACE = 0,
@@ -145,18 +147,17 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent, OutputManager* outputManager,
 	FlexGridSizer4->AddGrowableRow(1);
 	FlexGridSizer7 = new wxFlexGridSizer(0, 5, 0, 0);
 	FlexGridSizer7->AddGrowableCol(1);
+	FlexGridSizer7->AddGrowableRow(0);
 	StaticText3 = new wxStaticText(Panel3, ID_STATICTEXT2, _("Name:"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
 	FlexGridSizer7->Add(StaticText3, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	NameChoice = new wxChoice(Panel3, ID_CHOICE3, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE3"));
 	NameChoice->SetMinSize(wxDLG_UNIT(Panel3,wxSize(100,-1)));
 	FlexGridSizer7->Add(NameChoice, 1, wxALL|wxEXPAND, 5);
-	AddButton = new wxButton(Panel3, ID_BUTTON3, _("Add"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON3"));
+	AddButton = new wxButton(Panel3, ID_BUTTON_ADD, _("Add"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON_ADD"));
 	FlexGridSizer7->Add(AddButton, 1, wxTOP|wxBOTTOM|wxLEFT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	ButtonImport = new wxButton(Panel3, ID_BUTTON_IMPORT, _T("..."), wxDefaultPosition, wxSize(20,-1), 0, wxDefaultValidator, _T("ID_BUTTON_IMPORT"));
-	ButtonImport->SetMinSize(wxSize(20,-1));
-	FlexGridSizer7->Add(ButtonImport, 0, wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
-	DeleteButton = new wxButton(Panel3, ID_BUTTON4, _("Delete"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON4"));
-	FlexGridSizer7->Add(DeleteButton, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
+	ButtonMore = new wxButton(Panel3, ID_BUTTON_MORE, _T("..."), wxDefaultPosition, wxSize(20,-1), 0, wxDefaultValidator, _T("ID_BUTTON_MORE"));
+	ButtonMore->SetMinSize(wxSize(20,-1));
+	FlexGridSizer7->Add(ButtonMore, 0, wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	FlexGridSizer4->Add(FlexGridSizer7, 1, wxALL|wxEXPAND, 5);
 	FaceTypeChoice = new wxChoicebook(Panel3, ID_CHOICEBOOK1, wxDefaultPosition, wxDefaultSize, 0, _T("ID_CHOICEBOOK1"));
 	CoroPanel = new wxPanel(FaceTypeChoice, ID_PANEL2, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL2"));
@@ -209,6 +210,8 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent, OutputManager* outputManager,
 	FlexGridSizer9->AddGrowableCol(0);
 	FlexGridSizer9->AddGrowableRow(1);
 	FlexGridSizer11 = new wxFlexGridSizer(0, 3, 0, 0);
+	FlexGridSizer11->AddGrowableCol(2);
+	FlexGridSizer11->AddGrowableRow(0);
 	CustomColorNodeRanges = new wxCheckBox(NodeRangePanel, ID_CHECKBOX2, _("Force Custom Colors"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CHECKBOX2"));
 	CustomColorNodeRanges->SetValue(false);
 	FlexGridSizer11->Add(CustomColorNodeRanges, 1, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
@@ -270,6 +273,7 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent, OutputManager* outputManager,
 	FlexGridSizer10->AddGrowableRow(1);
 	FlexGridSizer6 = new wxFlexGridSizer(0, 3, 0, 0);
 	FlexGridSizer6->AddGrowableCol(1);
+	FlexGridSizer6->AddGrowableRow(0);
 	StaticText2 = new wxStaticText(Matrix, wxID_ANY, _("Image Placement:"), wxDefaultPosition, wxDefaultSize, 0, _T("wxID_ANY"));
 	FlexGridSizer6->Add(StaticText2, 1, wxALL|wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL, 5);
 	MatrixImagePlacementChoice = new wxChoice(Matrix, ID_CHOICE2, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_CHOICE2"));
@@ -327,9 +331,8 @@ ModelFaceDialog::ModelFaceDialog(wxWindow* parent, OutputManager* outputManager,
 	FlexGridSizer1->SetSizeHints(this);
 
 	Connect(ID_CHOICE3, wxEVT_COMMAND_CHOICE_SELECTED, (wxObjectEventFunction)&ModelFaceDialog::OnMatrixNameChoiceSelect);
-	Connect(ID_BUTTON3, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnButtonMatrixAddClicked);
-	Connect(ID_BUTTON_IMPORT, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnButtonImportClick);
-	Connect(ID_BUTTON4, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnButtonMatrixDeleteClick);
+	Connect(ID_BUTTON_ADD, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnButtonMatrixAddClicked);
+	Connect(ID_BUTTON_MORE, wxEVT_COMMAND_BUTTON_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnButtonMoreClick);
 	Panel_SingleNode->Connect(wxEVT_PAINT, (wxObjectEventFunction)&ModelFaceDialog::Paint, NULL, this);
 	Connect(ID_CHECKBOX1, wxEVT_COMMAND_CHECKBOX_CLICKED, (wxObjectEventFunction)&ModelFaceDialog::OnCustomColorCheckboxClick);
 	Connect(ID_GRID_COROFACES, wxEVT_GRID_CELL_LEFT_CLICK, (wxObjectEventFunction)&ModelFaceDialog::OnSingleNodeGridCellLeftClick);
@@ -400,11 +403,11 @@ ModelFaceDialog::~ModelFaceDialog()
 
 void ModelFaceDialog::SetFaceInfo(Model *cls, std::map< std::string, std::map<std::string, std::string> > const&finfo) {
     NodeRangeGrid->SetColSize(1, 50);
-    NodeRangeGrid->SetColSize(0, NodeRangeGrid->GetSize().x - 50 - NodeRangeGrid->GetRowLabelSize());
+    NodeRangeGrid->SetColSize(0, std::max(NodeRangeGrid->GetSize().x - 50 - NodeRangeGrid->GetRowLabelSize(), MIN_COL_SIZE));
     SingleNodeGrid->SetColSize(1, 50);
-    SingleNodeGrid->SetColSize(0, SingleNodeGrid->GetSize().x - 50 - SingleNodeGrid->GetRowLabelSize());
-    MatrixModelsGrid->SetColSize(0, (MatrixModelsGrid->GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2);
-    MatrixModelsGrid->SetColSize(1, (MatrixModelsGrid->GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2);
+    SingleNodeGrid->SetColSize(0, std::max(SingleNodeGrid->GetSize().x - 50 - SingleNodeGrid->GetRowLabelSize(), MIN_COL_SIZE));
+    MatrixModelsGrid->SetColSize(0, std::max((MatrixModelsGrid->GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2, MIN_COL_SIZE));
+    MatrixModelsGrid->SetColSize(1, std::max((MatrixModelsGrid->GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2, MIN_COL_SIZE));
     NameChoice->Clear();
     model = cls;
     modelPreview->SetModel(cls);
@@ -437,12 +440,10 @@ void ModelFaceDialog::SetFaceInfo(Model *cls, std::map< std::string, std::map<st
     }
 
     if (NameChoice->GetCount() > 0) {
-        DeleteButton->Enable();
         FaceTypeChoice->Enable();
         NameChoice->SetSelection(0);
         SelectFaceModel(NameChoice->GetString(NameChoice->GetSelection()).ToStdString());
     } else {
-        DeleteButton->Disable();
         FaceTypeChoice->Disable();
     }
 
@@ -503,11 +504,11 @@ static bool SetGrid(wxGrid *grid, std::map<std::string, std::string> &info) {
     bool customColor = false;
     if (info["CustomColors"] == "1") {
         grid->ShowCol(1);
-        grid->SetColSize(0, grid->GetSize().x - grid->GetColSize(1) - grid->GetRowLabelSize());
+        grid->SetColSize(0, std::max(grid->GetSize().x - grid->GetColSize(1) - grid->GetRowLabelSize(), MIN_COL_SIZE));
         customColor = true;
     } else {
         grid->HideCol(1);
-        grid->SetColSize(0, grid->GetSize().x - grid->GetRowLabelSize());
+        grid->SetColSize(0, std::max(grid->GetSize().x - grid->GetRowLabelSize(), MIN_COL_SIZE));
     }
     for (int x = 0; x < grid->GetNumberRows(); x++) {
         wxString pname = grid->GetRowLabelValue(x);
@@ -579,7 +580,6 @@ void ModelFaceDialog::OnButtonMatrixAddClicked(wxCommandEvent& event)
             SelectFaceModel(n);
             NameChoice->Enable();
             FaceTypeChoice->Enable();
-            DeleteButton->Enable();
 
             // set the default type of face based on the model type
             if (model->GetDisplayAs() == "Matrix" || StartsWith(model->GetDisplayAs(), "Tree")) {
@@ -612,11 +612,11 @@ void ModelFaceDialog::OnButtonMatrixAddClicked(wxCommandEvent& event)
     }
 }
 
-void ModelFaceDialog::OnButtonMatrixDeleteClick(wxCommandEvent& event)
+void ModelFaceDialog::OnFaceDeleteSelected()
 {
     std::string name = NameChoice->GetString(NameChoice->GetSelection()).ToStdString();
     int i = wxMessageBox("Delete face definition?", "Are you sure you want to delete " + name + "?",
-                         wxICON_WARNING | wxOK, this);
+                         wxICON_WARNING | wxOK | wxCANCEL, this);
     if (i == wxID_OK || i == wxOK) {
         faceData[name].clear();
         NameChoice->Delete(NameChoice->GetSelection());
@@ -627,7 +627,6 @@ void ModelFaceDialog::OnButtonMatrixDeleteClick(wxCommandEvent& event)
             NameChoice->SetSelection(wxNOT_FOUND);
             NameChoice->Disable();
             FaceTypeChoice->Disable();
-            DeleteButton->Disable();
         }
     }
 }
@@ -932,11 +931,11 @@ void ModelFaceDialog::OnCustomColorCheckboxClick(wxCommandEvent& event)
     if (FaceTypeChoice->GetSelection() == SINGLE_NODE_FACE) {
         if (CustomColorSingleNode->IsChecked()) {
             SingleNodeGrid->ShowCol(1);
-            SingleNodeGrid->SetColSize(0, SingleNodeGrid->GetSize().x - SingleNodeGrid->GetColSize(1) - SingleNodeGrid->GetRowLabelSize());
+            SingleNodeGrid->SetColSize(0, std::max(SingleNodeGrid->GetSize().x - SingleNodeGrid->GetColSize(1) - SingleNodeGrid->GetRowLabelSize(), MIN_COL_SIZE));
             faceData[name]["CustomColors"] = "1";
         } else {
             SingleNodeGrid->HideCol(1);
-            SingleNodeGrid->SetColSize(0, SingleNodeGrid->GetSize().x - SingleNodeGrid->GetRowLabelSize());
+            SingleNodeGrid->SetColSize(0, std::max(SingleNodeGrid->GetSize().x - SingleNodeGrid->GetRowLabelSize(), MIN_COL_SIZE));
             faceData[name]["CustomColors"] = "0";
             for (auto& it : faceData[name])
             {
@@ -951,7 +950,7 @@ void ModelFaceDialog::OnCustomColorCheckboxClick(wxCommandEvent& event)
     } else {
         if (CustomColorNodeRanges->IsChecked()) {
             NodeRangeGrid->ShowCol(1);
-            NodeRangeGrid->SetColSize(0, NodeRangeGrid->GetSize().x - NodeRangeGrid->GetColSize(1) - NodeRangeGrid->GetRowLabelSize());
+            NodeRangeGrid->SetColSize(0, std::max(NodeRangeGrid->GetSize().x - NodeRangeGrid->GetColSize(1) - NodeRangeGrid->GetRowLabelSize(), MIN_COL_SIZE));
             faceData[name]["CustomColors"] = "1";
             for (int r = 0; r < NodeRangeGrid->GetNumberRows(); r++) {
                 wxString pname1 = NodeRangeGrid->GetRowLabelValue(r);
@@ -961,7 +960,7 @@ void ModelFaceDialog::OnCustomColorCheckboxClick(wxCommandEvent& event)
             }
         } else {
             NodeRangeGrid->HideCol(1);
-            NodeRangeGrid->SetColSize(0, NodeRangeGrid->GetSize().x - NodeRangeGrid->GetRowLabelSize());
+            NodeRangeGrid->SetColSize(0, std::max(NodeRangeGrid->GetSize().x - NodeRangeGrid->GetRowLabelSize(), MIN_COL_SIZE));
             faceData[name]["CustomColors"] = "0";
             for (auto& it : faceData[name]) {
                 if (EndsWith(it.first, "-Color")) {
@@ -1348,8 +1347,7 @@ void ModelFaceDialog::OnButton_DownloadImagesClick(wxCommandEvent& event)
                 {
                     basefn = basefn.SubString(0, basefn.Length() - 4);
                     eyesclosed = false;
-                }
-                else if (basefn.EndsWith("_ec"))
+                } else if (basefn.EndsWith("_ec"))
                 {
                     basefn = basefn.SubString(0, basefn.Length() - 4);
                     eyesclosed = true;
@@ -1520,6 +1518,10 @@ void ModelFaceDialog::OnAddBtnPopup(wxCommandEvent& event)
     {
         RenameFace();
     }
+    else if (event.GetId() == FACES_DIALOG_DELETE)
+    {
+        OnFaceDeleteSelected();
+    }
     else if (event.GetId() == FACES_DIALOG_SHIFT)
     {
         ShiftFaceNodes();
@@ -1553,7 +1555,6 @@ void ModelFaceDialog::ImportFacesFromModel()
 
         NameChoice->Enable();
         FaceTypeChoice->Enable();
-        DeleteButton->Enable();
 
         NameChoice->SetSelection(NameChoice->GetCount() - 1);
         NameChoice->SetStringSelection(NameChoice->GetString(NameChoice->GetCount() - 1));
@@ -1590,7 +1591,6 @@ void ModelFaceDialog::ImportFaces(const wxString& filename)
         {
             NameChoice->Enable();
             FaceTypeChoice->Enable();
-            DeleteButton->Enable();
 
             NameChoice->SetSelection(NameChoice->GetCount()-1);
             NameChoice->SetStringSelection(NameChoice->GetString(NameChoice->GetCount() - 1));
@@ -1644,26 +1644,6 @@ void ModelFaceDialog::AddFaces(std::map<std::string, std::map<std::string, std::
 
         faceData[fname] = face.second;
     }
-}
-
-void ModelFaceDialog::OnButtonImportClick(wxCommandEvent& event)
-{
-    wxMenu mnu;
-    if (DeleteButton->IsEnabled())
-    {
-        mnu.Append(FACES_DIALOG_COPY, "Copy");
-        mnu.Append(FACES_DIALOG_RENAME, "Rename");
-        mnu.AppendSeparator();
-    }
-    mnu.Append(FACES_DIALOG_IMPORT_MODEL, "Import From Model");
-    mnu.Append(FACES_DIALOG_IMPORT_FILE, "Import From File");
-    mnu.Append(FACES_DIALOG_EXPORT_TOOTHERS, "Export Faces To Other Model(s)");
-    mnu.AppendSeparator();
-    mnu.Append(FACES_DIALOG_SHIFT, "Shift Nodes");
-    mnu.Append(FACES_DIALOG_REVERSE, "Reverse Nodes");
-
-    mnu.Connect(wxEVT_MENU, (wxObjectEventFunction)& ModelFaceDialog::OnAddBtnPopup, nullptr, this);
-    PopupMenu(&mnu);
 }
 
 void ModelFaceDialog::CopyFaceData()
@@ -2041,18 +2021,18 @@ void ModelFaceDialog::OnCheckBox_OutputToLightsClick(wxCommandEvent& event)
 
 void ModelFaceDialog::OnMatrixModelsGridResize(wxSizeEvent& event)
 {
-    MatrixModelsGrid->SetColSize(0, (event.GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2);
-    MatrixModelsGrid->SetColSize(1, (event.GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2);
+    MatrixModelsGrid->SetColSize(0, std::max((event.GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2, MIN_COL_SIZE));
+    MatrixModelsGrid->SetColSize(1, std::max((event.GetSize().x - MatrixModelsGrid->GetRowLabelSize()) / 2, MIN_COL_SIZE));
 }
 
 void ModelFaceDialog::OnSingleNodeGridResize(wxSizeEvent& event)
 {
-    SingleNodeGrid->SetColSize(0, event.GetSize().x - SingleNodeGrid->GetColSize(1) - SingleNodeGrid->GetRowLabelSize());
+    SingleNodeGrid->SetColSize(0, std::max(event.GetSize().x - SingleNodeGrid->GetColSize(1) -30 - SingleNodeGrid->GetRowLabelSize(), MIN_COL_SIZE));
 }
 
 void ModelFaceDialog::OnNodeRangeGridResize(wxSizeEvent& event)
 {
-    NodeRangeGrid->SetColSize(0, event.GetSize().x - NodeRangeGrid->GetColSize(1) - NodeRangeGrid->GetRowLabelSize());
+    NodeRangeGrid->SetColSize(0, std::max(event.GetSize().x - NodeRangeGrid->GetColSize(1) - 30 - NodeRangeGrid->GetRowLabelSize(), MIN_COL_SIZE));
 }
 
 void ModelFaceDialog::ExportFacesToOtherModels() {
@@ -2074,4 +2054,26 @@ void ModelFaceDialog::ExportFacesToOtherModels() {
             targetModel->IncrementChangeCount();
         }
     }
+}
+
+void ModelFaceDialog::OnButtonMoreClick(wxCommandEvent& event)
+{
+    
+    wxMenu mnu;
+    if (NameChoice->GetCount() > 0)
+    {
+        mnu.Append(FACES_DIALOG_COPY, "Copy");
+        mnu.Append(FACES_DIALOG_RENAME, "Rename");
+        mnu.Append(FACES_DIALOG_DELETE, "Delete");
+        mnu.AppendSeparator();
+    }
+    mnu.Append(FACES_DIALOG_IMPORT_MODEL, "Import From Model");
+    mnu.Append(FACES_DIALOG_IMPORT_FILE, "Import From File");
+    mnu.Append(FACES_DIALOG_EXPORT_TOOTHERS, "Export Faces To Other Model(s)");
+    mnu.AppendSeparator();
+    mnu.Append(FACES_DIALOG_SHIFT, "Shift Nodes");
+    mnu.Append(FACES_DIALOG_REVERSE, "Reverse Nodes");
+
+    mnu.Connect(wxEVT_MENU, (wxObjectEventFunction)& ModelFaceDialog::OnAddBtnPopup, nullptr, this);
+    PopupMenu(&mnu);
 }

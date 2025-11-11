@@ -142,9 +142,6 @@
     <ClCompile Include="SequenceVideoPanel.cpp" />
     <ClCompile Include="SequenceVideoPreview.cpp" />
     <ClCompile Include="controllers\WebSocketClient.cpp" />
-    <ClCompile Include="..\xSchedule\wxJSON\jsonval.cpp" />
-    <ClCompile Include="..\xSchedule\wxJSON\jsonwriter.cpp" />
-    <ClCompile Include="..\xSchedule\wxJSON\jsonreader.cpp" />
     <ClCompile Include="LayerSelectDialog.cpp" />
     <ClCompile Include="..\xSchedule\md5.cpp" />
     <ClCompile Include="VendorMusicDialog.cpp" />
@@ -1032,7 +1029,6 @@
     <ClCompile Include="effects\DuplicatePanel.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
-    <ClCompile Include="wxWEBPHandler\imagwebp.cpp" />
     <ClCompile Include="effects\AdjustEffect.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
@@ -1102,6 +1098,9 @@
     <ClCompile Include="preferences\ServicesPanel.cpp">
       <Filter>Preferences</Filter>
     </ClCompile>
+    <ClCompile Include="ai\AIColorPaletteDialog.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
     <ClCompile Include="ai\aiBase.cpp">
       <Filter>ai</Filter>
     </ClCompile>
@@ -1109,6 +1108,16 @@
       <Filter>ai</Filter>
     </ClCompile>
     <ClCompile Include="CheckSequenceReport.cpp" />
+    <ClCompile Include="ai\ollama.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="ai\ServiceManager.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="ai\AIColorPaletteDialog.h" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonreader.cpp" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonval.cpp" />
+    <ClCompile Include="..\xSchedule\wxJSON\jsonwriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BatchRenderDialog.h" />
@@ -2153,7 +2162,6 @@
     <ClInclude Include="effects\DuplicatePanel.h">
       <Filter>Effects</Filter>
     </ClInclude>
-    <ClInclude Include="wxWEBPHandler\imagwebp.h" />
     <ClInclude Include="effects\AdjustEffect.h">
       <Filter>Effects</Filter>
     </ClInclude>
@@ -2227,6 +2235,19 @@
       <Filter>ai</Filter>
     </ClInclude>
     <ClInclude Include="CheckSequenceReport.h" />
+    <ClInclude Include="ai\ollama.h">
+      <Filter>ai</Filter>
+    </ClInclude>
+    <ClInclude Include="ai\ServiceManager.h">
+      <Filter>ai</Filter>
+    </ClInclude>
+    <ClInclude Include="ai\aiType.h">
+      <Filter>ai</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xSchedule\wxJSON\json_defs.h" />
+    <ClInclude Include="..\xSchedule\wxJSON\jsonreader.h" />
+    <ClInclude Include="..\xSchedule\wxJSON\jsonval.h" />
+    <ClInclude Include="..\xSchedule\wxJSON\jsonwriter.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Models">
