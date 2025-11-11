@@ -14,7 +14,7 @@
 
 #define BARCOUNT_MIN 1
 //#define BARCOUNT_MAX 50
-#define BARCOUNT_MAX 5
+#define BARCOUNT_MAX 20
 
 #define BARCYCLES_MIN 0
 //#define BARCYCLES_MAX 500

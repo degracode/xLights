@@ -13,7 +13,7 @@
 #include "RenderableEffect.h"
 
 #define SPIRALS_COUNT_MIN 1
-#define SPIRALS_COUNT_MAX 5
+#define SPIRALS_COUNT_MAX 30
 
 #define SPIRALS_MOVEMENT_MIN -200
 #define SPIRALS_MOVEMENT_MAX 200
