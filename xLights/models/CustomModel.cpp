@@ -679,11 +679,14 @@ int CustomModel::GetCustomMaxChannel(const std::string& customModel) const
 
     while (std::getline(ss, token, ',')) {
         if (!token.empty()) {
-            try {
-                maxval = std::max(std::stoi(token), maxval);
-            }
-            catch (...) {
-                // not a number, treat as 0
+            char firstChar = token[0];
+            if (std::isdigit(firstChar) || (token.size() > 1 && (firstChar == '-' || firstChar == '.' || std::isspace(firstChar)))) {
+                try {
+                    maxval = std::max(std::stoi(token), maxval);
+                }
+                catch (...) {
+                    // not a number, treat as 0
+                }
             }
         }
     }
